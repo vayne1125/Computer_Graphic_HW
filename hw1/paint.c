@@ -27,7 +27,7 @@
 #define    TEXT   7
 #define    PAINT 8
 
-//text mode
+//text mode & circle mode
 #define RANDOM 1
 #define FIXED 2
 
@@ -54,7 +54,7 @@ menu_t     top_m, text_mode_m, paint_mode_m, text_font_m;
 
 int        height = 800, width = 1000;
 unsigned char  image[SIZEX * SIZEY][4];  /* Image data in main memory */
-unsigned char myImage[SIZEX * SIZEY][4];
+unsigned char myImage[SIZEX][SIZEY][4];
 int        pos_x = -1, pos_y = -1;
 int        obj_type = PAINT;
 int        first = 0;      /* flag of initial points for lines and curve,..*/
@@ -80,7 +80,7 @@ int color_btn[9][5] = {
     { 225,13,260,25,0 },    //blue
     { 265,13,300,25,0 },    //dblue
     { 305,13,340,25,0 },    //purple
-    { 345,13,380,25,0 }     //black
+    { 345,13,380,25,1 }     //black
 };
 
 int type_btn[9][5] = {
@@ -108,7 +108,7 @@ int outSize[4] = { 65,76,169,92 };
 int inSize[4] = { 67,78,167,90 };
 int valueSize[4] = { 67,78,72,90 }; //pnt_size + 1 => value_size + 5
 int pnt_sizeBG[4] = { 175,76,195,92 };
-
+void grid_line(void);
 void change_color(int value) {
     //color = value;
     switch (value)
@@ -178,7 +178,7 @@ void change_size(int value) {
     glColor3f(0, 0, 0);
     glRasterPos2i(pnt_sizeBG[0], height - 91);
     for (char* i = c; *i != '\0'; i++) {
-        printf("%c", *i);
+        //printf("%c", *i);
         glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, *i);
     }
 }
@@ -187,7 +187,7 @@ void color_bar(void) {
     char* c = "Color\0";
     glRasterPos2i(15, height - 25);
     for (char* i = c; *i != '\0'; i++) {
-        printf("%c", *i);
+        // printf("%c", *i);
         glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, *i);
     }
     glColor3f(1.0, 240 / 255.0, 250 / 255.0);
@@ -245,56 +245,56 @@ void type_bar(void) {
     c = " point\0";
     glRasterPos2i(type_btn[1][0], height - 47);
     for (char* i = c; *i != '\0'; i++) {
-        printf("%c", *i);
+        //printf("%c", *i);
         glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, *i);
     }
 
     c = "  line\0";
     glRasterPos2i(type_btn[2][0], height - 47);
     for (char* i = c; *i != '\0'; i++) {
-        printf("%c", *i);
+        //printf("%c", *i);
         glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, *i);
     }
 
     c = " poly\0";
     glRasterPos2i(type_btn[3][0], height - 47);
     for (char* i = c; *i != '\0'; i++) {
-        printf("%c", *i);
+        // printf("%c", *i);
         glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, *i);
     }
 
     c = " circle\0";
     glRasterPos2i(type_btn[4][0], height - 47);
     for (char* i = c; *i != '\0'; i++) {
-        printf("%c", *i);
+        // printf("%c", *i);
         glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, *i);
     }
 
     c = " triangle\0";
     glRasterPos2i(type_btn[5][0], height - 47);
     for (char* i = c; *i != '\0'; i++) {
-        printf("%c", *i);
+        // printf("%c", *i);
         glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, *i);
     }
 
     c = " rectangle\0";
     glRasterPos2i(type_btn[6][0], height - 47);
     for (char* i = c; *i != '\0'; i++) {
-        printf("%c", *i);
+        //printf("%c", *i);
         glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, *i);
     }
 
     c = "  text\0";
     glRasterPos2i(type_btn[7][0], height - 47);
     for (char* i = c; *i != '\0'; i++) {
-        printf("%c", *i);
+        //  printf("%c", *i);
         glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, *i);
     }
 
     c = " paint\0";
     glRasterPos2i(type_btn[8][0], height - 47);
     for (char* i = c; *i != '\0'; i++) {
-        printf("%c", *i);
+        //   printf("%c", *i);
         glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, *i);
     }
 }
@@ -303,7 +303,7 @@ void file_bar(void) {
     char* c = "File\0";
     glRasterPos2i(17, height - 69);
     for (char* i = c; *i != '\0'; i++) {
-        printf("%c", *i);
+        // printf("%c", *i);
         glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, *i);
     }
     for (int i = 1; i <= 5; i++) {
@@ -322,28 +322,28 @@ void file_bar(void) {
     c = " save\0";
     glRasterPos2i(file_btn[1][0], height - 69);
     for (char* i = c; *i != '\0'; i++) {
-        printf("%c", *i);
+        //printf("%c", *i);
         glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, *i);
     }
 
     c = "load\0";
     glRasterPos2i(file_btn[2][0] + 5, height - 69);
     for (char* i = c; *i != '\0'; i++) {
-        printf("%c", *i);
+        // printf("%c", *i);
         glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, *i);
     }
 
     c = "blend\0";
     glRasterPos2i(file_btn[3][0] + 2, height - 69);
     for (char* i = c; *i != '\0'; i++) {
-        printf("%c", *i);
+        // printf("%c", *i);
         glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, *i);
     }
 
     c = " clear\0";
     glRasterPos2i(file_btn[4][0], height - 69);
     for (char* i = c; *i != '\0'; i++) {
-        printf("%c", *i);
+        // printf("%c", *i);
         glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, *i);
     }
 
@@ -351,7 +351,7 @@ void file_bar(void) {
     c = " quit\0";
     glRasterPos2i(file_btn[5][0] + 2, height - 69);
     for (char* i = c; *i != '\0'; i++) {
-        printf("%c", *i);
+        // printf("%c", *i);
         glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, *i);
     }
 
@@ -362,7 +362,7 @@ void size_bar(void) {
     char* c = "Size\0";
     glRasterPos2i(15, height - 91);
     for (char* i = c; *i != '\0'; i++) {
-        printf("%c", *i);
+        // printf("%c", *i);
         glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, *i);
     }
     //下面那條
@@ -404,13 +404,7 @@ void myMenu(void) {
 void file_func(int value);
 void mySave() {
     glReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE,
-        image);
-    for (int i = 0; i < width; i++)   /* Assign 0 opacity to black pixels */
-        for (int j = 0; j < height; j++)
-            if (myImage[i * width + j][0] == 0 &&
-                myImage[i * width + j][1] == 0 &&
-                myImage[i * width + j][2] == 0) myImage[i * width + j][3] = 0;
-            else myImage[i * width + j][3] = 127; /* Other pixels have A=127*/
+        myImage);
 }
 void myLoad() {
     glRasterPos2i(0, 0);
@@ -418,16 +412,44 @@ void myLoad() {
         GL_RGBA, GL_UNSIGNED_BYTE,
         myImage);
 }
+void grid_line() {
+    int gridSize = 15;
+    glColor3f(1.0, 194 / 255.0, 222 / 255.0);
+    for (int i = 0; i <= height; i += gridSize) {
+        int tp = 1;
+        if (i % (gridSize * 5) == 0) tp = 2;
+        glLineWidth(tp);     /* Define line width */
+        glBegin(GL_LINES);    /* Draw the line */
+        glVertex2f(0, height - i - 100);
+        glVertex2f(width, height - i - 100);
+        glEnd();
+    }
+    for (int i = 0; i <= width; i += gridSize) {
+        int tp = 1;
+        if (i % (gridSize * 5) == 0) tp = 2;
+        glLineWidth(tp);     /* Define line width */
+        glBegin(GL_LINES);    /* Draw the line */
+        glVertex2f(i, height - 100);
+        glVertex2f(i, 0);
+        glEnd();
+    }
+}
 /*------------------------------------------------------------
  * Callback function for display, redisplay, expose events
  * Just clear the window again
  */
+int cnt = 0;
 void display_func(void)
 {
+    //cnt = 0;
+    //printf("display  %d\n", cnt++);
     /* define window background color */
     //glClear(GL_COLOR_BUFFER_BIT);
     myMenu();
     glFlush();
+}
+void idle_func(void) {
+    //printf("idle  %d\n",cnt++);
 }
 /*-------------------------------------------------------------
  * reshape callback function for window.
@@ -446,6 +468,7 @@ void my_reshape(int new_w, int new_h)
     glClearColor(1.0, 1.0, 1.0, 1.0); //定義背景顏色
     glClear(GL_COLOR_BUFFER_BIT);//清除畫面
 
+    grid_line();
     myMenu();
 }
 /*--------------------------------------------------------------
@@ -492,8 +515,12 @@ void draw_polygon()
 /*------------------------------------------------------------
  * Procedure to draw a circle
  */
-void draw_circle()
+void draw_circle(int mode, int x)
 {
+    int tp = pnt_size;
+    if (mode == RANDOM) {
+        tp = abs(pos_x - x);
+    }
     static GLUquadricObj* mycircle = NULL;
 
     if (mycircle == NULL) {
@@ -504,7 +531,7 @@ void draw_circle()
     glTranslatef(pos_x, height - pos_y, 0.0);
     gluDisk(mycircle,
         0.0,           /* inner radius=0.0 */
-        pnt_size,          /* outer radius=10.0 */
+        tp,          /* outer radius=10.0 */
         16,            /* 16-side polygon */
         3);
     glPopMatrix();
@@ -559,7 +586,7 @@ void mouse_func(int button, int state, int x, int y) {
     }
     //size
     if (x >= inSize[0] && x <= inSize[2] && y >= inSize[1] && y <= inSize[3]) {
-        printf("size\n");
+        //printf("size\n");
         pnt_size = (x - inSize[0]) / 5.0;
         change_size(x - inSize[0]);
         change_color(color);
@@ -613,9 +640,12 @@ void mouse_func(int button, int state, int x, int y) {
             break;
         case CIRCLE:
             pos_x = x; pos_y = y;
-            draw_circle();
+            mySave();
+            //draw_circle();
             break;
         case TRIANGLE:
+            pos_x = x; pos_y = y;
+            mySave();
             break;
         case RECTANGLE:
             pos_x = x; pos_y = y;
@@ -665,14 +695,31 @@ void motion_func(int  x, int y) {
                     pos_x = x; pos_y = y;
                 }
                 else if (paint_mode == DOT) {
-                    draw_circle();
+                    draw_circle(FIXED, 0);
                     pos_x = x; pos_y = y;
                 }
             }
         }
         else if (obj_type == RECTANGLE) {
-
-
+            myLoad();
+            glBegin(GL_QUADS);
+            glVertex2i(pos_x, height - pos_y);
+            glVertex2i(x, height - pos_y);
+            glVertex2i(x, height - y);
+            glVertex2i(pos_x, height - y);
+            glEnd();
+        }
+        else if (obj_type == TRIANGLE) {
+            myLoad();
+            glBegin(GL_TRIANGLES);
+            glVertex2i(pos_x, height - pos_y);
+            glVertex2i(x, height - y);
+            glVertex2i(2 * pos_x - x, height - y);
+            glEnd();
+        }
+        else if (obj_type == CIRCLE) {
+            myLoad();
+            draw_circle(RANDOM, x);
         }
     }
     glFinish();
@@ -694,12 +741,9 @@ void init_window(void)
 
     glClearColor(1.0, 1.0, 1.0, 1.0); //背景
     glClear(GL_COLOR_BUFFER_BIT);//清除畫面
-
     my_reshape(width, height);
     glFlush();
 }
-
-
 /*------------------------------------------------------
  * Procedure to initialize data alighment and other stuff
  */
@@ -721,18 +765,23 @@ void file_func(int value)
     if (value == MY_QUIT) exit(0);
     else if (value == MY_CLEAR) init_window();
     else if (value == MY_SAVE) { /* Save current window */
-        glReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE,
+        glReadPixels(0, 0, width, height - 100, GL_RGBA, GL_UNSIGNED_BYTE,
             image);
-        for (i = 0; i < width; i++)   /* Assign 0 opacity to black pixels */
+        /*
+        for (i = 0; i < width; i++)   // Assign 0 opacity to black pixels
             for (j = 0; j < height; j++)
                 if (image[i * width + j][0] == 0 &&
                     image[i * width + j][1] == 0 &&
-                    image[i * width + j][2] == 0) image[i * width + j][3] = 0;
-                else image[i * width + j][3] = 127; /* Other pixels have A=127*/
+                    image[i * width + j][2] == 0) {
+                    image[i * width + j][3] = 0;
+                    printf("%d %d\n",i,j);
+                }
+                else image[i * width + j][3] = 127; // Other pixels have A=127
+            */
     }
     else if (value == MY_LOAD) { /* Restore the saved image */
         glRasterPos2i(0, 0);
-        glDrawPixels(width, height,
+        glDrawPixels(width, height - 100,
             GL_RGBA, GL_UNSIGNED_BYTE,
             image);
     }
@@ -798,7 +847,7 @@ void main(int argc, char** argv)
 
     glutDisplayFunc(display_func); /* Associate display event callback func */
     glutReshapeFunc(my_reshape);  /* Associate reshape event callback func */
-
+    glutIdleFunc(idle_func);
     glutKeyboardFunc(keyboard); /* Callback func for keyboard event */
 
     glutMouseFunc(mouse_func);  /* Mouse Button Callback func */
@@ -811,8 +860,8 @@ void main(int argc, char** argv)
     text_mode_m = glutCreateMenu(text_mode_func);
     glutAddMenuEntry("random", RANDOM);
     glutAddMenuEntry("fixed", FIXED);
-ITM
-    text_font_m = glutCreateMenu(text_font_func);   //GLUT_BITMAP_HELVETICA_18  GLUT_BAP_TIMES_ROMAN_24 GLUT_BITMAP_9_BY_15
+
+    text_font_m = glutCreateMenu(text_font_func);   //GLUT_BITMAP_HELVETICA_18  GLUT_BITMAP_TIMES_ROMAN_24 GLUT_BITMAP_9_BY_15
     glutAddMenuEntry("default", GLUT_BITMAP_9_BY_15);
     glutAddMenuEntry("Times Roman", GLUT_BITMAP_TIMES_ROMAN_24);
     glutAddMenuEntry("Helvetica", GLUT_BITMAP_HELVETICA_18);
@@ -834,4 +883,3 @@ ITM
     /*---Enter the event loop ----*/
     glutMainLoop();
 }
-
