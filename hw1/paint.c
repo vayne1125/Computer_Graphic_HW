@@ -7,8 +7,8 @@
 #include <stdlib.h>
 #include <math.h>
 #include <GL/glut.h>
-#define    SIZEX   1000
-#define    SIZEY   1000
+#define    SIZEX   2000
+#define    SIZEY   2000
 
  //file
 #define    MY_QUIT  5
@@ -50,11 +50,13 @@
 #define NOT_MOTION 2
 
 typedef    int   menu_t;
-menu_t     top_m, text_mode_m, paint_mode_m, text_font_m;
+menu_t     top_m, text_mode_m, paint_mode_m, text_font_m, grid_m, fill_m;
 
 int        height = 800, width = 1000;
 unsigned char  image[SIZEX * SIZEY][4];  /* Image data in main memory */
-unsigned char myImage[SIZEX][SIZEY][4];
+unsigned char myImage[SIZEX * SIZEY][4];
+unsigned char gridImage[SIZEX * SIZEY][4];
+
 int        pos_x = -1, pos_y = -1;
 int        obj_type = PAINT;
 int        first = 0;      /* flag of initial points for lines and curve,..*/
@@ -69,6 +71,7 @@ int paint_mode = NORMAL;
 int text_font = GLUT_BITMAP_HELVETICA_18;  //GLUT_BITMAP_HELVETICA_18  GLUT_BITMAP_TIMES_ROMAN_24 GLUT_BITMAP_9_BY_15
 char mySyting[1000];
 int stringIndex = 0;
+int fill = 0;
 
 int color_btn[9][5] = {
     //x1,y1,x2,y2,isMotion
@@ -109,6 +112,39 @@ int inSize[4] = { 67,78,167,90 };
 int valueSize[4] = { 67,78,72,90 }; //pnt_size + 1 => value_size + 5
 int pnt_sizeBG[4] = { 175,76,195,92 };
 void grid_line(void);
+void mySave(void);
+void myLoad(void);
+void grid_show_func(int value) {
+    mySave();
+    if (value == 0) {
+        for (int i = 0; i < SIZEX; i++) {
+            for (int j = 0; j < SIZEY; j++) {
+                if (myImage[i * width + j][0] == 255 && myImage[i * width + j][1] == 194 && myImage[i * width + j][2] == 222) {
+                    myImage[i * width + j][0] = 255;
+                    myImage[i * width + j][1] = 255;
+                    myImage[i * width + j][2] = 255;
+                    //printf("%d %d\n",i,j);
+                }
+            }
+        }
+    }
+    else {
+        for (int i = 0; i < SIZEX; i++) {
+            for (int j = 0; j < SIZEY; j++) {
+                if (myImage[i * width + j][0] == 255 && myImage[i * width + j][1] == 255 && myImage[i * width + j][2] == 255) {
+                    myImage[i * width + j][0] = gridImage[i * width + j][0];
+                    myImage[i * width + j][1] = gridImage[i * width + j][1];
+                    myImage[i * width + j][2] = gridImage[i * width + j][2];
+                    //myImage[i * width + j][0] = 0;
+                    //myImage[i * width + j][1] = 0;
+                    //myImage[i * width + j][2] = 0;
+                }
+            }
+        }
+    }
+    myLoad();
+    glFlush();
+}
 void change_color(int value) {
     //color = value;
     switch (value)
@@ -405,10 +441,16 @@ void file_func(int value);
 void mySave() {
     glReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE,
         myImage);
+    /* 255 194 222
+    for (int i = 0; i <= 10; i++) {
+        for (int j = height; j >= height - 10; j--) {
+            printf("%d %d %d\n",myImage[i][j][0], myImage[i][j][1], myImage[i][j][2]);
+        }
+    }*/
 }
 void myLoad() {
     glRasterPos2i(0, 0);
-    glDrawPixels(width, height,
+    glDrawPixels(width, height - 100,
         GL_RGBA, GL_UNSIGNED_BYTE,
         myImage);
 }
@@ -433,29 +475,50 @@ void grid_line() {
         glVertex2f(i, 0);
         glEnd();
     }
+    //將網格存起來
+    glReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE,
+        gridImage);
 }
 /*------------------------------------------------------------
  * Callback function for display, redisplay, expose events
  * Just clear the window again
  */
-int cnt = 0;
+int firstIn = 1;
+int displayOccur = 0;
 void display_func(void)
 {
+    printf("myDisplay\n");
+    //myLoad();
     //cnt = 0;
     //printf("display  %d\n", cnt++);
     /* define window background color */
     //glClear(GL_COLOR_BUFFER_BIT);
     myMenu();
+    if (firstIn) {
+        firstIn = 0;
+        grid_line();
+        mySave();
+    }
     glFlush();
+    displayOccur = 1;
+    //myLoad();
 }
 void idle_func(void) {
-    //printf("idle  %d\n",cnt++);
+    /*if (displayOccur) {
+        printf("idle\n");
+        mySave();
+        displayOccur = 0;
+    }*/
+    //if(firstIn)printf("idle\n");
+    //mySave();
 }
 /*-------------------------------------------------------------
  * reshape callback function for window.
  */
 void my_reshape(int new_w, int new_h)
 {
+
+    printf("myreshape\n");
     height = new_h;
     width = new_w;
     glMatrixMode(GL_PROJECTION);
@@ -467,8 +530,7 @@ void my_reshape(int new_w, int new_h)
 
     glClearColor(1.0, 1.0, 1.0, 1.0); //定義背景顏色
     glClear(GL_COLOR_BUFFER_BIT);//清除畫面
-
-    grid_line();
+    firstIn = 1;
     myMenu();
 }
 /*--------------------------------------------------------------
@@ -504,6 +566,7 @@ void keyboard(unsigned char key, int x, int y)
 void draw_polygon()
 {
     int  i;
+    glPolygonMode(GL_FRONT, fill);
     glBegin(GL_POLYGON);
     for (i = 0; i < side; i++)
         glVertex2f(vertex[i][0], height - vertex[i][1]);
@@ -518,8 +581,12 @@ void draw_polygon()
 void draw_circle(int mode, int x)
 {
     int tp = pnt_size;
+    int tp2 = 0;
     if (mode == RANDOM) {
         tp = abs(pos_x - x);
+        if (fill == GL_LINE) {
+            tp2 = tp - pnt_size;
+        }
     }
     static GLUquadricObj* mycircle = NULL;
 
@@ -530,7 +597,7 @@ void draw_circle(int mode, int x)
     glPushMatrix();
     glTranslatef(pos_x, height - pos_y, 0.0);
     gluDisk(mycircle,
-        0.0,           /* inner radius=0.0 */
+        tp2,           /* inner radius=0.0 */
         tp,          /* outer radius=10.0 */
         16,            /* 16-side polygon */
         3);
@@ -601,22 +668,8 @@ void mouse_func(int button, int state, int x, int y) {
             glEnd();
             break;
         case LINE:
-            if (first == 0) {
-                first = 1;
-                pos_x = x; pos_y = y;
-                glPointSize(0);
-                glBegin(GL_POINTS);   /*  Draw the 1st point */
-                glVertex3f(x, height - y, 0);
-                glEnd();
-            }
-            else {
-                first = 0;
-                glLineWidth(pnt_size);     /* Define line width */
-                glBegin(GL_LINES);    /* Draw the line */
-                glVertex2f(pos_x, height - pos_y);
-                glVertex2f(x, height - y);
-                glEnd();
-            }
+            mySave();
+            pos_x = x; pos_y = y;
             break;
         case POLYGON:  /* Define vertices of poly */
             if (side == 0) {
@@ -700,21 +753,49 @@ void motion_func(int  x, int y) {
                 }
             }
         }
+        else if (obj_type == LINE) {
+            myLoad();
+            glLineWidth(pnt_size);
+            glBegin(GL_LINES);
+            glVertex2f(pos_x, height - pos_y);
+            glVertex2f(x, height - y);
+            glEnd();
+        }
         else if (obj_type == RECTANGLE) {
             myLoad();
-            glBegin(GL_QUADS);
-            glVertex2i(pos_x, height - pos_y);
-            glVertex2i(x, height - pos_y);
-            glVertex2i(x, height - y);
-            glVertex2i(pos_x, height - y);
+            glLineWidth(pnt_size);
+            glPolygonMode(GL_FRONT, fill);
+            glBegin(GL_POLYGON);
+            if ((pos_x <= x && pos_y <= y) || (x <= pos_x && y <= pos_y)) {  //逆時針 到右下 或 左上
+                glVertex2i(pos_x, height - pos_y);
+                glVertex2i(pos_x, height - y);
+                glVertex2i(x, height - y);
+                glVertex2i(x, height - pos_y);
+            }
+            else {  //到右上 或 左上
+                glVertex2i(pos_x, height - pos_y);
+                glVertex2i(x, height - pos_y);
+                glVertex2i(x, height - y);
+                glVertex2i(pos_x, height - y);
+            }
             glEnd();
+            glFinish();
         }
         else if (obj_type == TRIANGLE) {
             myLoad();
-            glBegin(GL_TRIANGLES);
-            glVertex2i(pos_x, height - pos_y);
-            glVertex2i(x, height - y);
-            glVertex2i(2 * pos_x - x, height - y);
+            glLineWidth(pnt_size);
+            glPolygonMode(GL_FRONT, fill);
+            glBegin(GL_POLYGON);
+            if ((pos_x <= x && pos_y <= y) || (x <= pos_x && y <= pos_y)) {  //逆時針 到右下 或 左上
+                glVertex2i(pos_x, height - pos_y);
+                glVertex2i(2 * pos_x - x, height - y);
+                glVertex2i(x, height - y);
+            }
+            else {  //到右上 或 左上
+                glVertex2i(pos_x, height - pos_y);
+                glVertex2i(x, height - y);
+                glVertex2i(2 * pos_x - x, height - y);
+            }
             glEnd();
         }
         else if (obj_type == CIRCLE) {
@@ -730,6 +811,7 @@ void motion_func(int  x, int y) {
  */
 void init_window(void)
 {
+    printf("init window\n");
     /*Do nothing else but clear window to white*/
 
     glMatrixMode(GL_PROJECTION);
@@ -749,10 +831,12 @@ void init_window(void)
  */
 void init_func()
 {
+    printf("init fun\n");
     glReadBuffer(GL_FRONT);
     glDrawBuffer(GL_FRONT);
     glPixelStorei(GL_PACK_ALIGNMENT, 1);
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+    printf("end init fun\n");
 }
 
 /*------------------------------------------------------------
@@ -765,23 +849,23 @@ void file_func(int value)
     if (value == MY_QUIT) exit(0);
     else if (value == MY_CLEAR) init_window();
     else if (value == MY_SAVE) { /* Save current window */
-        glReadPixels(0, 0, width, height - 100, GL_RGBA, GL_UNSIGNED_BYTE,
+        glReadPixels(0, 0, SIZEX, SIZEY, GL_RGBA, GL_UNSIGNED_BYTE,
             image);
         /*
-        for (i = 0; i < width; i++)   // Assign 0 opacity to black pixels
-            for (j = 0; j < height; j++)
+        for (i = 0; i < SIZEX; i++)   // Assign 0 opacity to black pixels
+            for (j = 0; j < SIZEY; j++)
                 if (image[i * width + j][0] == 0 &&
                     image[i * width + j][1] == 0 &&
                     image[i * width + j][2] == 0) {
                     image[i * width + j][3] = 0;
-                    printf("%d %d\n",i,j);
+                    //printf("%d %d\n",i,j);
                 }
                 else image[i * width + j][3] = 127; // Other pixels have A=127
             */
     }
     else if (value == MY_LOAD) { /* Restore the saved image */
         glRasterPos2i(0, 0);
-        glDrawPixels(width, height - 100,
+        glDrawPixels(SIZEX, SIZEY,
             GL_RGBA, GL_UNSIGNED_BYTE,
             image);
     }
@@ -807,7 +891,9 @@ void size_func(int value)
         if (pnt_size > 1.0) pnt_size = pnt_size - 1.0;
     }
 }
-
+void fill_show_func(int value) {
+    fill = value;
+}
 void text_mode_func(int value) {
     text_mode = value;
 }
@@ -866,10 +952,20 @@ void main(int argc, char** argv)
     glutAddMenuEntry("Times Roman", GLUT_BITMAP_TIMES_ROMAN_24);
     glutAddMenuEntry("Helvetica", GLUT_BITMAP_HELVETICA_18);
 
+    grid_m = glutCreateMenu(grid_show_func);
+    glutAddMenuEntry("Show", 1);
+    glutAddMenuEntry("unShow", 0);
+
+    fill_m = glutCreateMenu(fill_show_func);
+    glutAddMenuEntry("Fill", GL_FILL);
+    glutAddMenuEntry("Line", GL_LINE);
+
     top_m = glutCreateMenu(top_menu_func);/* Create top menu */
     glutAddSubMenu("Paint mode", paint_mode_m);
     glutAddSubMenu("Text mode", text_mode_m);
     glutAddSubMenu("Text font", text_font_m);
+    glutAddSubMenu("Grid", grid_m);
+    glutAddSubMenu("Fill", fill_m);
 
     glutAttachMenu(GLUT_RIGHT_BUTTON);    /* associate top-menu with right but*/
 
