@@ -1,23 +1,19 @@
-/******************************************************************
- * This program illustrates the fundamental instructions for handling
- * mouse and keyboeard events as well as menu buttons.
- */
 #define _CRT_SECURE_NO_WARNINGS
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
 #include <GL/glut.h>
-#define    SIZEX   2000
+#define    SIZEX   2000   //畫面大小 ->開大一點 reshape後load才會正常
 #define    SIZEY   2000
 
- //file
-#define    MY_QUIT  5
-#define    MY_CLEAR 4
+//file 相關常數
 #define    MY_SAVE  1
+#define    MY_LOAD  2      
 #define    MY_BLEND 3
-#define    MY_LOAD  2
+#define    MY_CLEAR 4
+#define    MY_QUIT  5 
 
-//obj_type
+//obj_type 相關常數
 #define    POINT   1
 #define    LINE    2
 #define    POLYGON 3
@@ -27,15 +23,16 @@
 #define    TEXT   7
 #define    PAINT 8
 
-//text mode & circle mode
+//text mode & circle mode 相關常數
 #define RANDOM 1
 #define FIXED 2
+#define CURSOR 3  //for 游標的圓形
 
-//paint mode
-#define NORMAL 1
+//paint mode 相關常數
+#define NORMAL 1  
 #define DOT 2
 
-//color
+//color 相關常數
 #define RED 1
 #define ORANGE 2
 #define YELLOW 3
@@ -45,36 +42,32 @@
 #define PURPLE 7
 #define BLACK 8
 
-//motion
-#define MOTION 1
-#define NOT_MOTION 2
-
 typedef    int   menu_t;
-menu_t     top_m, text_mode_m, paint_mode_m, text_font_m, grid_m, fill_m;
+menu_t     top_m, text_mode_m, text_font_m;
 
-int        height = 800, width = 1000;
-unsigned char  image[SIZEX * SIZEY][4];  /* Image data in main memory */
-unsigned char myImage[SIZEX * SIZEY][4];
-unsigned char gridImage[SIZEX * SIZEY][4];
+int        height = 800, width = 1000;       //螢幕大小
+unsigned char  image[SIZEX * SIZEY][4];      //Image data in main memory for user save
+unsigned char myImage[SIZEX * SIZEY][4];     //for 一些功能需要的save
+unsigned char gridImage[SIZEX * SIZEY][4];   //存純網格的圖案
 
-int        pos_x = -1, pos_y = -1;
-int        obj_type = PAINT;
-int        first = 0;      /* flag of initial points for lines and curve,..*/
-int        vertex[128][2]; /*coords of vertices */
-int        side = 0;         /*num of sides of polygon */
-float      pnt_size = 1.0;
+int        pos_x = -1, pos_y = -1;           //位置
+int        obj_type = PAINT;                 //預設是筆筆
+int        first = 0;                        //flag of initial points for lines and paint
+int        vertex[128][2];                   //coords of vertices 
+int        side = 0;                         //num of sides of polygon
+float      pnt_size = 10.0;                  //筆刷大小
+//int menuShow = 0;
 
-int isMotion = NOT_MOTION;
-int color = BLACK;
-int text_mode = RANDOM;
-int paint_mode = NORMAL;
-int text_font = GLUT_BITMAP_HELVETICA_18;  //GLUT_BITMAP_HELVETICA_18  GLUT_BITMAP_TIMES_ROMAN_24 GLUT_BITMAP_9_BY_15
-char mySyting[1000];
-int stringIndex = 0;
-int fill = 0;
+int color = BLACK;                           //初始顏色預設黑
+int text_mode = RANDOM;                      //初始打字模式預設隨機
+int paint_mode = NORMAL;                     //初始畫筆預設normal
+int text_font = GLUT_BITMAP_HELVETICA_18;    //字型:GLUT_BITMAP_HELVETICA_18  GLUT_BITMAP_TIMES_ROMAN_24 GLUT_BITMAP_9_BY_15
+char mySyting[1000];                         //打字專用陣列
+int stringIndex = 0;                         //打字的index
+int fill = 0;                                //是否填滿 0->不填滿  1->填滿
 
 int color_btn[9][5] = {
-    //x1,y1,x2,y2,isMotion
+    //x1,y1,x2,y2,isPress
     {  0,  0,  0, 0,0 },
     { 65, 13,100,25,0 },    //red
     { 105,13,140,25,0 },    //orange
@@ -87,6 +80,7 @@ int color_btn[9][5] = {
 };
 
 int type_btn[9][5] = {
+    //x1,y1,x2,y2,isPress
     {   0,  0,   0,  0, 0},
     {  65, 36, 100, 48, 0}, //point
     { 105, 36, 140, 48, 0}, //line
@@ -99,6 +93,7 @@ int type_btn[9][5] = {
 };
 
 int file_btn[6][5] = {
+    //x1,y1,x2,y2,isPassiveMotion
     {   0,  0,   0,  0, 0},
     {  65, 59, 100, 71, 0},   //save
     { 105, 59, 140, 71, 0},   //load
@@ -107,16 +102,24 @@ int file_btn[6][5] = {
     { 225, 59, 260, 71, 0},   //quit
 };
 
-int outSize[4] = { 65,76,169,92 };
-int inSize[4] = { 67,78,167,90 };
-int valueSize[4] = { 67,78,72,90 }; //pnt_size + 1 => value_size + 5
-int pnt_sizeBG[4] = { 175,76,195,92 };
+int advance_btn[5][5] = {
+    //x1,y1,x2,y2,isPress
+    {   0, 0,   0, 0, 0},
+    { 485, 13,500,25, 1},    //grid
+    { 485, 36,500,48, 1},    //fill
+    { 440, 78,455,90, 1},    //paint mode - normal
+    { 505, 78,520,90, 0},    //paint mode - dot
+};
+int outSize[4] = { 65,76,169,92 };          //size最下面那層
+int inSize[4] = { 67,78,167,90 };           //size中間那層
+int valueSize[4] = { 67,78,72,90 };         //pnt_size + 1 => value_size + 5   最上面那層 (每次重畫中間和上面，達到效果)
+int pnt_sizeBG[4] = { 175,76,195,92 };      //秀出現在大小的格子
 void grid_line(void);
 void mySave(void);
 void myLoad(void);
-void grid_show_func(int value) {
-    mySave();
-    if (value == 0) {
+void grid_show_func(int value) {            //是否顯示網格 
+    mySave();                               //將現在畫面存在myImage裡
+    if (value == 0) {                       //不顯示 -> 將myImage陣列中有格子線的地方塗白
         for (int i = 0; i < SIZEX; i++) {
             for (int j = 0; j < SIZEY; j++) {
                 if (myImage[i * width + j][0] == 255 && myImage[i * width + j][1] == 194 && myImage[i * width + j][2] == 222) {
@@ -129,21 +132,18 @@ void grid_show_func(int value) {
         }
     }
     else {
-        for (int i = 0; i < SIZEX; i++) {
+        for (int i = 0; i < SIZEX; i++) {  //顯示 -> 將myImage的白色的地方照著網格塗一次
             for (int j = 0; j < SIZEY; j++) {
                 if (myImage[i * width + j][0] == 255 && myImage[i * width + j][1] == 255 && myImage[i * width + j][2] == 255) {
                     myImage[i * width + j][0] = gridImage[i * width + j][0];
                     myImage[i * width + j][1] = gridImage[i * width + j][1];
                     myImage[i * width + j][2] = gridImage[i * width + j][2];
-                    //myImage[i * width + j][0] = 0;
-                    //myImage[i * width + j][1] = 0;
-                    //myImage[i * width + j][2] = 0;
                 }
             }
         }
     }
-    myLoad();
-    glFlush();
+    myLoad();                            //把myImage load在畫面上
+    glFlush();                           //刷新畫面
 }
 void change_color(int value) {
     //color = value;
@@ -200,7 +200,6 @@ void change_size(int value) {
 
     //數字底色
     glColor3f(1.0, 240 / 255.0, 250 / 255.0);
-    //glColor3f(1, 0, 1);
     glBegin(GL_QUADS);
     glVertex2i(pnt_sizeBG[0], height - pnt_sizeBG[1]);
     glVertex2i(pnt_sizeBG[2], height - pnt_sizeBG[1]);
@@ -226,7 +225,7 @@ void color_bar(void) {
         // printf("%c", *i);
         glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, *i);
     }
-    glColor3f(1.0, 240 / 255.0, 250 / 255.0);
+    glColor3f(1.0, 240 / 255.0, 250 / 255.0); //框框
     for (int i = 1; i <= 8; i++) {
         glBegin(GL_QUADS);
         glVertex2i(color_btn[i][0], height - color_btn[i][1]);
@@ -336,7 +335,7 @@ void type_bar(void) {
 }
 void file_bar(void) {
     glColor3f(0.0, 0.0, 0.0);
-    char* c = "File\0";
+    char* c = "F i le\0";
     glRasterPos2i(17, height - 69);
     for (char* i = c; *i != '\0'; i++) {
         // printf("%c", *i);
@@ -409,8 +408,62 @@ void size_bar(void) {
     glVertex2i(outSize[2], height - outSize[3]);
     glVertex2i(outSize[0], height - outSize[3]);
     glEnd();
-
     change_size(pnt_size * 5);
+}
+void advance_setting_bar(void) {
+    glColor3f(0.0, 0.0, 0.0);
+    char* c = "Grid\0";
+    glRasterPos2i(440, height - 25);
+    for (char* i = c; *i != '\0'; i++) {
+        // printf("%c", *i);
+        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, *i);
+    }
+    c = "Fi l l\0";
+    glRasterPos2i(440, height - 47);
+    for (char* i = c; *i != '\0'; i++) {
+        // printf("%c", *i);
+        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, *i);
+    }
+    c = "Paint Mode\0";
+    glRasterPos2i(440, height - 69);
+    for (char* i = c; *i != '\0'; i++) {
+        // printf("%c", *i);
+        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, *i);
+    }
+    c = "normal\0";
+    glRasterPos2i(460, height - 88);
+    for (char* i = c; *i != '\0'; i++) {
+        // printf("%c", *i);
+        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, *i);
+    }
+    c = "dot\0";
+    glRasterPos2i(525, height - 88);
+    for (char* i = c; *i != '\0'; i++) {
+        // printf("%c", *i);
+        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, *i);
+    }
+
+    glColor3f(1.0, 194 / 255.0, 222 / 255.0);
+    for (int i = 1; i <= 4; i++) {
+        glBegin(GL_QUADS);
+        glVertex2i(advance_btn[i][0], height - advance_btn[i][1]);
+        glVertex2i(advance_btn[i][2], height - advance_btn[i][1]);
+        glVertex2i(advance_btn[i][2], height - advance_btn[i][3]);
+        glVertex2i(advance_btn[i][0], height - advance_btn[i][3]);
+        glEnd();
+    }
+    glColor3f(0.0, 0.0, 0.0);
+    for (int i = 1; i <= 4; i++) {
+        if (advance_btn[i][4]) {
+            glLineWidth(2);
+            glBegin(GL_LINES);
+            glVertex2i(advance_btn[i][0] + 3, height - advance_btn[i][1] - 5);
+            glVertex2i(advance_btn[i][0] + 6, height - advance_btn[i][3]);
+            glVertex2i(advance_btn[i][0] + 6, height - advance_btn[i][3]);
+            glVertex2i(advance_btn[i][2] - 1, height - advance_btn[i][1]);
+            glEnd();
+        }
+    }
 }
 void myMenu(void) {
     //glPolygonMode(GL_FRONT, GL_FILL);
@@ -435,9 +488,11 @@ void myMenu(void) {
     type_bar();
     file_bar();
     size_bar();
+    advance_setting_bar();
     change_color(color);
 }
 void file_func(int value);
+void draw_circle(int mode, int x);
 void mySave() {
     glReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE,
         myImage);
@@ -478,15 +533,16 @@ void grid_line() {
     //將網格存起來
     glReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE,
         gridImage);
+    advance_btn[1][4] = 1;//將網格設為開啟
 }
-/*------------------------------------------------------------
- * Callback function for display, redisplay, expose events
- * Just clear the window again
- */
-int firstIn = 1;
+int firstIn = 1;  //重新存一次grid
 int displayOccur = 0;
 void display_func(void)
 {
+    /*------------------------------------------------------------
+     * Callback function for display, redisplay, expose events
+     * Just clear the window again
+     */
     printf("myDisplay\n");
     //myLoad();
     //cnt = 0;
@@ -504,6 +560,18 @@ void display_func(void)
     //myLoad();
 }
 void idle_func(void) {
+    if (obj_type == PAINT && menuShow == 0) {
+        if (pos_y >= 110) {
+            //glutSetCursor(GLUT_CURSOR_NONE);
+            mySave();
+            draw_circle(CURSOR, 0);
+            glFlush();
+            myLoad();
+        }
+        else {
+            glutSetCursor(GLUT_CURSOR_INHERIT);
+        }
+    }
     /*if (displayOccur) {
         printf("idle\n");
         mySave();
@@ -517,7 +585,6 @@ void idle_func(void) {
  */
 void my_reshape(int new_w, int new_h)
 {
-
     printf("myreshape\n");
     height = new_h;
     width = new_w;
@@ -582,7 +649,10 @@ void draw_circle(int mode, int x)
 {
     int tp = pnt_size;
     int tp2 = 0;
-    if (mode == RANDOM) {
+    if (mode == CURSOR) {
+        tp = 5;
+    }
+    else if (mode == RANDOM) {
         tp = abs(pos_x - x);
         if (fill == GL_LINE) {
             tp2 = tp - pnt_size;
@@ -609,7 +679,14 @@ void draw_circle(int mode, int x)
  */
 void mouse_func(int button, int state, int x, int y) {
     //printf("%d %d:::\n", button, state);
-    if (button == 0 && state == 1 && obj_type == PAINT) { //右鍵放開 (代碼是錯的...)
+    //printf("%d,%d\n",x,y);
+    pos_x = x;
+    pos_y = y;
+    if (button == 1 && state == 0) {                      //按下左鍵
+        menuShow = 1;
+        printf("PRESS LEFT");
+    }
+    if (button == 0 && state == 1 && obj_type == PAINT) { //左鍵放開 (代碼是錯的...)
         first = 0;
     }
     if (button == 0 && state == 0 && obj_type == TEXT) {
@@ -655,10 +732,34 @@ void mouse_func(int button, int state, int x, int y) {
     if (x >= inSize[0] && x <= inSize[2] && y >= inSize[1] && y <= inSize[3]) {
         //printf("size\n");
         pnt_size = (x - inSize[0]) / 5.0;
+        if (pnt_size < 1) pnt_size = 1;
         change_size(x - inSize[0]);
         change_color(color);
     }
-    // return;
+    //advance setting
+    for (int i = 1; i <= 4; i++) {
+        if (x >= advance_btn[i][0] && x <= advance_btn[i][2] && y >= advance_btn[i][1] && y <= advance_btn[i][3]) {
+            if (advance_btn[i][4] == 0) {
+                advance_btn[i][4] = 1;
+                if (i == 1)grid_show_func(1);
+                else if (i == 2) fill = GL_FILL;
+                else if (i == 3) {
+                    paint_mode = NORMAL;
+                    advance_btn[4][4] = 0;
+                }
+                else if (i == 4) {
+                    paint_mode = DOT;
+                    advance_btn[3][4] = 0;
+                }
+            }
+            else {
+                if (i == 3 || i == 4) continue;      //paint mode不能取消 一定要勾
+                advance_btn[i][4] = 0;
+                if (i == 1)grid_show_func(0);
+                else if (i == 2) fill = GL_LINE;
+            }
+        }
+    }
     if (y >= 100) {
         switch (obj_type) {
         case POINT:
@@ -715,6 +816,9 @@ void mouse_func(int button, int state, int x, int y) {
 }
 void passive_motion_func(int x, int y) {
     //file
+    pos_x = x;
+    pos_y = y;
+    //printf("%d %d\n", pos_x, pos_y);
     if (y <= 100) {
         for (int i = 1; i <= 5; i++) {
             if (x >= file_btn[i][0] && x <= file_btn[i][2] && y >= file_btn[i][1] && y <= file_btn[i][3]) {
@@ -892,17 +996,25 @@ void size_func(int value)
     }
 }
 void fill_show_func(int value) {
+    printf("0\n");
+    //menuShow = 0;
     fill = value;
 }
 void text_mode_func(int value) {
+    printf("0\n");
+    // menuShow = 0;
     text_mode = value;
 }
 
 void paint_mode_func(int value) {
+    printf("0\n");
+    // menuShow = 0;
     paint_mode = value;
 }
 
 void text_font_func(int value) {
+    printf("0\n");
+    // menuShow = 0;
     text_font = value;
     stringIndex = 0;
 }
@@ -912,6 +1024,8 @@ void text_font_func(int value) {
  */
 void top_menu_func(int value)
 {
+    printf("1\n");
+    //menuShow = 1;
 }
 
 /*---------------------------------------------------------------
@@ -939,9 +1053,6 @@ void main(int argc, char** argv)
     glutMouseFunc(mouse_func);  /* Mouse Button Callback func */
     glutMotionFunc(motion_func);/* Mouse motion event callback func */
     glutPassiveMotionFunc(passive_motion_func);
-    paint_mode_m = glutCreateMenu(paint_mode_func);
-    glutAddMenuEntry("normal", NORMAL);
-    glutAddMenuEntry("dot", DOT);
 
     text_mode_m = glutCreateMenu(text_mode_func);
     glutAddMenuEntry("random", RANDOM);
@@ -952,20 +1063,9 @@ void main(int argc, char** argv)
     glutAddMenuEntry("Times Roman", GLUT_BITMAP_TIMES_ROMAN_24);
     glutAddMenuEntry("Helvetica", GLUT_BITMAP_HELVETICA_18);
 
-    grid_m = glutCreateMenu(grid_show_func);
-    glutAddMenuEntry("Show", 1);
-    glutAddMenuEntry("unShow", 0);
-
-    fill_m = glutCreateMenu(fill_show_func);
-    glutAddMenuEntry("Fill", GL_FILL);
-    glutAddMenuEntry("Line", GL_LINE);
-
     top_m = glutCreateMenu(top_menu_func);/* Create top menu */
-    glutAddSubMenu("Paint mode", paint_mode_m);
     glutAddSubMenu("Text mode", text_mode_m);
     glutAddSubMenu("Text font", text_font_m);
-    glutAddSubMenu("Grid", grid_m);
-    glutAddSubMenu("Fill", fill_m);
 
     glutAttachMenu(GLUT_RIGHT_BUTTON);    /* associate top-menu with right but*/
 
