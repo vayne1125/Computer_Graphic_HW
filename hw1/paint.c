@@ -49,9 +49,8 @@
 #define PURPLE  7
 #define BLACK   8
 #define BLUE_PU       9
-#define LIGHT_PINK    100       //UI顏色 不可用
-#define DEEP_PINK     101  
-#define MOTION_PINK   102
+#define GRAY    100       //UI顏色 不可用
+#define DARK_PINK   102
 #define WHITE         103
 
 typedef    int   menu_t;
@@ -161,11 +160,11 @@ void grid_show_func(int value) {            //是否顯示網格
     if (value == 0) {                       //不顯示 -> 將myImage陣列中有格子線的地方塗白
         for (int i = 0; i < SIZEX; i++) {
             for (int j = 0; j < SIZEY; j++) {
-                if (myImage[i * width + j][0] == 255 && myImage[i * width + j][1] == 194 && myImage[i * width + j][2] == 222) {
+                //if (i <= 50 && j <= 50)printf("%d %d %d\n", myImage[i * width + j][0], myImage[i * width + j][1], myImage[i * width + j][2] );
+                if (myImage[i * width + j][0] == 208 && myImage[i * width + j][1] == 159 && myImage[i * width + j][2] == 159) {
                     myImage[i * width + j][0] = 255;
                     myImage[i * width + j][1] = 255;
                     myImage[i * width + j][2] = 255;
-                    //printf("%d %d\n",i,j);
                 }
             }
         }
@@ -211,13 +210,10 @@ void change_color(int value) {  //設定畫筆顏色
     case BLACK:
         glColor3f(0, 0, 0.0);
         break;
-    case LIGHT_PINK:                               //rgb(255, 235, 244) 
-        glColor3f(1.0, 240 / 255.0, 250 / 255.0);
+    case GRAY:
+        glColor3f(248 / 255.0, 241 / 255.0, 241 / 255.0);
         break;
-    case DEEP_PINK:
-        glColor3f(1.0, 194 / 255.0, 222 / 255.0);
-        break;
-    case MOTION_PINK:
+    case DARK_PINK:
         glColor3f(208 / 255.0, 159 / 255.0, 159 / 255.0);
         break;
     case WHITE:
@@ -233,7 +229,7 @@ void change_color(int value) {  //設定畫筆顏色
 void change_size(int value) {           //調整畫筆大小
     char c[5];
     //上面那條
-    change_color(LIGHT_PINK);
+    change_color(GRAY);
     glBegin(GL_QUADS);
     glVertex2i(inSize[0], height - inSize[1]);
     glVertex2i(inSize[2], height - inSize[1]);
@@ -243,7 +239,7 @@ void change_size(int value) {           //調整畫筆大小
     if (value < 5) value = 5;
     valueSize[2] = valueSize[0] + value;
     //調值
-    change_color(DEEP_PINK);
+    change_color(DARK_PINK);
     glBegin(GL_QUADS);
     glVertex2i(valueSize[0], height - valueSize[1]);
     glVertex2i(valueSize[2], height - valueSize[1]);
@@ -252,7 +248,7 @@ void change_size(int value) {           //調整畫筆大小
     glEnd();
 
     //數字底色
-    change_color(LIGHT_PINK);
+    change_color(GRAY);
     glBegin(GL_QUADS);
     glVertex2i(pnt_sizeBG[0], height - pnt_sizeBG[1]);
     glVertex2i(pnt_sizeBG[2], height - pnt_sizeBG[1]);
@@ -274,7 +270,7 @@ void color_bar(void) {                   //顏色選擇bar
     glRasterPos2i(15, height - 25);
     for (char* i = c; *i != '\0'; i++) glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, *i);
 
-    change_color(LIGHT_PINK);           //框框(選擇時會變小，所以要先用底色重新畫)
+    change_color(GRAY);           //框框(選擇時會變小，所以要先用底色重新畫)
     for (int i = 1; i <= 8; i++) {
         glBegin(GL_QUADS);
         glVertex2i(color_btn[i][0], height - color_btn[i][1]);
@@ -310,7 +306,7 @@ void type_bar(void) {                //type選擇bar
     for (char* i = c; *i != '\0'; i++) glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, *i);
 
     for (int i = 1; i <= 8; i++) {
-        if (obj_type == i) change_color(MOTION_PINK);  //被選到就換色
+        if (obj_type == i) change_color(DARK_PINK);  //被選到就換色
         else change_color(WHITE);                        //沒被選到就原本顏色
         glBegin(GL_QUADS);
         glVertex2i(type_btn[i][0], height - type_btn[i][1]);
@@ -320,35 +316,50 @@ void type_bar(void) {                //type選擇bar
         glEnd();
     }
     //印出選項的名字
-    change_color(BLACK);
+    if (type_btn[1][4]) change_color(WHITE);
+    else  change_color(BLACK);
     c = " point\0";
     glRasterPos2i(type_btn[1][0], height - 47);
     for (char* i = c; *i != '\0'; i++) glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, *i);
 
+    if (type_btn[2][4]) change_color(WHITE);
+    else  change_color(BLACK);
     c = "  line\0";
     glRasterPos2i(type_btn[2][0], height - 47);
     for (char* i = c; *i != '\0'; i++) glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, *i);
 
+    if (type_btn[3][4]) change_color(WHITE);
+    else  change_color(BLACK);
     c = " poly\0";
     glRasterPos2i(type_btn[3][0], height - 47);
     for (char* i = c; *i != '\0'; i++) glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, *i);
 
+    if (type_btn[4][4]) change_color(WHITE);
+    else  change_color(BLACK);
     c = " circle\0";
     glRasterPos2i(type_btn[4][0], height - 47);
     for (char* i = c; *i != '\0'; i++) glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, *i);
 
+    if (type_btn[5][4]) change_color(WHITE);
+    else  change_color(BLACK);
     c = " triangle\0";
     glRasterPos2i(type_btn[5][0], height - 47);
     for (char* i = c; *i != '\0'; i++) glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, *i);
 
+    if (type_btn[6][4]) change_color(WHITE);
+    else  change_color(BLACK);
     c = " rectangle\0";
     glRasterPos2i(type_btn[6][0], height - 47);
     for (char* i = c; *i != '\0'; i++) glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, *i);
 
+    if (type_btn[7][4]) change_color(WHITE);
+    else  change_color(BLACK);
     c = "  text\0";
     glRasterPos2i(type_btn[7][0], height - 47);
     for (char* i = c; *i != '\0'; i++) glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, *i);
 
+    if (type_btn[8][4]) change_color(WHITE);
+    else  change_color(BLACK);
     c = " paint\0";
     glRasterPos2i(type_btn[8][0], height - 47);
     for (char* i = c; *i != '\0'; i++) glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, *i);
@@ -360,8 +371,8 @@ void file_bar(void) {            //file選擇bar
     for (char* i = c; *i != '\0'; i++) glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, *i);
 
     for (int i = 1; i <= 5; i++) {
-        if (file_btn[i][4] == 1) change_color(MOTION_PINK);      //如果passive motion就變色(滑鼠移到上面)
-        else change_color(DEEP_PINK);
+        if (file_btn[i][4] == 1) change_color(DARK_PINK);      //如果passive motion就變色(滑鼠移到上面)
+        else change_color(WHITE);
         glBegin(GL_QUADS);
         glVertex2i(file_btn[i][0], height - file_btn[i][1]);
         glVertex2i(file_btn[i][2], height - file_btn[i][1]);
@@ -370,23 +381,32 @@ void file_bar(void) {            //file選擇bar
         glEnd();
     }
     //選項名字
-    glColor3f(0.0, 0.0, 0.0);
+    if (file_btn[1][4]) change_color(WHITE);
+    else  change_color(BLACK);
     c = " save\0";
     glRasterPos2i(file_btn[1][0], height - 69);
     for (char* i = c; *i != '\0'; i++) glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, *i);
 
+    if (file_btn[2][4]) change_color(WHITE);
+    else  change_color(BLACK);
     c = "load\0";
     glRasterPos2i(file_btn[2][0] + 5, height - 69);
     for (char* i = c; *i != '\0'; i++) glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, *i);
 
+    if (file_btn[3][4]) change_color(WHITE);
+    else  change_color(BLACK);
     c = "blend\0";
     glRasterPos2i(file_btn[3][0] + 2, height - 69);
     for (char* i = c; *i != '\0'; i++) glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, *i);
 
+    if (file_btn[4][4]) change_color(WHITE);
+    else  change_color(BLACK);
     c = " clear\0";
     glRasterPos2i(file_btn[4][0], height - 69);
     for (char* i = c; *i != '\0'; i++) glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, *i);
 
+    if (file_btn[1][4]) change_color(WHITE);
+    else  change_color(BLACK);
     c = " quit\0";
     glRasterPos2i(file_btn[5][0] + 2, height - 69);
     for (char* i = c; *i != '\0'; i++) glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, *i);
@@ -399,7 +419,7 @@ void size_bar(void) {            //調整size的地方
     for (char* i = c; *i != '\0'; i++) glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, *i);
 
     //下面那條
-    change_color(DEEP_PINK);
+    change_color(DARK_PINK);
     glBegin(GL_QUADS);
     glVertex2i(outSize[0], height - outSize[1]);
     glVertex2i(outSize[2], height - outSize[1]);
@@ -458,7 +478,7 @@ void advance_setting_bar(void) {         //進階設定的bar
     glRasterPos2i(660, height - 69);
     for (char* i = c; *i != '\0'; i++) glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, *i);
 
-    change_color(DEEP_PINK);
+    change_color(WHITE);
     for (int i = 1; i <= 8; i++) {       //畫勾選方格
         glBegin(GL_QUADS);
         glVertex2i(advance_btn[i][0], height - advance_btn[i][1]);
@@ -468,7 +488,7 @@ void advance_setting_bar(void) {         //進階設定的bar
         glEnd();
     }
 
-    change_color(BLACK);
+    change_color(DARK_PINK);
     for (int i = 1; i <= 8; i++) {
         if (advance_btn[i][4]) {         //被選到就打勾
             glLineWidth(2);
@@ -481,7 +501,7 @@ void advance_setting_bar(void) {         //進階設定的bar
         }
     }
 }
-void draw_pupu(int x, int y, int type) {
+void draw_pupu(int x, int y, int type) { //畫史萊姆
     if (type == NORMAL_PUPU_LB || type == SHY_PUPU_LB)change_color(BLUE);
     else change_color(BLUE_PU);
     static GLUquadricObj* mycircle = NULL;
@@ -540,12 +560,13 @@ void draw_pupu(int x, int y, int type) {
     }
 }
 void pupu_bar(void) {
+    //史萊姆的bar
     change_color(BLACK);
     char* c = "Sticker\0";
     glRasterPos2i(pupu_btn[1][0] + 15, height - 25);
     for (char* i = c; *i != '\0'; i++) glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, *i);
     //點擊範圍
-    change_color(LIGHT_PINK);
+    change_color(GRAY);
     for (int i = 1; i <= 1; i++) {
         glBegin(GL_QUADS);
         glVertex2i(pupu_btn[i][0], height - pupu_btn[i][1]);
@@ -561,7 +582,7 @@ void sticker_menu(void) {
 
     if (pupu_btn[1][4]) {                   //滑到史萊姆，顯示第一層menu
         for (int i = 1; i <= 2; i++) {
-            if (sticker_menu_1[i][4]) change_color(MOTION_PINK);
+            if (sticker_menu_1[i][4]) change_color(DARK_PINK);
             else change_color(WHITE);
             glBegin(GL_QUADS);
             glVertex2i(sticker_menu_1[i][0], height - sticker_menu_1[i][1]);
@@ -571,7 +592,7 @@ void sticker_menu(void) {
             glEnd();
 
             if (sticker_menu_1[i][4]) change_color(WHITE);                   //箭頭
-            else  change_color(MOTION_PINK);
+            else  change_color(DARK_PINK);
             glPolygonMode(GL_FRONT, GL_FILL);
             glBegin(GL_POLYGON);
             glVertex2i(sticker_menu_1[i][2] - 2, height - sticker_menu_1[i][1] - 7.5);
@@ -594,7 +615,7 @@ void sticker_menu(void) {
 
     if (sticker_menu_1[1][4]) {                     ////滑到pupu，顯示第二層menu
         for (int i = 1; i <= 2; i++) {
-            if (sticker_menu_2[i][4]) change_color(MOTION_PINK);
+            if (sticker_menu_2[i][4]) change_color(DARK_PINK);
             else change_color(WHITE);
             glBegin(GL_QUADS);
             glVertex2i(sticker_menu_2[i][0], height - sticker_menu_2[i][1]);
@@ -603,7 +624,7 @@ void sticker_menu(void) {
             glVertex2i(sticker_menu_2[i][0], height - sticker_menu_2[i][3]);
             glEnd();
             if (sticker_menu_2[i][4]) change_color(WHITE);                   //箭頭
-            else  change_color(MOTION_PINK);
+            else  change_color(DARK_PINK);
             glPolygonMode(GL_FRONT, GL_FILL);
             glBegin(GL_POLYGON);
             glVertex2i(sticker_menu_2[i][2] - 2, height - sticker_menu_2[i][1] - 7.5);
@@ -626,7 +647,7 @@ void sticker_menu(void) {
 
     if (sticker_menu_1[2][4]) {                     //滑到word，顯示第二層menu
         for (int i = 3; i <= 4; i++) {
-            if (sticker_menu_2[i][4]) change_color(MOTION_PINK);
+            if (sticker_menu_2[i][4]) change_color(DARK_PINK);
             else change_color(WHITE);
             glBegin(GL_QUADS);
             glVertex2i(sticker_menu_2[i][0], height - sticker_menu_2[i][1]);
@@ -635,7 +656,7 @@ void sticker_menu(void) {
             glVertex2i(sticker_menu_2[i][0], height - sticker_menu_2[i][3]);
             glEnd();
             if (sticker_menu_2[i][4]) change_color(WHITE);                   //箭頭
-            else  change_color(MOTION_PINK);
+            else  change_color(DARK_PINK);
             glPolygonMode(GL_FRONT, GL_FILL);
             glBegin(GL_POLYGON);
             glVertex2i(sticker_menu_2[i][2] - 2, height - sticker_menu_2[i][1] - 7.5);
@@ -658,7 +679,7 @@ void sticker_menu(void) {
     glFlush();
 }
 void myMenu(void) {                    //自定義BAR
-    change_color(DEEP_PINK);           //最外框
+    change_color(DARK_PINK);           //最外框
     glBegin(GL_POLYGON);
     glVertex2i(0, height);
     glVertex2i(width, height);
@@ -666,12 +687,12 @@ void myMenu(void) {                    //自定義BAR
     glVertex2i(0, height - 100);
     glEnd();
 
-    change_color(LIGHT_PINK);          //內框
+    change_color(GRAY);          //內框
     glBegin(GL_POLYGON);
-    glVertex2i(5, height - 5);
-    glVertex2i(width - 5, height - 5);
-    glVertex2i(width - 5, height - 95);
-    glVertex2i(5, height - 95);
+    glVertex2i(3, height - 3);
+    glVertex2i(width - 3, height - 3);
+    glVertex2i(width - 3, height - 97);
+    glVertex2i(3, height - 97);
     glEnd();
 
     color_bar();
@@ -692,7 +713,7 @@ void myLoad() {
 }
 void grid_line() {
     int gridSize = 15;
-    change_color(DEEP_PINK);
+    change_color(DARK_PINK);
     for (int i = 0; i <= height; i += gridSize) {
         int tp = 1;
         if (i % (gridSize * 5) == 0) tp = 2;
@@ -741,7 +762,7 @@ void idle_func(void) {                 //閒置時的call back func
             glutSetCursor(GLUT_CURSOR_INHERIT);
         }
     }
-    else if (obj_type == STICKER) {
+    else if (obj_type == STICKER) {         //如果是貼紙模式，那就用史萊姆游標
         if (pos_y >= 100) {
             glutSetCursor(GLUT_CURSOR_NONE); //消失滑鼠
             mySave();
@@ -832,6 +853,7 @@ void draw_circle(int mode, int x) {    // Procedure to draw a circle
     glPopMatrix();
 }
 void draw_sticker(void) {
+    //畫不同的史萊姆
     switch (sticker_type) {
     case NORMAL_PUPU_LB:
         draw_pupu(pos_x, pos_y, NORMAL_PUPU_LB);
@@ -939,7 +961,7 @@ void mouse_func(int button, int state, int x, int y) {          //Callback funct
                 }
             }
             else {
-                if (i >= 3) continue;      //paint mode不能取消 一定要勾
+                if (i >= 3) continue;      //除了grid fill以外都不能取消 一定要勾
                 advance_btn[i][4] = 0;
                 if (i == 1) grid_show_func(0);
                 else if (i == 2) fill = GL_LINE;
@@ -969,7 +991,6 @@ void mouse_func(int button, int state, int x, int y) {          //Callback funct
             }
             else {
                 if (state == GLUT_UP) {          //當滑鼠放開 -> 確定位置 存點
-                    printf("kk");
                     if (fabs(vertex[0][0] - x) + fabs(vertex[0][1] - y) < 8)  //連到頭就塗色
                         draw_polygon();
                     else {
@@ -1031,7 +1052,7 @@ void passive_motion_func(int x, int y) {
             sticker_menu_2[0][2] = ok;
         }
 
-        if (pupu_btn[1][4]) {
+        if (pupu_btn[1][4]) {            //如果他的子選項 = 1，那他也要顯示
             int ok = 0;
             for (int i = 1; i <= 2; i++) {
                 if (sticker_menu_2[0][i] || (x >= sticker_menu_1[i][0] && x <= sticker_menu_1[i][2] && y >= sticker_menu_1[i][1] && y <= sticker_menu_1[i][3])) {
