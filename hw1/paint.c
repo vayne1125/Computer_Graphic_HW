@@ -306,7 +306,7 @@ void type_bar(void) {                //type選擇bar
     for (char* i = c; *i != '\0'; i++) glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, *i);
 
     for (int i = 1; i <= 8; i++) {
-        if (obj_type == i) change_color(DARK_PINK);  //被選到就換色
+        if (type_btn[i][4]) change_color(DARK_PINK);  //被選到就換色
         else change_color(WHITE);                        //沒被選到就原本顏色
         glBegin(GL_QUADS);
         glVertex2i(type_btn[i][0], height - type_btn[i][1]);
@@ -405,7 +405,7 @@ void file_bar(void) {            //file選擇bar
     glRasterPos2i(file_btn[4][0], height - 69);
     for (char* i = c; *i != '\0'; i++) glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, *i);
 
-    if (file_btn[1][4]) change_color(WHITE);
+    if (file_btn[5][4]) change_color(WHITE);
     else  change_color(BLACK);
     c = " quit\0";
     glRasterPos2i(file_btn[5][0] + 2, height - 69);
@@ -970,6 +970,7 @@ void mouse_func(int button, int state, int x, int y) {          //Callback funct
     }
     for (int i = 1; i <= 4; i++) {          //sticker 判斷點擊
         if (sticker_menu_2[i][4] && x >= sticker_menu_2[i][0] && x <= sticker_menu_2[i][2] && y >= sticker_menu_2[i][1] && y <= sticker_menu_2[i][3] && button == GLUT_LEFT_BUTTON && state == GLUT_UP) {
+            type_btn[obj_type][4] = 0;
             obj_type = STICKER;
             sticker_type = i;
         }
