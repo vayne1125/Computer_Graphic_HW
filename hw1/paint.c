@@ -33,14 +33,18 @@
 #define DOT 2
 
 //color 相關常數
-#define RED 1
-#define ORANGE 2
-#define YELLOW 3
-#define GREEN 4
-#define BLUE 5
-#define DBLUE 6
-#define PURPLE 7
-#define BLACK 8
+#define RED     1
+#define ORANGE  2
+#define YELLOW  3
+#define GREEN   4
+#define BLUE    5
+#define DBLUE   6
+#define PURPLE  7
+#define BLACK   8
+#define LIGHT_PINK    100       //UI顏色 不可用
+#define DEEP_PINK     101  
+#define MOTION_PINK   102
+#define WHITE         103
 
 typedef    int   menu_t;
 menu_t     top_m, text_mode_m, text_font_m;
@@ -56,7 +60,6 @@ int        first = 0;                        //flag of initial points for lines 
 int        vertex[128][2];                   //coords of vertices 
 int        side = 0;                         //num of sides of polygon
 float      pnt_size = 10.0;                  //筆刷大小
-//int menuShow = 0;
 
 int color = BLACK;                           //初始顏色預設黑
 int text_mode = RANDOM;                      //初始打字模式預設隨機
@@ -114,9 +117,31 @@ int outSize[4] = { 65,76,169,92 };          //size最下面那層
 int inSize[4] = { 67,78,167,90 };           //size中間那層
 int valueSize[4] = { 67,78,72,90 };         //pnt_size + 1 => value_size + 5   最上面那層 (每次重畫中間和上面，達到效果)
 int pnt_sizeBG[4] = { 175,76,195,92 };      //秀出現在大小的格子
+
+int pupu_btn[2][5] = {
+    {785, 60,  0, 0, 0},   //center 785,50
+    {740,25,830,95, 0}
+};
+//第一層menu
+int sticker_menu_1[3][5] = {
+    {0,0,0,0,0},
+    {828,45,886,60,0},          //pupu
+    {828,60,886,75,0},          //word
+};
+//第二層menu
+int sticker_menu_2[5][5] = {
+    {0,0,0,0,0},
+    {886,45,944,60,0},          //normal
+    {886,60,944,75,0},          //shy
+    {886,60,944,75,0},          //hi
+    {886,75,944,90,0},          //hello
+};
 void grid_line(void);
 void mySave(void);
 void myLoad(void);
+void file_func(int value);
+void draw_circle(int mode, int x);
+
 void grid_show_func(int value) {            //是否顯示網格 
     mySave();                               //將現在畫面存在myImage裡
     if (value == 0) {                       //不顯示 -> 將myImage陣列中有格子線的地方塗白
@@ -145,8 +170,7 @@ void grid_show_func(int value) {            //是否顯示網格
     myLoad();                            //把myImage load在畫面上
     glFlush();                           //刷新畫面
 }
-void change_color(int value) {
-    //color = value;
+void change_color(int value) {  //設定畫筆顏色
     switch (value)
     {
     case RED:
@@ -173,14 +197,26 @@ void change_color(int value) {
     case BLACK:
         glColor3f(0, 0, 0.0);
         break;
+    case LIGHT_PINK:                               //rgb(255, 235, 244) 
+        glColor3f(1.0, 240 / 255.0, 250 / 255.0);
+        break;
+    case DEEP_PINK:
+        glColor3f(1.0, 194 / 255.0, 222 / 255.0);
+        break;
+    case MOTION_PINK:
+        glColor3f(208 / 255.0, 159 / 255.0, 159 / 255.0);
+        break;
+    case WHITE:
+        glColor3f(1, 1, 1);
+        break;
     default:
         break;
     }
 }
-void change_size(int value) {
+void change_size(int value) {           //調整畫筆大小
     char c[5];
     //上面那條
-    glColor3f(1.0, 240 / 255.0, 250 / 255.0);
+    change_color(LIGHT_PINK);
     glBegin(GL_QUADS);
     glVertex2i(inSize[0], height - inSize[1]);
     glVertex2i(inSize[2], height - inSize[1]);
@@ -190,7 +226,7 @@ void change_size(int value) {
     if (value < 5) value = 5;
     valueSize[2] = valueSize[0] + value;
     //調值
-    glColor3f(1.0, 194 / 255.0, 222 / 255.0);
+    change_color(DEEP_PINK);
     glBegin(GL_QUADS);
     glVertex2i(valueSize[0], height - valueSize[1]);
     glVertex2i(valueSize[2], height - valueSize[1]);
@@ -199,7 +235,7 @@ void change_size(int value) {
     glEnd();
 
     //數字底色
-    glColor3f(1.0, 240 / 255.0, 250 / 255.0);
+    change_color(LIGHT_PINK);
     glBegin(GL_QUADS);
     glVertex2i(pnt_sizeBG[0], height - pnt_sizeBG[1]);
     glVertex2i(pnt_sizeBG[2], height - pnt_sizeBG[1]);
@@ -210,22 +246,18 @@ void change_size(int value) {
     //數字
     int tp = value / 5;
     _itoa(tp, c, 10);
-    glColor3f(0, 0, 0);
+    change_color(BLACK);
     glRasterPos2i(pnt_sizeBG[0], height - 91);
-    for (char* i = c; *i != '\0'; i++) {
-        //printf("%c", *i);
-        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, *i);
-    }
+    for (char* i = c; *i != '\0'; i++) glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, *i);
+
 }
-void color_bar(void) {
-    glColor3f(0.0, 0.0, 0.0);
-    char* c = "Color\0";
+void color_bar(void) {                   //顏色選擇bar
+    change_color(BLACK);
+    char* c = "Color\0";                 //顯示"Color"字樣
     glRasterPos2i(15, height - 25);
-    for (char* i = c; *i != '\0'; i++) {
-        // printf("%c", *i);
-        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, *i);
-    }
-    glColor3f(1.0, 240 / 255.0, 250 / 255.0); //框框
+    for (char* i = c; *i != '\0'; i++) glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, *i);
+
+    change_color(LIGHT_PINK);           //框框(選擇時會變小，所以要先用底色重新畫)
     for (int i = 1; i <= 8; i++) {
         glBegin(GL_QUADS);
         glVertex2i(color_btn[i][0], height - color_btn[i][1]);
@@ -236,7 +268,7 @@ void color_bar(void) {
     }
     for (int i = 1; i <= 8; i++) {
         change_color(i);
-        if (color_btn[i][4]) {
+        if (color_btn[i][4]) {                //被選到要變小
             glBegin(GL_QUADS);
             glVertex2i(color_btn[i][0] + 2, height - color_btn[i][1] - 2);
             glVertex2i(color_btn[i][2] - 2, height - color_btn[i][1] - 2);
@@ -245,7 +277,7 @@ void color_bar(void) {
             glEnd();
         }
         else {
-            glBegin(GL_QUADS);
+            glBegin(GL_QUADS);                //不然就正常
             glVertex2i(color_btn[i][0], height - color_btn[i][1]);
             glVertex2i(color_btn[i][2], height - color_btn[i][1]);
             glVertex2i(color_btn[i][2], height - color_btn[i][3]);
@@ -253,21 +285,16 @@ void color_bar(void) {
             glEnd();
         }
     }
-    change_color(color);
 }
-void type_bar(void) {
-    glColor3f(0.0, 0.0, 0.0);
-    char* c = "Type\0";
+void type_bar(void) {                //type選擇bar
+    change_color(BLACK);
+    char* c = "Type\0";              //顯示type字樣
     glRasterPos2i(15, height - 47);
-    for (char* i = c; *i != '\0'; i++) {
-        //printf("%c", *i);
-        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, *i);
-    }
+    for (char* i = c; *i != '\0'; i++) glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, *i);
 
-    glColor3f(1.0, 194 / 255.0, 222 / 255.0);
     for (int i = 1; i <= 8; i++) {
-        if (type_btn[i][4] == 1) glColor3f(208 / 255.0, 159 / 255.0, 159 / 255.0);
-        else glColor3f(1.0, 194 / 255.0, 222 / 255.0);
+        if (type_btn[i][4] == 1) change_color(MOTION_PINK);  //被選到就換色
+        else change_color(DEEP_PINK);                        //沒被選到就原本顏色
         glBegin(GL_QUADS);
         glVertex2i(type_btn[i][0], height - type_btn[i][1]);
         glVertex2i(type_btn[i][2], height - type_btn[i][1]);
@@ -275,75 +302,49 @@ void type_bar(void) {
         glVertex2i(type_btn[i][0], height - type_btn[i][3]);
         glEnd();
     }
-
-    glColor3f(0.0, 0.0, 0.0);
+    //印出選項的名字
+    change_color(BLACK);
     c = " point\0";
     glRasterPos2i(type_btn[1][0], height - 47);
-    for (char* i = c; *i != '\0'; i++) {
-        //printf("%c", *i);
-        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, *i);
-    }
+    for (char* i = c; *i != '\0'; i++) glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, *i);
 
     c = "  line\0";
     glRasterPos2i(type_btn[2][0], height - 47);
-    for (char* i = c; *i != '\0'; i++) {
-        //printf("%c", *i);
-        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, *i);
-    }
+    for (char* i = c; *i != '\0'; i++) glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, *i);
 
     c = " poly\0";
     glRasterPos2i(type_btn[3][0], height - 47);
-    for (char* i = c; *i != '\0'; i++) {
-        // printf("%c", *i);
-        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, *i);
-    }
+    for (char* i = c; *i != '\0'; i++) glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, *i);
 
     c = " circle\0";
     glRasterPos2i(type_btn[4][0], height - 47);
-    for (char* i = c; *i != '\0'; i++) {
-        // printf("%c", *i);
-        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, *i);
-    }
+    for (char* i = c; *i != '\0'; i++) glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, *i);
 
     c = " triangle\0";
     glRasterPos2i(type_btn[5][0], height - 47);
-    for (char* i = c; *i != '\0'; i++) {
-        // printf("%c", *i);
-        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, *i);
-    }
+    for (char* i = c; *i != '\0'; i++) glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, *i);
 
     c = " rectangle\0";
     glRasterPos2i(type_btn[6][0], height - 47);
-    for (char* i = c; *i != '\0'; i++) {
-        //printf("%c", *i);
-        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, *i);
-    }
+    for (char* i = c; *i != '\0'; i++) glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, *i);
 
     c = "  text\0";
     glRasterPos2i(type_btn[7][0], height - 47);
-    for (char* i = c; *i != '\0'; i++) {
-        //  printf("%c", *i);
-        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, *i);
-    }
+    for (char* i = c; *i != '\0'; i++) glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, *i);
 
     c = " paint\0";
     glRasterPos2i(type_btn[8][0], height - 47);
-    for (char* i = c; *i != '\0'; i++) {
-        //   printf("%c", *i);
-        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, *i);
-    }
+    for (char* i = c; *i != '\0'; i++) glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, *i);
 }
-void file_bar(void) {
-    glColor3f(0.0, 0.0, 0.0);
+void file_bar(void) {            //file選擇bar   
+    change_color(BLACK);
     char* c = "F i le\0";
     glRasterPos2i(17, height - 69);
-    for (char* i = c; *i != '\0'; i++) {
-        // printf("%c", *i);
-        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, *i);
-    }
+    for (char* i = c; *i != '\0'; i++) glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, *i);
+
     for (int i = 1; i <= 5; i++) {
-        if (file_btn[i][4] == 1) glColor3f(208 / 255.0, 159 / 255.0, 159 / 255.0);
-        else glColor3f(1.0, 194 / 255.0, 222 / 255.0);
+        if (file_btn[i][4] == 1) change_color(MOTION_PINK);      //如果passive motion就變色(滑鼠移到上面)
+        else change_color(DEEP_PINK);
         glBegin(GL_QUADS);
         glVertex2i(file_btn[i][0], height - file_btn[i][1]);
         glVertex2i(file_btn[i][2], height - file_btn[i][1]);
@@ -351,57 +352,37 @@ void file_bar(void) {
         glVertex2i(file_btn[i][0], height - file_btn[i][3]);
         glEnd();
     }
-    //save
-
+    //選項名字
     glColor3f(0.0, 0.0, 0.0);
     c = " save\0";
     glRasterPos2i(file_btn[1][0], height - 69);
-    for (char* i = c; *i != '\0'; i++) {
-        //printf("%c", *i);
-        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, *i);
-    }
+    for (char* i = c; *i != '\0'; i++) glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, *i);
 
     c = "load\0";
     glRasterPos2i(file_btn[2][0] + 5, height - 69);
-    for (char* i = c; *i != '\0'; i++) {
-        // printf("%c", *i);
-        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, *i);
-    }
+    for (char* i = c; *i != '\0'; i++) glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, *i);
 
     c = "blend\0";
     glRasterPos2i(file_btn[3][0] + 2, height - 69);
-    for (char* i = c; *i != '\0'; i++) {
-        // printf("%c", *i);
-        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, *i);
-    }
+    for (char* i = c; *i != '\0'; i++) glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, *i);
 
     c = " clear\0";
     glRasterPos2i(file_btn[4][0], height - 69);
-    for (char* i = c; *i != '\0'; i++) {
-        // printf("%c", *i);
-        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, *i);
-    }
+    for (char* i = c; *i != '\0'; i++) glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, *i);
 
-    glColor3f(0.0, 0.0, 0.0);
     c = " quit\0";
     glRasterPos2i(file_btn[5][0] + 2, height - 69);
-    for (char* i = c; *i != '\0'; i++) {
-        // printf("%c", *i);
-        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, *i);
-    }
+    for (char* i = c; *i != '\0'; i++) glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, *i);
 
-    change_color(color);
 }
-void size_bar(void) {
-    glColor3f(0.0, 0.0, 0.0);
+void size_bar(void) {            //調整size的地方
+    change_color(BLACK);
     char* c = "Size\0";
     glRasterPos2i(15, height - 91);
-    for (char* i = c; *i != '\0'; i++) {
-        // printf("%c", *i);
-        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, *i);
-    }
+    for (char* i = c; *i != '\0'; i++) glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, *i);
+
     //下面那條
-    glColor3f(1.0, 194 / 255.0, 222 / 255.0);
+    change_color(DEEP_PINK);
     glBegin(GL_QUADS);
     glVertex2i(outSize[0], height - outSize[1]);
     glVertex2i(outSize[2], height - outSize[1]);
@@ -410,41 +391,30 @@ void size_bar(void) {
     glEnd();
     change_size(pnt_size * 5);
 }
-void advance_setting_bar(void) {
-    glColor3f(0.0, 0.0, 0.0);
+void advance_setting_bar(void) {         //進階設定的bar
+    change_color(BLACK);
     char* c = "Grid\0";
     glRasterPos2i(440, height - 25);
-    for (char* i = c; *i != '\0'; i++) {
-        // printf("%c", *i);
-        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, *i);
-    }
+    for (char* i = c; *i != '\0'; i++) glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, *i);
+
     c = "Fi l l\0";
     glRasterPos2i(440, height - 47);
-    for (char* i = c; *i != '\0'; i++) {
-        // printf("%c", *i);
-        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, *i);
-    }
+    for (char* i = c; *i != '\0'; i++) glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, *i);
+
     c = "Paint Mode\0";
     glRasterPos2i(440, height - 69);
-    for (char* i = c; *i != '\0'; i++) {
-        // printf("%c", *i);
-        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, *i);
-    }
+    for (char* i = c; *i != '\0'; i++) glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, *i);
+
     c = "normal\0";
     glRasterPos2i(460, height - 88);
-    for (char* i = c; *i != '\0'; i++) {
-        // printf("%c", *i);
-        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, *i);
-    }
+    for (char* i = c; *i != '\0'; i++) glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, *i);
+
     c = "dot\0";
     glRasterPos2i(525, height - 88);
-    for (char* i = c; *i != '\0'; i++) {
-        // printf("%c", *i);
-        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, *i);
-    }
+    for (char* i = c; *i != '\0'; i++) glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, *i);
 
-    glColor3f(1.0, 194 / 255.0, 222 / 255.0);
-    for (int i = 1; i <= 4; i++) {
+    change_color(DEEP_PINK);
+    for (int i = 1; i <= 4; i++) {       //畫勾選方格
         glBegin(GL_QUADS);
         glVertex2i(advance_btn[i][0], height - advance_btn[i][1]);
         glVertex2i(advance_btn[i][2], height - advance_btn[i][1]);
@@ -452,9 +422,10 @@ void advance_setting_bar(void) {
         glVertex2i(advance_btn[i][0], height - advance_btn[i][3]);
         glEnd();
     }
-    glColor3f(0.0, 0.0, 0.0);
+
+    change_color(BLACK);
     for (int i = 1; i <= 4; i++) {
-        if (advance_btn[i][4]) {
+        if (advance_btn[i][4]) {         //被選到就打勾
             glLineWidth(2);
             glBegin(GL_LINES);
             glVertex2i(advance_btn[i][0] + 3, height - advance_btn[i][1] - 5);
@@ -465,9 +436,130 @@ void advance_setting_bar(void) {
         }
     }
 }
-void myMenu(void) {
-    //glPolygonMode(GL_FRONT, GL_FILL);
-    glColor3f(1.0, 194 / 255.0, 222 / 255.0);
+void pupu_bar(void) {
+    change_color(BLACK);
+    char* c = "Sticker\0";
+    glRasterPos2i(pupu_btn[1][0] + 15, height - 25);
+    for (char* i = c; *i != '\0'; i++) glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, *i);
+    //點擊範圍
+    change_color(LIGHT_PINK);
+    for (int i = 1; i <= 1; i++) {
+        glBegin(GL_QUADS);
+        glVertex2i(pupu_btn[i][0], height - pupu_btn[i][1]);
+        glVertex2i(pupu_btn[i][2], height - pupu_btn[i][1]);
+        glVertex2i(pupu_btn[i][2], height - pupu_btn[i][3]);
+        glVertex2i(pupu_btn[i][0], height - pupu_btn[i][3]);
+        glEnd();
+    }
+
+    //畫出史萊姆身體
+    change_color(BLUE);
+    static GLUquadricObj* mycircle = NULL;
+    if (mycircle == NULL) {
+        mycircle = gluNewQuadric();
+        gluQuadricDrawStyle(mycircle, GLU_FILL);
+    }
+    glPolygonMode(GL_FRONT, GL_FILL);
+    glPushMatrix();
+    glTranslatef(pupu_btn[0][0] - 10, height - pupu_btn[0][1], 0.0);
+    gluDisk(mycircle, 0, 35, 16, 3);          // inner radius ,outer radius ,16-side polygon
+    glPopMatrix();
+
+    glPushMatrix();
+    glTranslatef(pupu_btn[0][0] + 10, height - pupu_btn[0][1], 0.0);
+    gluDisk(mycircle, 0, 35, 16, 3);          // inner radius ,outer radius ,16-side polygon
+    glPopMatrix();
+
+    //眼睛
+    change_color(BLACK);
+    glLineWidth(1);
+    glBegin(GL_LINES);
+    glVertex2i(pupu_btn[0][0] - 30, height - pupu_btn[0][1] + 10);
+    glVertex2i(pupu_btn[0][0] - 13, height - pupu_btn[0][1] + 7);
+    glVertex2i(pupu_btn[0][0] - 13, height - pupu_btn[0][1] + 7);
+    glVertex2i(pupu_btn[0][0] - 6, height - pupu_btn[0][1] + 3);
+    glVertex2i(pupu_btn[0][0] + 30, height - pupu_btn[0][1] + 10);
+    glVertex2i(pupu_btn[0][0] + 13, height - pupu_btn[0][1] + 7);
+    glVertex2i(pupu_btn[0][0] + 13, height - pupu_btn[0][1] + 7);
+    glVertex2i(pupu_btn[0][0] + 6, height - pupu_btn[0][1] + 3);
+    glEnd();
+
+    //腮紅 785 60
+    change_color(RED);
+    glLineWidth(1);
+    glBegin(GL_LINES);
+    glVertex2i(pupu_btn[0][0] - 35, height - pupu_btn[0][1]);
+    glVertex2i(pupu_btn[0][0] - 39, height - pupu_btn[0][1] - 7);
+
+    glVertex2i(pupu_btn[0][0] - 31, height - pupu_btn[0][1]);
+    glVertex2i(pupu_btn[0][0] - 34, height - pupu_btn[0][1] - 10);
+
+    glVertex2i(pupu_btn[0][0] - 29, height - pupu_btn[0][1]);
+    glVertex2i(pupu_btn[0][0] - 27, height - pupu_btn[0][1] - 7);
+
+    glVertex2i(pupu_btn[0][0] + 35, height - pupu_btn[0][1]);
+    glVertex2i(pupu_btn[0][0] + 39, height - pupu_btn[0][1] - 7);
+
+    glVertex2i(pupu_btn[0][0] + 31, height - pupu_btn[0][1]);
+    glVertex2i(pupu_btn[0][0] + 34, height - pupu_btn[0][1] - 10);
+
+    glVertex2i(pupu_btn[0][0] + 29, height - pupu_btn[0][1]);
+    glVertex2i(pupu_btn[0][0] + 27, height - pupu_btn[0][1] - 7);
+    glEnd();
+
+
+}
+void sticker_menu(void) {
+    if (pupu_btn[1][4]) change_color(DEEP_PINK);
+    else change_color(LIGHT_PINK);
+    for (int i = 1; i <= 2; i++) {
+        glBegin(GL_QUADS);
+        glVertex2i(sticker_menu_1[i][0], height - sticker_menu_1[i][1]);
+        glVertex2i(sticker_menu_1[i][2], height - sticker_menu_1[i][1]);
+        glVertex2i(sticker_menu_1[i][2], height - sticker_menu_1[i][3]);
+        glVertex2i(sticker_menu_1[i][0], height - sticker_menu_1[i][3]);
+        glEnd();
+    }
+
+    if (sticker_menu_1[1][4]) change_color(DEEP_PINK);
+    else change_color(LIGHT_PINK);
+    for (int i = 1; i <= 2; i++) {
+        glBegin(GL_QUADS);
+        glVertex2i(sticker_menu_2[i][0], height - sticker_menu_2[i][1]);
+        glVertex2i(sticker_menu_2[i][2], height - sticker_menu_2[i][1]);
+        glVertex2i(sticker_menu_2[i][2], height - sticker_menu_2[i][3]);
+        glVertex2i(sticker_menu_2[i][0], height - sticker_menu_2[i][3]);
+        glEnd();
+    }
+
+    if (!sticker_menu_1[2][4]) {
+        change_color(LIGHT_PINK);
+        for (int i = 4; i <= 4; i++) {
+            glBegin(GL_QUADS);
+            glVertex2i(sticker_menu_2[i][0], height - sticker_menu_2[i][1]);
+            glVertex2i(sticker_menu_2[i][2], height - sticker_menu_2[i][1]);
+            glVertex2i(sticker_menu_2[i][2], height - sticker_menu_2[i][3]);
+            glVertex2i(sticker_menu_2[i][0], height - sticker_menu_2[i][3]);
+            glEnd();
+        }
+
+    }
+    else {
+        change_color(DEEP_PINK);
+        for (int i = 3; i <= 4; i++) {
+            glBegin(GL_QUADS);
+            glVertex2i(sticker_menu_2[i][0], height - sticker_menu_2[i][1]);
+            glVertex2i(sticker_menu_2[i][2], height - sticker_menu_2[i][1]);
+            glVertex2i(sticker_menu_2[i][2], height - sticker_menu_2[i][3]);
+            glVertex2i(sticker_menu_2[i][0], height - sticker_menu_2[i][3]);
+            glEnd();
+        }
+    }
+
+    glFlush();
+}
+void myMenu(void) {                    //自定義BAR
+    change_color(DEEP_PINK);           //最外框
     glBegin(GL_POLYGON);
     glVertex2i(0, height);
     glVertex2i(width, height);
@@ -475,8 +567,7 @@ void myMenu(void) {
     glVertex2i(0, height - 100);
     glEnd();
 
-    //rgb(255, 235, 244)
-    glColor3f(1.0, 240 / 255.0, 250 / 255.0);
+    change_color(LIGHT_PINK);          //內框
     glBegin(GL_POLYGON);
     glVertex2i(5, height - 5);
     glVertex2i(width - 5, height - 5);
@@ -489,34 +580,25 @@ void myMenu(void) {
     file_bar();
     size_bar();
     advance_setting_bar();
-    change_color(color);
+    pupu_bar();
+    sticker_menu();
+    change_color(color);                      //因為前面重畫，要將顏色更新回畫筆顏色
 }
-void file_func(int value);
-void draw_circle(int mode, int x);
 void mySave() {
-    glReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE,
-        myImage);
-    /* 255 194 222
-    for (int i = 0; i <= 10; i++) {
-        for (int j = height; j >= height - 10; j--) {
-            printf("%d %d %d\n",myImage[i][j][0], myImage[i][j][1], myImage[i][j][2]);
-        }
-    }*/
+    glReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, myImage);  //將畫面存到myImage
 }
 void myLoad() {
     glRasterPos2i(0, 0);
-    glDrawPixels(width, height - 100,
-        GL_RGBA, GL_UNSIGNED_BYTE,
-        myImage);
+    glDrawPixels(width, height - 100, GL_RGBA, GL_UNSIGNED_BYTE, myImage);    //將myImage顯示出來
 }
 void grid_line() {
     int gridSize = 15;
-    glColor3f(1.0, 194 / 255.0, 222 / 255.0);
+    change_color(DEEP_PINK);
     for (int i = 0; i <= height; i += gridSize) {
         int tp = 1;
         if (i % (gridSize * 5) == 0) tp = 2;
-        glLineWidth(tp);     /* Define line width */
-        glBegin(GL_LINES);    /* Draw the line */
+        glLineWidth(tp);                            // Define line width
+        glBegin(GL_LINES);                          //Draw the line
         glVertex2f(0, height - i - 100);
         glVertex2f(width, height - i - 100);
         glEnd();
@@ -524,69 +606,46 @@ void grid_line() {
     for (int i = 0; i <= width; i += gridSize) {
         int tp = 1;
         if (i % (gridSize * 5) == 0) tp = 2;
-        glLineWidth(tp);     /* Define line width */
-        glBegin(GL_LINES);    /* Draw the line */
+        glLineWidth(tp);
+        glBegin(GL_LINES);
         glVertex2f(i, height - 100);
         glVertex2f(i, 0);
         glEnd();
     }
     //將網格存起來
-    glReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE,
-        gridImage);
+    glReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, gridImage);
     advance_btn[1][4] = 1;//將網格設為開啟
 }
-int firstIn = 1;  //重新存一次grid
-int displayOccur = 0;
-void display_func(void)
-{
-    /*------------------------------------------------------------
-     * Callback function for display, redisplay, expose events
-     * Just clear the window again
-     */
-    printf("myDisplay\n");
-    //myLoad();
-    //cnt = 0;
-    //printf("display  %d\n", cnt++);
+int firstIn = 1;                         //重新存一次grid
+void display_func(void) {         //Callback function for display, redisplay
+    //printf("myDisplay\n");
     /* define window background color */
     //glClear(GL_COLOR_BUFFER_BIT);
-    myMenu();
-    if (firstIn) {
+    if (firstIn) {                     //當畫面大小改變時 要重新繪製grid
         firstIn = 0;
         grid_line();
         mySave();
     }
+    myMenu();
     glFlush();
-    displayOccur = 1;
-    //myLoad();
 }
-void idle_func(void) {
-    if (obj_type == PAINT && menuShow == 0) {
-        if (pos_y >= 110) {
-            //glutSetCursor(GLUT_CURSOR_NONE);
+void idle_func(void) {                 //閒置時的call back func
+    if (obj_type == PAINT) {           //如果當前模式是paint
+        if (pos_y >= 110) {            //且在畫筆區，那就使用球球游標
+            //glutSetCursor(GLUT_CURSOR_NONE); //消失滑鼠
             mySave();
             draw_circle(CURSOR, 0);
             glFlush();
             myLoad();
         }
-        else {
-            glutSetCursor(GLUT_CURSOR_INHERIT);
-        }
+        //else {
+        //    glutSetCursor(GLUT_CURSOR_INHERIT);
+        //}
     }
-    /*if (displayOccur) {
-        printf("idle\n");
-        mySave();
-        displayOccur = 0;
-    }*/
-    //if(firstIn)printf("idle\n");
-    //mySave();
 }
-/*-------------------------------------------------------------
- * reshape callback function for window.
- */
-void my_reshape(int new_w, int new_h)
-{
+void my_reshape(int new_w, int new_h) {  //reshape callback function for window.
     printf("myreshape\n");
-    height = new_h;
+    height = new_h;                      //將畫面大小更新
     width = new_w;
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
@@ -595,43 +654,32 @@ void my_reshape(int new_w, int new_h)
     glMatrixMode(GL_MODELVIEW);
     glutPostRedisplay();   /*---Trigger Display event for redisplay window*/
 
-    glClearColor(1.0, 1.0, 1.0, 1.0); //定義背景顏色
-    glClear(GL_COLOR_BUFFER_BIT);//清除畫面
-    firstIn = 1;
-    myMenu();
+    glClearColor(1.0, 1.0, 1.0, 1.0);         //定義背景顏色
+    glClear(GL_COLOR_BUFFER_BIT);             //清除畫面
+    firstIn = 1;                              //設定display重畫表格
 }
-/*--------------------------------------------------------------
- * Callback function for keyboard event.
- * key = the key pressed,
- * (x,y)= position in the window, where the key is pressed.
- */
-void keyboard(unsigned char key, int x, int y)
-{
-    if (obj_type == TEXT) {
-        if (text_mode == RANDOM) {
+void keyboard(unsigned char key, int x, int y) {
+
+    //Callback function for keyboard event.
+    //key = the key pressed,
+    //(x, y) = position in the window, where the key is pressed
+
+    if (obj_type == TEXT) {                  //如果模式是打字       
+        if (text_mode == RANDOM) {           //隨機打字
             glRasterPos2i(x, height - y);
             glutBitmapCharacter(text_font, key);
         }
-        else if (text_mode == FIXED) {
+        else if (text_mode == FIXED) {       //打一行字
             glRasterPos2i(pos_x, height - pos_y);  //按下滑鼠的地方
             mySyting[stringIndex++] = key;
             for (int i = 0; i < stringIndex; i++) {
                 glutBitmapCharacter(text_font, mySyting[i]);
             }
         }
-
         glFlush();
     }
-    else {
-        if (key == 'Q' || key == 'q') exit(0);
-    }
 }
-
-/*---------------------------------------------------------
- * Procedure to draw a polygon
- */
-void draw_polygon()
-{
+void draw_polygon() {            // Procedure to draw a polygon
     int  i;
     glPolygonMode(GL_FRONT, fill);
     glBegin(GL_POLYGON);
@@ -641,20 +689,16 @@ void draw_polygon()
     glFinish();
     side = 0;    /* set side=0 for next polygon */
 }
-
-/*------------------------------------------------------------
- * Procedure to draw a circle
- */
-void draw_circle(int mode, int x)
-{
+void draw_circle(int mode, int x) {    // Procedure to draw a circle
+    glPolygonMode(GL_FRONT, GL_FILL);
     int tp = pnt_size;
     int tp2 = 0;
-    if (mode == CURSOR) {
+    if (mode == CURSOR) {             //游標 -> 大小固定在5
         tp = 5;
     }
-    else if (mode == RANDOM) {
-        tp = abs(pos_x - x);
-        if (fill == GL_LINE) {
+    else if (mode == RANDOM) {       //拉出圓型
+        tp = abs(pos_x - x);          //大小是使用者拉的
+        if (fill == GL_LINE) {        //不填滿(line)  調整內圓大小
             tp2 = tp - pnt_size;
         }
     }
@@ -667,60 +711,47 @@ void draw_circle(int mode, int x)
     glPushMatrix();
     glTranslatef(pos_x, height - pos_y, 0.0);
     gluDisk(mycircle,
-        tp2,           /* inner radius=0.0 */
-        tp,          /* outer radius=10.0 */
-        16,            /* 16-side polygon */
+        tp2,           // inner radius 
+        tp,            // outer radius 
+        16,            // 16-side polygon 
         3);
     glPopMatrix();
 }
-
-/*------------------------------------------------------------
- * Callback function handling mouse-press events
- */
-void mouse_func(int button, int state, int x, int y) {
+void mouse_func(int button, int state, int x, int y) {          //Callback function handling mouse - press events
     //printf("%d %d:::\n", button, state);
     //printf("%d,%d\n",x,y);
-    pos_x = x;
-    pos_y = y;
-    if (button == 1 && state == 0) {                      //按下左鍵
-        menuShow = 1;
-        printf("PRESS LEFT");
-    }
-    if (button == 0 && state == 1 && obj_type == PAINT) { //左鍵放開 (代碼是錯的...)
+    printf("%d %d\n", x, y);
+    if (button == GLUT_LEFT_BUTTON && state == GLUT_UP && obj_type == PAINT) {  //畫完一筆畫 
         first = 0;
     }
-    if (button == 0 && state == 0 && obj_type == TEXT) {
+    if (button == GLUT_LEFT_BUTTON && state == GLUT_UP && obj_type == TEXT) {   //找新的地方打字
         stringIndex = 0;
     }
-    if (button != GLUT_LEFT_BUTTON || state != GLUT_DOWN)
-        return;
-    //printf("%d %d\n", x, y);
     //按鈕區 -> 不能畫圖
-    //color按鈕
+    //color按鈕，判斷點擊
     if (x >= color_btn[1][0] && x <= color_btn[8][2] && y >= color_btn[1][1] && y <= color_btn[1][3]) {
-        //color
         for (int i = 1; i <= 8; i++) {
             if (x >= color_btn[i][0] && x <= color_btn[i][2] && y >= color_btn[i][1] && y <= color_btn[i][3]) {
                 color = i;
-                color_btn[i][4] = 1;
-                change_color(i);
+                color_btn[i][4] = 1;      //被選到
+                change_color(i);          //選到就換色
             }
-            else color_btn[i][4] = 0;
+            else color_btn[i][4] = 0;     //沒選到
         }
     }
-    //type 按鈕
+    //type按鈕，判斷點擊
     if (x >= type_btn[1][0] && x <= type_btn[8][2] && y >= type_btn[1][1] && y <= type_btn[1][3]) {
         for (int i = 1; i <= 8; i++) {
             if (x >= type_btn[i][0] && x <= type_btn[i][2] && y >= type_btn[i][1] && y <= type_btn[i][3]) {
-                obj_type = i;
+                obj_type = i;                             //設定obj_type
                 if (i == LINE || i == PAINT) first = 0;
                 if (i == POLYGON) side = 0;
-                type_btn[i][4] = 1;
+                type_btn[i][4] = 1;                       //被選到
             }
-            else type_btn[i][4] = 0;
+            else type_btn[i][4] = 0;                      //沒選到
         }
     }
-    //file
+    //file按鈕，判斷點擊
     if (x >= file_btn[1][0] && x <= file_btn[5][2] && y >= file_btn[1][1] && y <= file_btn[1][3]) {
         for (int i = 1; i <= 5; i++) {
             if (x >= file_btn[i][0] && x <= file_btn[i][2] && y >= file_btn[i][1] && y <= file_btn[i][3]) {
@@ -728,24 +759,22 @@ void mouse_func(int button, int state, int x, int y) {
             }
         }
     }
-    //size
-    if (x >= inSize[0] && x <= inSize[2] && y >= inSize[1] && y <= inSize[3]) {
-        //printf("size\n");
+    //size 判斷點擊位置
+    if (x >= inSize[0] && x <= inSize[2] && y >= inSize[1] && y <= inSize[3]) {    //總共100pixel 點的位置/5就是筆刷大小
         pnt_size = (x - inSize[0]) / 5.0;
         if (pnt_size < 1) pnt_size = 1;
         change_size(x - inSize[0]);
-        change_color(color);
     }
-    //advance setting
+    //advance setting 判斷點擊位置
     for (int i = 1; i <= 4; i++) {
-        if (x >= advance_btn[i][0] && x <= advance_btn[i][2] && y >= advance_btn[i][1] && y <= advance_btn[i][3]) {
-            if (advance_btn[i][4] == 0) {
-                advance_btn[i][4] = 1;
-                if (i == 1)grid_show_func(1);
-                else if (i == 2) fill = GL_FILL;
-                else if (i == 3) {
+        if (x >= advance_btn[i][0] && x <= advance_btn[i][2] && y >= advance_btn[i][1] && y <= advance_btn[i][3] && button == GLUT_LEFT_BUTTON && state == GLUT_UP) { //點擊一次會觸發2次事件 所以要規定是up 或 down
+            if (advance_btn[i][4] == 0) {          //原本未選
+                advance_btn[i][4] = 1;             //設為選過
+                if (i == 1) grid_show_func(1);     //grid
+                else if (i == 2) fill = GL_FILL;   //fill
+                else if (i == 3) {                 //paint mode
                     paint_mode = NORMAL;
-                    advance_btn[4][4] = 0;
+                    advance_btn[4][4] = 0;         //只能2選一
                 }
                 else if (i == 4) {
                     paint_mode = DOT;
@@ -755,58 +784,38 @@ void mouse_func(int button, int state, int x, int y) {
             else {
                 if (i == 3 || i == 4) continue;      //paint mode不能取消 一定要勾
                 advance_btn[i][4] = 0;
-                if (i == 1)grid_show_func(0);
+                if (i == 1) grid_show_func(0);
                 else if (i == 2) fill = GL_LINE;
             }
         }
     }
-    if (y >= 100) {
+    if (y >= 100) {                                //畫畫區
+        mySave();
+        pos_x = x; pos_y = y;
         switch (obj_type) {
         case POINT:
-            glPointSize(pnt_size);     /*  Define point size */
-            glBegin(GL_POINTS);     /*  Draw a point */
+            glPointSize(pnt_size);      //  Define point size
+            glBegin(GL_POINTS);         //  Draw a point
             glVertex2f(x, height - y);
             glEnd();
             break;
-        case LINE:
-            mySave();
-            pos_x = x; pos_y = y;
-            break;
-        case POLYGON:  /* Define vertices of poly */
+        case POLYGON:                  // Define vertices of poly
             if (side == 0) {
                 vertex[side][0] = x; vertex[side][1] = y;
                 side++;
             }
             else {
-                if (fabs(vertex[0][0] - x) + fabs(vertex[0][1] - y) < 5)
-                    draw_polygon();
-                else {
-                    glLineWidth(pnt_size);
-                    glBegin(GL_LINES);
-                    glVertex2f(vertex[side - 1][0], height - vertex[side - 1][1]);
-                    glVertex2f(x, height - y);
-                    glEnd();
-                    vertex[side][0] = x;
-                    vertex[side][1] = y;
-                    side++;
+                if (state == GLUT_UP) {          //當滑鼠放開 -> 確定位置 存點
+                    printf("kk");
+                    if (fabs(vertex[0][0] - x) + fabs(vertex[0][1] - y) < 8)  //連到頭就塗色
+                        draw_polygon();
+                    else {
+                        vertex[side][0] = x;
+                        vertex[side][1] = y;
+                        side++;
+                    }
                 }
             }
-            break;
-        case CIRCLE:
-            pos_x = x; pos_y = y;
-            mySave();
-            //draw_circle();
-            break;
-        case TRIANGLE:
-            pos_x = x; pos_y = y;
-            mySave();
-            break;
-        case RECTANGLE:
-            pos_x = x; pos_y = y;
-            mySave();
-            break;
-        case TEXT:
-            pos_x = x; pos_y = y;
             break;
         default:
             break;
@@ -815,35 +824,67 @@ void mouse_func(int button, int state, int x, int y) {
     }
 }
 void passive_motion_func(int x, int y) {
-    //file
     pos_x = x;
     pos_y = y;
     //printf("%d %d\n", pos_x, pos_y);
     if (y <= 100) {
-        for (int i = 1; i <= 5; i++) {
+        for (int i = 1; i <= 5; i++) {         //在file上移動
             if (x >= file_btn[i][0] && x <= file_btn[i][2] && y >= file_btn[i][1] && y <= file_btn[i][3]) {
                 file_btn[i][4] = 1;
             }
             else file_btn[i][4] = 0;
         }
+
+        if (sticker_menu_1[1][4]) {            //滑過pupu
+            int ok = 0;
+            for (int i = 1; i <= 2; i++) {
+                if (x >= sticker_menu_2[i][0] && x <= sticker_menu_2[i][2] && y >= sticker_menu_2[i][1] && y <= sticker_menu_2[i][3]) {
+                    sticker_menu_2[i][4] = 1;
+                    ok = 1;
+                }
+                else sticker_menu_2[i][4] = 0;
+            }
+            sticker_menu_2[0][0] = ok;
+        }
+        if (sticker_menu_1[2][4]) {            //滑過word
+            int ok = 0;
+            for (int i = 3; i <= 4; i++) {
+                if (x >= sticker_menu_2[i][0] && x <= sticker_menu_2[i][2] && y >= sticker_menu_2[i][1] && y <= sticker_menu_2[i][3]) {
+                    sticker_menu_2[i][4] = 1;
+                    ok = 1;
+                }
+                else sticker_menu_2[i][4] = 0;
+            }
+            sticker_menu_2[0][0] = ok;
+        }
+        if (pupu_btn[1][4]) {
+            int ok = 0;
+            for (int i = 1; i <= 2; i++) {
+                if (sticker_menu_2[0][0] == 1 || (x >= sticker_menu_1[i][0] && x <= sticker_menu_1[i][2] && y >= sticker_menu_1[i][1] && y <= sticker_menu_1[i][3])) {
+                    sticker_menu_1[i][4] = 1;
+                    ok = 1;
+                }
+                else sticker_menu_1[i][4] = 0;
+            }
+            sticker_menu_1[0][0] = ok;
+        }
+        if (sticker_menu_1[0][0] == 1 || (x >= pupu_btn[1][0] && x <= pupu_btn[1][2] && y >= pupu_btn[1][1] && y <= pupu_btn[1][3])) {
+            pupu_btn[1][4] = 1;
+        }
+        else pupu_btn[1][4] = 0;
         myMenu();
         glFlush();
     }
 }
-
-/*-------------------------------------------------------------
- * motion callback function. The mouse is pressed and moved.
- */
-void motion_func(int  x, int y) {
-    // if (obj_type != PAINT) return;
+void motion_func(int  x, int y) {             //motion callback function. The mouse is pressed and moved.
     if (y >= 100) {
-        if (obj_type == PAINT) {
+        if (obj_type == PAINT) {              //畫筆
             if (first == 0) {
                 first = 1;
                 pos_x = x; pos_y = y;
             }
             else {
-                if (paint_mode == NORMAL) {
+                if (paint_mode == NORMAL) {  //一般模式
                     glLineWidth(pnt_size);
                     glBegin(GL_LINES);
                     glVertex3f(pos_x, height - pos_y, 0.0);
@@ -851,7 +892,7 @@ void motion_func(int  x, int y) {
                     glEnd();
                     pos_x = x; pos_y = y;
                 }
-                else if (paint_mode == DOT) {
+                else if (paint_mode == DOT) { //畫
                     draw_circle(FIXED, 0);
                     pos_x = x; pos_y = y;
                 }
@@ -862,6 +903,14 @@ void motion_func(int  x, int y) {
             glLineWidth(pnt_size);
             glBegin(GL_LINES);
             glVertex2f(pos_x, height - pos_y);
+            glVertex2f(x, height - y);
+            glEnd();
+        }
+        else if (obj_type == POLYGON) {
+            myLoad();
+            glLineWidth(pnt_size);
+            glBegin(GL_LINES);
+            glVertex2f(vertex[side - 1][0], height - vertex[side - 1][1]);
             glVertex2f(x, height - y);
             glEnd();
         }
@@ -909,16 +958,10 @@ void motion_func(int  x, int y) {
     }
     glFinish();
 }
-
-/*--------------------------------------------------------
- * procedure to clear window
- */
-void init_window(void)
-{
+void init_window(void) {                   //procedure to clear window
     printf("init window\n");
-    /*Do nothing else but clear window to white*/
 
-    glMatrixMode(GL_PROJECTION);
+    glMatrixMode(GL_PROJECTION);          // Do nothing else but clear window to white
     glLoadIdentity();
     gluOrtho2D(0.0, (double)width, 0.0, (double)height);
     glViewport(0, 0, width, height);
@@ -930,11 +973,7 @@ void init_window(void)
     my_reshape(width, height);
     glFlush();
 }
-/*------------------------------------------------------
- * Procedure to initialize data alighment and other stuff
- */
-void init_func()
-{
+void init_func() {        //Procedure to initialize data alighment and other stuff
     printf("init fun\n");
     glReadBuffer(GL_FRONT);
     glDrawBuffer(GL_FRONT);
@@ -942,10 +981,6 @@ void init_func()
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
     printf("end init fun\n");
 }
-
-/*------------------------------------------------------------
- * Callback function for top menu.
- */
 void file_func(int value)
 {
     int i, j;
@@ -953,8 +988,7 @@ void file_func(int value)
     if (value == MY_QUIT) exit(0);
     else if (value == MY_CLEAR) init_window();
     else if (value == MY_SAVE) { /* Save current window */
-        glReadPixels(0, 0, SIZEX, SIZEY, GL_RGBA, GL_UNSIGNED_BYTE,
-            image);
+        glReadPixels(0, 0, SIZEX, SIZEY, GL_RGBA, GL_UNSIGNED_BYTE, image);
         /*
         for (i = 0; i < SIZEX; i++)   // Assign 0 opacity to black pixels
             for (j = 0; j < SIZEY; j++)
@@ -970,72 +1004,31 @@ void file_func(int value)
     else if (value == MY_LOAD) { /* Restore the saved image */
         glRasterPos2i(0, 0);
         glDrawPixels(SIZEX, SIZEY,
-            GL_RGBA, GL_UNSIGNED_BYTE,
-            image);
+            GL_RGBA, GL_UNSIGNED_BYTE, image);
     }
     else if (value == MY_BLEND) { /* Blending current image with the saved image */
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         glRasterPos2i(0, 0);
-        glDrawPixels(width, height,
-            GL_RGBA, GL_UNSIGNED_BYTE,
-            image);
+        glDrawPixels(width, height, GL_RGBA, GL_UNSIGNED_BYTE, image);
         glDisable(GL_BLEND);
     }
-
     glFlush();
 }
-
-void size_func(int value)
-{
-    if (value == 1) {
-        if (pnt_size < 10.0) pnt_size += 1.0;
-    }
-    else {
-        if (pnt_size > 1.0) pnt_size = pnt_size - 1.0;
-    }
-}
-void fill_show_func(int value) {
-    printf("0\n");
-    //menuShow = 0;
-    fill = value;
-}
 void text_mode_func(int value) {
-    printf("0\n");
-    // menuShow = 0;
     text_mode = value;
 }
-
-void paint_mode_func(int value) {
-    printf("0\n");
-    // menuShow = 0;
-    paint_mode = value;
-}
-
 void text_font_func(int value) {
-    printf("0\n");
-    // menuShow = 0;
     text_font = value;
     stringIndex = 0;
 }
-
-/*---------------------------------------------------------------
- * Callback function for top menu. Do nothing.
- */
-void top_menu_func(int value)
-{
-    printf("1\n");
-    //menuShow = 1;
+void top_menu_func(int value) {
+    // Callback function for top menu. Do nothing.
 }
-
-/*---------------------------------------------------------------
- * Main procedure sets up the window environment.
- */
-void main(int argc, char** argv)
-{
+void main(int argc, char** argv) {      //Main procedure sets up the window environment.
     int  size_menu;
 
-    glutInit(&argc, argv);    /*---Make connection with server---*/
+    glutInit(&argc, argv);         /*---Make connection with server---*/
 
     glutInitWindowPosition(0, 0);  /*---Specify window position ---*/
     glutInitWindowSize(width, height); /*--Define window's height and width--*/
