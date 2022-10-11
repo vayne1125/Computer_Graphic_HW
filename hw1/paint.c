@@ -69,7 +69,7 @@ int        vertex[128][2];                   //coords of vertices
 int        side = 0;                         //num of sides of polygon
 float      pnt_size = 10.0;                  //筆刷大小
 
-int sticker_type = 0;
+int sticker_type = SHY_PUPU_DB;
 int color = BLACK;                           //初始顏色預設黑
 int text_mode = RANDOM;                      //初始打字模式預設隨機
 int paint_mode = NORMAL;                     //初始畫筆預設normal
@@ -229,6 +229,8 @@ void change_color(int value) {  //設定畫筆顏色
 void change_size(int value) {           //調整畫筆大小
     char c[5];
     //上面那條
+    glPolygonMode(GL_FRONT, GL_FILL);
+    glPolygonMode(GL_BACK, GL_FILL);
     change_color(GRAY);
     glBegin(GL_QUADS);
     glVertex2i(inSize[0], height - inSize[1]);
@@ -510,6 +512,7 @@ void draw_pupu(int x, int y, int type) { //畫史萊姆
         gluQuadricDrawStyle(mycircle, GLU_FILL);
     }
     glPolygonMode(GL_FRONT, GL_FILL);
+    glPolygonMode(GL_BACK, GL_FILL);
     glPushMatrix();
     glTranslatef(x - 10, height - y, 0.0);
     gluDisk(mycircle, 0, 35, 16, 3);          // inner radius ,outer radius ,16-side polygon
@@ -576,7 +579,7 @@ void pupu_bar(void) {
         glEnd();
     }
 
-    draw_pupu(pupu_btn[0][0], pupu_btn[0][1], SHY_PUPU_DB);
+    draw_pupu(pupu_btn[0][0], pupu_btn[0][1], sticker_type);
 }
 void sticker_menu(void) {
 
@@ -594,6 +597,7 @@ void sticker_menu(void) {
             if (sticker_menu_1[i][4]) change_color(WHITE);                   //箭頭
             else  change_color(DARK_PINK);
             glPolygonMode(GL_FRONT, GL_FILL);
+            glPolygonMode(GL_BACK, GL_FILL);
             glBegin(GL_POLYGON);
             glVertex2i(sticker_menu_1[i][2] - 2, height - sticker_menu_1[i][1] - 7.5);
             glVertex2i(sticker_menu_1[i][2] - 10, height - sticker_menu_1[i][1] - 2);
@@ -626,6 +630,7 @@ void sticker_menu(void) {
             if (sticker_menu_2[i][4]) change_color(WHITE);                   //箭頭
             else  change_color(DARK_PINK);
             glPolygonMode(GL_FRONT, GL_FILL);
+            glPolygonMode(GL_BACK, GL_FILL);
             glBegin(GL_POLYGON);
             glVertex2i(sticker_menu_2[i][2] - 2, height - sticker_menu_2[i][1] - 7.5);
             glVertex2i(sticker_menu_2[i][2] - 10, height - sticker_menu_2[i][1] - 2);
@@ -658,6 +663,7 @@ void sticker_menu(void) {
             if (sticker_menu_2[i][4]) change_color(WHITE);                   //箭頭
             else  change_color(DARK_PINK);
             glPolygonMode(GL_FRONT, GL_FILL);
+            glPolygonMode(GL_BACK, GL_FILL);
             glBegin(GL_POLYGON);
             glVertex2i(sticker_menu_2[i][2] - 2, height - sticker_menu_2[i][1] - 7.5);
             glVertex2i(sticker_menu_2[i][2] - 10, height - sticker_menu_2[i][1] - 2);
@@ -679,6 +685,8 @@ void sticker_menu(void) {
     glFlush();
 }
 void myMenu(void) {                    //自定義BAR
+    glPolygonMode(GL_FRONT, GL_FILL);
+    glPolygonMode(GL_BACK, GL_FILL);
     change_color(DARK_PINK);           //最外框
     glBegin(GL_POLYGON);
     glVertex2i(0, height);
@@ -817,6 +825,7 @@ void keyboard(unsigned char key, int x, int y) {
 void draw_polygon() {            // Procedure to draw a polygon
     int  i;
     glPolygonMode(GL_FRONT, fill);
+    glPolygonMode(GL_BACK, fill);
     glBegin(GL_POLYGON);
     for (i = 0; i < side; i++)
         glVertex2f(vertex[i][0], height - vertex[i][1]);
@@ -826,6 +835,7 @@ void draw_polygon() {            // Procedure to draw a polygon
 }
 void draw_circle(int mode, int x) {    // Procedure to draw a circle
     glPolygonMode(GL_FRONT, GL_FILL);
+    glPolygonMode(GL_BACK, GL_FILL);
     int tp = pnt_size;
     int tp2 = 0;
     if (mode == CURSOR) {             //游標 -> 大小固定在5
@@ -992,7 +1002,7 @@ void mouse_func(int button, int state, int x, int y) {          //Callback funct
             }
             else {
                 if (state == GLUT_UP) {          //當滑鼠放開 -> 確定位置 存點
-                    if (fabs(vertex[0][0] - x) + fabs(vertex[0][1] - y) < 8)  //連到頭就塗色
+                    if (fabs(vertex[0][0] - x) + fabs(vertex[0][1] - y) < 12)  //連到頭就塗色
                         draw_polygon();
                     else {
                         vertex[side][0] = x;
@@ -1114,19 +1124,12 @@ void motion_func(int  x, int y) {             //motion callback function. The mo
             myLoad();
             glLineWidth(pnt_size);
             glPolygonMode(GL_FRONT, fill);
+            glPolygonMode(GL_BACK, fill);
             glBegin(GL_POLYGON);
-            if ((pos_x <= x && pos_y <= y) || (x <= pos_x && y <= pos_y)) {  //逆時針 到右下 或 左上
                 glVertex2i(pos_x, height - pos_y);
                 glVertex2i(pos_x, height - y);
                 glVertex2i(x, height - y);
                 glVertex2i(x, height - pos_y);
-            }
-            else {  //到右上 或 左上
-                glVertex2i(pos_x, height - pos_y);
-                glVertex2i(x, height - pos_y);
-                glVertex2i(x, height - y);
-                glVertex2i(pos_x, height - y);
-            }
             glEnd();
             glFinish();
         }
@@ -1134,17 +1137,12 @@ void motion_func(int  x, int y) {             //motion callback function. The mo
             myLoad();
             glLineWidth(pnt_size);
             glPolygonMode(GL_FRONT, fill);
+            glPolygonMode(GL_BACK, fill);
             glBegin(GL_POLYGON);
-            if ((pos_x <= x && pos_y <= y) || (x <= pos_x && y <= pos_y)) {  //逆時針 到右下 或 左上
                 glVertex2i(pos_x, height - pos_y);
                 glVertex2i(2 * pos_x - x, height - y);
                 glVertex2i(x, height - y);
-            }
-            else {  //到右上 或 左上
-                glVertex2i(pos_x, height - pos_y);
-                glVertex2i(x, height - y);
-                glVertex2i(2 * pos_x - x, height - y);
-            }
+           
             glEnd();
         }
         else if (obj_type == CIRCLE) {
