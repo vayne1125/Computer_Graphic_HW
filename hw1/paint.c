@@ -3,8 +3,8 @@
 #include <stdlib.h>
 #include <math.h>
 #include <GL/glut.h>
-#define    SIZEX   2000   //畫面大小 ->開大一點 reshape後load才會正常
-#define    SIZEY   2000
+#define    SIZEX   800   
+#define    SIZEY   1100
 
 //file 相關常數
 #define    MY_SAVE  1
@@ -56,10 +56,13 @@
 typedef    int   menu_t;
 menu_t     top_m, text_mode_m, text_font_m;
 
-int        height = 800, width = 1000;       //螢幕大小
+int        height = 700, width = 1000;       //螢幕大小
 unsigned char  image[SIZEX * SIZEY][4];      //Image data in main memory for user save
 unsigned char myImage[SIZEX * SIZEY][4];     //for 一些功能需要的save
 unsigned char gridImage[SIZEX * SIZEY][4];   //存純網格的圖案
+
+unsigned char imageVer[200][SIZEX * SIZEY][4];   //版本紀錄
+
 
 int        pos_x = -1, pos_y = -1;           //位置
 int        text_x = -1, text_y = -1;         //text位置 
@@ -68,6 +71,7 @@ int        first = 0;                        //flag of initial points for lines 
 int        vertex[128][2];                   //coords of vertices 
 int        side = 0;                         //num of sides of polygon
 float      pnt_size = 10.0;                  //筆刷大小
+int isMotion = 0;                            //發生過motion嗎
 
 int sticker_type = SHY_PUPU_DB;
 int view_pupu = SHY_PUPU_DB;
@@ -78,7 +82,7 @@ int text_font = GLUT_BITMAP_TIMES_ROMAN_24;  //字型:GLUT_BITMAP_HELVETICA_18  GL
 char mySyting[1000];                         //打字專用陣列
 int stringIndex = 0;                         //打字的index
 int fill = 0;                                //是否填滿 0->不填滿  1->填滿
-
+int ver = 0;                                 //目前版本
 int color_btn[9][5] = {
     //x1,y1,x2,y2,isPress
     {  0,  0,  0, 0,0 },
@@ -155,6 +159,8 @@ void mySave(void);
 void myLoad(void);
 void file_func(int value);
 void draw_circle(int mode, int x);
+void verSave();
+
 
 void grid_show_func(int value) {            //是否顯示網格 
     mySave();                               //將現在畫面存在myImage裡
@@ -720,6 +726,22 @@ void myLoad() {
     glRasterPos2i(0, 0);
     glDrawPixels(width, height - 100, GL_RGBA, GL_UNSIGNED_BYTE, myImage);    //將myImage顯示出來
 }
+void verSave() {                //版本紀錄
+    if (ver >= 199) {           //最多記錄前199
+        return;
+    }
+    glReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, imageVer[++ver]);  //將畫面存到imageVer
+    printf("save %d\n", ver);
+}
+void verLoad() {           //回到上一步
+    glRasterPos2i(0, 0);
+    if (ver <= 1) ver = 1;
+    else ver--;
+    printf("load %d\n", ver);
+    glDrawPixels(width, height-100, GL_RGBA, GL_UNSIGNED_BYTE, imageVer[ver]);    //將imageVer顯示出來
+    grid_show_func(advance_btn[1][4]);
+    glFlush();
+}
 void grid_line() {
     int gridSize = 15;
     change_color(DARK_PINK);
@@ -754,6 +776,8 @@ void display_func(void) {         //Callback function for display, redisplay
         firstIn = 0;
         grid_line();
         mySave();
+        ver = 0;
+        verSave();
     }
     myMenu();
     glFlush();
@@ -807,11 +831,16 @@ void keyboard(unsigned char key, int x, int y) {
     //Callback function for keyboard event.
     //key = the key pressed,
     //(x, y) = position in the window, where the key is pressed
-
+    //printf("%d\n",key);
+    if (key == 26) {                    //ctrl z -> 回到上一步
+        verLoad();
+        return;
+    }
     if (obj_type == TEXT) {                  //如果模式是打字       
         if (text_mode == RANDOM) {           //隨機打字
             glRasterPos2i(x, height - y);
             glutBitmapCharacter(text_font, key);
+            verSave();
         }
         else if (text_mode == FIXED) {       //打一行字
             glRasterPos2i(text_x, height - text_y);  //按下滑鼠的地方
@@ -819,6 +848,7 @@ void keyboard(unsigned char key, int x, int y) {
             for (int i = 0; i < stringIndex; i++) {
                 glutBitmapCharacter(text_font, mySyting[i]);
             }
+            verSave();
         }
         glFlush();
     }
@@ -894,9 +924,12 @@ void mouse_func(int button, int state, int x, int y) {          //Callback funct
     printf("%d %d\n", x, y);
     if (button == GLUT_LEFT_BUTTON && state == GLUT_UP && obj_type == PAINT) {  //畫完一筆畫 
         first = 0;
+        if(isMotion) verSave();
+        isMotion = 0;
     }
     if (button == GLUT_LEFT_BUTTON && state == GLUT_UP && obj_type == TEXT) {   //找新的地方打字
         stringIndex = 0;
+        //verSave();
     }
     if (button != GLUT_LEFT_BUTTON) return;
     //按鈕區 -> 不能畫圖
@@ -924,7 +957,7 @@ void mouse_func(int button, int state, int x, int y) {          //Callback funct
         }
     }
     //file按鈕，判斷點擊
-    if (x >= file_btn[1][0] && x <= file_btn[5][2] && y >= file_btn[1][1] && y <= file_btn[1][3]) {
+    if (state == GLUT_UP && x >= file_btn[1][0] && x <= file_btn[5][2] && y >= file_btn[1][1] && y <= file_btn[1][3]) {
         for (int i = 1; i <= 5; i++) {
             if (x >= file_btn[i][0] && x <= file_btn[i][2] && y >= file_btn[i][1] && y <= file_btn[i][3]) {
                 file_func(i);
@@ -988,6 +1021,10 @@ void mouse_func(int button, int state, int x, int y) {          //Callback funct
         }
     }
     if (y >= 100) {                                //畫畫區
+        if (state == GLUT_UP && (obj_type == CIRCLE || obj_type == TRIANGLE || obj_type == RECTANGLE || obj_type == LINE) && isMotion) {      //如果有動作 -> 紀錄版本
+            verSave();
+            isMotion = 0;
+        }
         mySave();
         pos_x = x; pos_y = y;
         switch (obj_type) {
@@ -996,6 +1033,7 @@ void mouse_func(int button, int state, int x, int y) {          //Callback funct
             glBegin(GL_POINTS);         //  Draw a point
             glVertex2f(x, height - y);
             glEnd();
+            verSave();
             break;
         case POLYGON:                  // Define vertices of poly
             if (side == 0) {
@@ -1003,14 +1041,17 @@ void mouse_func(int button, int state, int x, int y) {          //Callback funct
                 side++;
             }
             else {
-                if (state == GLUT_UP) {          //當滑鼠放開 -> 確定位置 存點
-                    if (fabs(vertex[0][0] - x) + fabs(vertex[0][1] - y) < 12)  //連到頭就塗色
+                if (state == GLUT_UP && isMotion) {          //當滑鼠放開 -> 確定位置 存點
+                    if (side > 1 && fabs(vertex[0][0] - x) + fabs(vertex[0][1] - y) < 12) {  //連到頭就塗色
                         draw_polygon();
+                        verSave();
+                    }
                     else {
                         vertex[side][0] = x;
                         vertex[side][1] = y;
                         side++;
                     }
+                    isMotion = 0;
                 }
             }
             break;
@@ -1023,6 +1064,7 @@ void mouse_func(int button, int state, int x, int y) {          //Callback funct
             pos_x = x;
             pos_y = y;
             draw_sticker();
+            if(state == GLUT_UP) verSave();  //紀錄版本
             break;
         default:
             break;
@@ -1091,6 +1133,7 @@ void passive_motion_func(int x, int y) {
 }
 void motion_func(int  x, int y) {             //motion callback function. The mouse is pressed and moved.
     if (y >= 100) {
+        isMotion = 1;
         if (obj_type == PAINT) {              //畫筆
             if (first == 0) {
                 first = 1;
@@ -1204,6 +1247,8 @@ void file_func(int value)
         glRasterPos2i(0, 0);
         glDrawPixels(width, height - 100,
             GL_RGBA, GL_UNSIGNED_BYTE, image);
+        verSave();                                    //load算一個版本
+        grid_show_func(advance_btn[1][4]);
     }
     else if (value == MY_BLEND) { /* Blending current image with the saved image */
         glEnable(GL_BLEND);
