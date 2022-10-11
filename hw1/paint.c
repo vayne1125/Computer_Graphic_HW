@@ -70,6 +70,7 @@ int        side = 0;                         //num of sides of polygon
 float      pnt_size = 10.0;                  //筆刷大小
 
 int sticker_type = SHY_PUPU_DB;
+int view_pupu = SHY_PUPU_DB;
 int color = BLACK;                           //初始顏色預設黑
 int text_mode = RANDOM;                      //初始打字模式預設隨機
 int paint_mode = NORMAL;                     //初始畫筆預設normal
@@ -579,7 +580,7 @@ void pupu_bar(void) {
         glEnd();
     }
 
-    draw_pupu(pupu_btn[0][0], pupu_btn[0][1], sticker_type);
+    draw_pupu(pupu_btn[0][0], pupu_btn[0][1], view_pupu);
 }
 void sticker_menu(void) {
 
@@ -983,6 +984,7 @@ void mouse_func(int button, int state, int x, int y) {          //Callback funct
             type_btn[obj_type][4] = 0;
             obj_type = STICKER;
             sticker_type = i;
+            view_pupu = i;
         }
     }
     if (y >= 100) {                                //畫畫區
@@ -1044,6 +1046,7 @@ void passive_motion_func(int x, int y) {
             for (int i = 1; i <= 2; i++) {
                 if (x >= sticker_menu_2[i][0] && x <= sticker_menu_2[i][2] && y >= sticker_menu_2[i][1] && y <= sticker_menu_2[i][3]) {
                     sticker_menu_2[i][4] = 1;
+                    view_pupu = i;
                     ok = 1;
                 }
                 else sticker_menu_2[i][4] = 0;
@@ -1056,6 +1059,7 @@ void passive_motion_func(int x, int y) {
             for (int i = 3; i <= 4; i++) {
                 if (x >= sticker_menu_2[i][0] && x <= sticker_menu_2[i][2] && y >= sticker_menu_2[i][1] && y <= sticker_menu_2[i][3]) {
                     sticker_menu_2[i][4] = 1;
+                    view_pupu = i;
                     ok = 1;
                 }
                 else sticker_menu_2[i][4] = 0;
@@ -1077,7 +1081,10 @@ void passive_motion_func(int x, int y) {
         if (sticker_menu_1[0][0] == 1 || (x >= pupu_btn[1][0] && x <= pupu_btn[1][2] && y >= pupu_btn[1][1] && y <= pupu_btn[1][3])) {
             pupu_btn[1][4] = 1;
         }
-        else pupu_btn[1][4] = 0;
+        else {
+            view_pupu = sticker_type;
+            pupu_btn[1][4] = 0;
+        }
         myMenu();
         glFlush();
     }
