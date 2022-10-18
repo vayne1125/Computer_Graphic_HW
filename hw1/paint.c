@@ -72,7 +72,7 @@ int        vertex[128][2];                   //coords of vertices
 int        side = 0;                         //num of sides of polygon
 float      pnt_size = 10.0;                  //筆刷大小
 int isMotion = 0;                            //發生過motion嗎
-
+int sWidth = 1000, sHeight = 700;
 int sticker_type = SHY_PUPU_DB;
 int view_pupu = SHY_PUPU_DB;
 int color = BLACK;                           //初始顏色預設黑
@@ -1230,7 +1230,9 @@ void file_func(int value)
     if (value == MY_QUIT) exit(0);
     else if (value == MY_CLEAR) init_window();
     else if (value == MY_SAVE) { /* Save current window */
-        glReadPixels(0, 0, width, height - 100, GL_RGBA, GL_UNSIGNED_BYTE, image);
+        sWidth = width;
+        sHeight = height;
+        glReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, image);
         /*
         for (int i = 0; i < SIZEX; i++)   // Assign 0 opacity to black pixels
             for (int j = 0; j < SIZEY; j++)
@@ -1245,7 +1247,7 @@ void file_func(int value)
     }
     else if (value == MY_LOAD) { /* Restore the saved image */
         glRasterPos2i(0, 0);
-        glDrawPixels(width, height - 100,
+        glDrawPixels(sWidth, sHeight,
             GL_RGBA, GL_UNSIGNED_BYTE, image);
         verSave();                                    //load算一個版本
         grid_show_func(advance_btn[1][4]);
