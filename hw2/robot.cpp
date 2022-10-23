@@ -5,7 +5,7 @@
  */
 #include <stdio.h>
 #include <math.h>
-
+#include <iostream>
 #include <GL/glut.h>
 
 
@@ -17,13 +17,13 @@
 #define ICE 100
 #define FLOOR 101
 #define WOOD 102
-
+using namespace std;
 
 //coordinates of the 8 corners.(0,0,0)-(1,1,1)
-float  points[][3] = { {0.0, 0.0, 0.0}, {10.0, 0.0, 0.0},
-                      {10.0, 0.0, 10.0}, {0.0, 0.0, 10.0},
-                      {0.0, 10.0, 0.0}, {10.0, 10.0, 0.0},
-{10.0, 10.0, 10.0}, {0.0, 10.0, 10.0} };
+float  points[][3] = { {0.0, 0.0, 0.0}, {1.0, 0.0, 0.0},
+                      {1.0, 0.0, 1.0}, {0.0, 0.0, 1.0},
+                      {0.0, 1.0, 0.0}, {1.0, 1.0, 0.0},
+{1.0, 1, 1.0}, {0.0, 1.0, 1.0} };
 //Define 6 faces using the 8 corners (vertices)
 int    face[][4] = { {0, 1, 2, 3}, {7, 6, 5, 4}, {0, 4, 5, 1},
                     {1, 5, 6, 2}, {3, 2, 6, 7}, {0, 3, 7, 4} };
@@ -45,9 +45,20 @@ float  angle = 0.0;
 GLUquadricObj* sphere = NULL, * cylind = NULL, * mycircle = NULL;
 int    polygonMode = FILL;
 
-void draw_magic_field();
-void draw_cylinder(void);
+int see = 0;
 
+struct node {
+    double x, y, z;
+};
+node ball_cor(double r, int A, int B) {
+    node rt;
+    rt.x = r * sin(A * 0.01745) * cos(B * 0.01745);
+    rt.y = r * sin(A * 0.01745) * sin(B * 0.01745);
+    rt.z = r * cos(A * 0.01745);
+    return rt;
+}
+void draw_magic_field();
+void draw_cylinder(double up, double down, int height);
 void change_color(int value) {  //設定畫筆顏色
     switch (value){
     case ICE:
@@ -60,8 +71,6 @@ void change_color(int value) {  //設定畫筆顏色
         glColor3f(158/255.0, 79/255.0, 0);
     }
 }
-
-
 void myinit()
 {
     glClearColor(0.0, 0.0, 0.0, 1.0);      /*set the background color BLACK */
@@ -108,28 +117,49 @@ void draw_square(int hei,int wid){     //躺在地上的正方形 定義: x軸向為寬，z向為
     glVertex3f(0, 0.0, 0);
     glEnd();
 }
-void draw_magic_wand(){                 //x右 y上 z前
+void draw_magic_wand(){                 //x右 y上 z前 中心點:法杖的中間
     change_color(WOOD);
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-
+    //glRotatef(270, 1, 0, 0);
     glPushMatrix();
     glTranslatef(0, 0, -4);
-    draw_cylinder(1, 1, 8);
+    draw_cylinder(0.5, 0.8, 8);
     glPopMatrix();
 
-    glColor3f(102/255.0, 34/255.0, 0);
+    glColor3f(102/255.0, 34/255.0, 0);  //法杖底部的圓
     glPushMatrix();
     glTranslatef(0, 0, -4);
-    glRotatef(270, 1, 0, 0);        //圓形站立
-    draw_circle(1, 1);        
+    glRotatef(270, 1, 0, 0);            //圓形站立
+    draw_circle(0.5, 1);        
     glPopMatrix();
 
-    glColor3f(102 / 255.0, 34 / 255.0, 0);
+    glColor3f(102 / 255.0, 34 / 255.0, 0);   //法杖頂部的圓
     glPushMatrix();
     glTranslatef(0, 0, 4);
-    glRotatef(270, 1, 0, 0);        //圓形站立
-    draw_circle(1, 1);
+    glRotatef(270, 1, 0, 0);                 //圓形站立
+    draw_circle(0.8, 1);
     glPopMatrix();
+
+    glColor3f(168 / 255.0, 1.0, 1);         //閃光圈(藍色)
+    glPushMatrix();
+    glTranslatef(0, 0, 5);    
+    glRotatef(30, 0, 1, 0);
+    glutSolidTorus(0.1, 2.5,100 , 100);
+    glPopMatrix();
+
+    glColor3f(168 / 255.0, 1.0, 1);          //閃光圈(藍色)
+    glPushMatrix();
+    glTranslatef(0, 0, 5);
+    glRotatef(330, 0, 1, 0);
+    glutSolidTorus(0.1, 2.5, 100, 100);
+    glPopMatrix();
+
+    glColor3f(1, 1, 168/255.0);              //水晶(黃)
+    glPushMatrix();
+    glTranslatef(0, 0, 5.8);
+    glutSolidSphere(1.5,10,10);
+    glPopMatrix();
+    
 }
 void draw_floor() {           //畫牆壁和地板
     change_color(ICE);  
@@ -219,8 +249,6 @@ void draw_magic_field() {
     draw_circle(7.7, 2);          //0.5
 }
 void draw_scene1() {
-
-
     draw_floor();
 
     glPushMatrix();
@@ -229,21 +257,22 @@ void draw_scene1() {
     glPopMatrix();
 
     glPushMatrix();
-    glTranslatef(30, 10, 30);     //法仗的 lcs  飄在空中
+
+    glTranslatef(30 ,7, 30);     //法仗的 lcs  飄在空中
+    //glScalef(5,5,5);
     draw_magic_wand();
     glPopMatrix();
 }
-void draw_cylinder(int up,int down,int height){
+void draw_cylinder(double up,double down,int height){
     if (cylind == NULL) {
         cylind = gluNewQuadric();
     }
     /*--- Draw a cylinder ---*/
     gluCylinder(cylind, up, down, /* radius of top and bottom circle */
         height,              /* height of the cylinder */
-        12,               /* use 12-side polygon approximating circle*/
+        20,               /* use 12-side polygon approximating circle*/
         4);               /* Divide it into 3 sections */
 }
-
 void draw_arrow(void)
 {
     if (cylind == NULL) {
@@ -257,7 +286,6 @@ void draw_arrow(void)
         4);               /* Divide it into 3 sections */
 
 }
-
 void draw_coord_sys(void)
 {
 
@@ -299,10 +327,48 @@ void draw_coord_sys(void)
     draw_arrow();
     glPopMatrix();
 }
+void draw_robot() {
 
+    glScalef(2, 2, 2);
+
+    glPushMatrix();
+    glTranslatef(0,4,0);               //走到肚子
+    glutSolidSphere(2, 10, 10);
+
+    node tp = ball_cor(2, 90, 30);
+    glColor3f(0, 1, 1);
+    glPushMatrix();
+    glTranslatef(tp.x, tp.y, tp.z);    //走到右肩膀
+    glutSolidSphere(0.5, 10, 10);
+
+    glColor3f(1, 0, 0);
+    glPushMatrix();
+    glTranslatef(-0.25, 0, 0.25);      //走到手
+    glRotatef(180,1,0,0);               
+    glScalef(0.5,1,0.5);
+    draw_cube();
+    glPopMatrix();
+    glPopMatrix();
+
+    tp = ball_cor(2, 270, 330);
+    glColor3f(0, 1, 1);
+    glPushMatrix();
+    glTranslatef(tp.x, tp.y, tp.z);              //走到左肩膀
+    glutSolidSphere(0.5, 10, 10);
+    glPopMatrix();
+
+
+    glColor3f(1, 0, 1);
+    glPushMatrix();
+    glTranslatef(0, 3, 0);             //在走到頭
+    glutSolidSphere(1.5, 10, 10);
+    glPopMatrix();
+    glPopMatrix();
+    //glScalef(5, 5, 5);
+}
 void display()
 {
-    printf("display");
+    //printf("display\n");
     /*Clear previous frame and the depth buffer */
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -313,8 +379,11 @@ void display()
     //動作
     //相機位置    相機對準的位置   相機向上的角度
     
-    //gluLookAt(45.0, 30.0, 60.0,       25.0, 10.0, 0.0,         0.0, 1.0, 0.0);      //動作
-    gluLookAt(40.0, 70.0, 55.0, 25.0, 0.0, 25.0, 0.0, 1.0, 0.0);                  //場景
+    if(see)
+        gluLookAt(35.0, 30.0, 60.0,       20.0, 0.0, 0.0,         0.0, 1.0, 0.0);      //動作
+    else
+        //gluLookAt(10.0, 10.0, 10.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0);
+        gluLookAt(40.0, 70.0, 55.0, 25.0, 0.0, 25.0, 0.0, 1.0, 0.0);                    //場景
 
 
     /*-------Draw the floor & coordinate system----*/
@@ -327,10 +396,10 @@ void display()
     //move to the base position
     glTranslatef(pos[0], pos[1], pos[2]);
 
-    //glPushMatrix();
-    //glScalef(1.0, 4.0, 1.0);
-    //draw_cube();
-    //glPopMatrix();
+    glPushMatrix();
+    glRotatef(angle,0,1,0);
+    draw_robot();
+    glPopMatrix();
 
     glutSwapBuffers();
     return;
@@ -358,9 +427,9 @@ void display()
     /*-------Swap the back buffer to the front --------*/
     glutSwapBuffers();
 }
-
 void my_reshape(int w, int h)
 {
+    printf("res\n");
     glViewport(0, 0, w, h);
 
     glMatrixMode(GL_PROJECTION);
@@ -375,14 +444,32 @@ void my_reshape(int w, int h)
                0.50, 30.0);
 
    */
-    //glOrtho(-40.0, 40.0,   -30.0, 20.0,    0.0, 120);  //動作
-    glOrtho(-50.0 , 50.0 , -40.0, 40.0, 0.0, 120);       //場景
+   // if (see) {
+        //glOrtho(0.0, 30.0, -20.0, 20.0, 0.0, 120);  //動作
+   // }
+   // else {
+        //glOrtho(-20.0, 20.0, -20.0, 20.0, 0.0, 120);
+        glOrtho(-40.0, 40.0, -40.0, 40.0, 0.0, 120);       //場景
+        //printf("kk");
+   // }
     width = w; height = h;
 }
+void timerFunc(int nTimerID){
+    switch (nTimerID){
+    case 1:
+        printf("h\n");
+        glutPostRedisplay();
+        glutTimerFunc(1000, timerFunc, 1);
+        break;
+    }
+}
+void my_order(unsigned char key, int x, int y){
+    printf("key: %c\n",key);
 
+    if (key == 'Y' || key == 'y') {
+        see = ~see;
+    }
 
-void my_order(unsigned char key, int x, int y)
-{
     if (key == 'Q' || key == 'q') exit(0);
     if (key == 'Z') {
         if (pos[2] < 9.0) pos[2] += 1.0;
@@ -407,7 +494,10 @@ void my_order(unsigned char key, int x, int y)
 void motion_func(int  x, int y) {};
 void passive_motion_func(int x, int y) {};
 void mouse_func(int button, int state, int x, int y) {};
-void idle_func(void) {};
+void idle_func(void) {
+    
+
+};
 
 
 /*---------------------------------------------------
@@ -436,6 +526,7 @@ void main(int argc, char** argv)
     glutMouseFunc(mouse_func);  /* Mouse Button Callback func */
     glutMotionFunc(motion_func);/* Mouse motion event callback func */
     glutPassiveMotionFunc(passive_motion_func);
+    glutTimerFunc(1000, timerFunc, 1);
     glutMainLoop();
 }
 
