@@ -3,8 +3,8 @@
 #include <stdlib.h>
 #include <math.h>
 #include <GL/glut.h>
-#define    SIZEX   800   
-#define    SIZEY   1100
+#define    SIZEX   1500   
+#define    SIZEY   1500
 
 //file 相關常數
 #define    MY_SAVE  1
