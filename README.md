@@ -12,5 +12,6 @@ Use Visual Stdio 2022 and OpenGL [(set environment)](https://juejin.cn/post/7030
 ## Homework
 
 - project 1: 小畫家 2D paint
-
+ <img src="/readmeImg/paint.png" alt="paint" title="paint" width="500"> 
+ 
 - project 2: Robot :0
