@@ -48,7 +48,7 @@ int    polygonMode = FILL;
 int see = 0;
 
 struct node {
-    double x, y, z;
+    double x = 0, y = 0, z = 0;
 };
 node ball_cor(double r, int A, int B) {
     node rt;
@@ -57,6 +57,125 @@ node ball_cor(double r, int A, int B) {
     rt.z = r * cos(A * 0.01745);
     return rt;
 }
+struct robot {
+    struct hand {
+        node tp;
+        float angle_z = -30, angle_x = 180, angle_y = 0;
+        void draw() {
+            glRotatef(angle_x, 1, 0, 0);           //移動關節角度 180放下
+            glRotatef(angle_z, 0, 0, 1);             //-35放在身體旁邊 對z轉控制左右
+            //glRotatef(90, 1, 0, 0);              //往前  對x軸轉控制舉起放下
+            glutSolidSphere(0.5, 10, 10);          //半徑為0.5 的肩膀
+
+            //forearms
+            glColor3f(1, 0, 0);
+            glTranslatef(0, 1.25, 0);              //走到 肩膀上方0.25 + 圓中心1(畫2的手臂)
+
+            glPushMatrix();
+            glScalef(0.4, 1, 0.4);
+            glutSolidSphere(1, 10, 10);            //直徑為2的手臂
+            glPopMatrix();
+
+            glTranslatef(0, 1, 0);                  //手臂前端中心
+            //換手指方向應該在這轉
+            //左手指頭
+            glColor3f(0, 1, 1);
+            glPushMatrix();
+            glTranslatef(-0.25, 0.2, 0);
+            glRotatef(15, 0, 0, 1);               //張開角度
+            glScalef(0.3, 0.7, 0.3);              //手指長: 0.7
+            glutSolidSphere(0.5, 10, 10);
+            glPopMatrix();
+
+            //右手指頭
+            glPushMatrix();
+            glTranslatef(0.25, 0.2, 0);
+            glRotatef(-15, 0, 0, 1);              //張開角度
+            glScalef(0.3, 0.7, 0.3);              //手指長: 0.7
+            glutSolidSphere(0.5, 10, 10);
+            glPopMatrix();
+        }
+    }right_h, left_h;
+    struct foot {
+        node tp;
+        float angle_z = 0, angle_x = 180, angle_y = 0;
+        void draw() {
+            glRotatef(angle_x, 1, 0, 0);          //移動關節角度 180放下
+            //glRotatef(-30, 0, 0, 1);            
+            //glRotatef(90, 1, 0, 0);             //往前  對x軸轉控制舉起放下
+            glutSolidSphere(0.25, 10, 10);        //膝蓋
+
+            //腿
+            glColor3f(1, 0, 0);
+            glTranslatef(0, 0.875, 0);            //走到 膝蓋0.125 + 圓中心0.75(畫1.5的圓)
+
+            glPushMatrix();
+            glScalef(0.5, 1.5, 0.5);              //腿長1.5
+            glutSolidSphere(0.5, 10, 10); 
+            glPopMatrix();
+
+            glTranslatef(0, 0.75, 0);            //腿前端中心
+            
+            //腳
+            glColor3f(0, 1, 1);
+            glPushMatrix();
+            glutSolidSphere(0.5, 10, 10);        //直徑1的腳
+            glPopMatrix();
+        }
+    }left_f, right_f;
+    void draw() {
+        //肚子
+        glPushMatrix();
+        //glTranslatef(0, 4.45, 0);               //走到肚子
+
+        glTranslatef(0, 13.35, 0);
+        glScalef(3, 3, 3);
+        //glRotatef(180,1,0,0);
+        glutSolidSphere(2, 10, 10);         //畫肚子 直徑4
+
+        //右肩膀
+        node tp = ball_cor(2, 90, 30);
+        glColor3f(0, 1, 1);
+        glPushMatrix();
+        glTranslatef(tp.x, tp.y, tp.z);     //走到右肩膀
+        right_h.draw();
+        glPopMatrix();
+
+        //左肩膀
+        tp = ball_cor(2, 270, 330);
+        glColor3f(0, 1, 1);
+        glPushMatrix();
+        glTranslatef(tp.x, tp.y, tp.z);     //走到左肩膀
+        left_h.angle_z = 30;
+        left_h.draw();
+        glPopMatrix();
+
+        //右膝蓋
+        glColor3f(0, 1, 1);
+        glPushMatrix();
+        glTranslatef(-0.4,-2.2,0);     
+        left_f.draw();
+        glPopMatrix();
+
+        //左膝蓋
+        glColor3f(0, 1, 1);
+        glPushMatrix();
+        glTranslatef(0.4, -2.2, 0);     
+        right_f.draw();
+        glPopMatrix();
+
+        //頭
+        glColor3f(1, 0, 1);
+        glPushMatrix();
+        glTranslatef(0, 3, 0);             //在走到頭
+        glutSolidSphere(1.5, 10, 10);        //直徑3
+        glPopMatrix();                       //離開右肩膀坐標系
+
+
+        glPopMatrix();                       //離開肚子坐標系
+    }
+};
+robot myRobot;
 void draw_magic_field();
 void draw_cylinder(double up, double down, int height);
 void change_color(int value) {  //設定畫筆顏色
@@ -109,6 +228,7 @@ void draw_circle(double size, int wid) {    // Procedure to draw a circle
     glEnd();
 }
 void draw_square(int hei,int wid){     //躺在地上的正方形 定義: x軸向為寬，z向為高
+    glPushMatrix();
     glScaled(wid,0,hei);
     glBegin(GL_POLYGON);
     glVertex3f(0, 0.0, 1);           
@@ -116,6 +236,7 @@ void draw_square(int hei,int wid){     //躺在地上的正方形 定義: x軸向為寬，z向為
     glVertex3f(1, 0.0, 0);
     glVertex3f(0, 0.0, 0);
     glEnd();
+    glPopMatrix();
 }
 void draw_magic_wand(){                 //x右 y上 z前 中心點:法杖的中間
     change_color(WOOD);
@@ -159,7 +280,6 @@ void draw_magic_wand(){                 //x右 y上 z前 中心點:法杖的中間
     glTranslatef(0, 0, 5.8);
     glutSolidSphere(1.5,10,10);
     glPopMatrix();
-    
 }
 void draw_floor() {           //畫牆壁和地板
     change_color(ICE);  
@@ -178,13 +298,6 @@ void draw_floor() {           //畫牆壁和地板
     glPushMatrix();
     draw_square(60, 60);              //畫地板
     glPopMatrix();
-
-    /*
-    glTranslatef(1,0,0);    //向右移動(1,0,0)
-    glPushMatrix();         //保存當前位置
-    glTranslatef(0,1,0);    //現在是(1,1,0)了
-    glPopMatrix();          //這樣，現在又回到(1,0,0)了
-    */
 }
 void draw_magic_field() {   
     //魔法陣
@@ -249,7 +362,7 @@ void draw_magic_field() {
     draw_circle(7.7, 2);          //0.5
 }
 void draw_scene1() {
-    draw_floor();
+    //draw_floor();
 
     glPushMatrix();
     glTranslatef(30, 0, 30);       //法陣的 lcs
@@ -257,8 +370,7 @@ void draw_scene1() {
     glPopMatrix();
 
     glPushMatrix();
-
-    glTranslatef(30 ,7, 30);     //法仗的 lcs  飄在空中
+    glTranslatef(30 ,7, 30);      //法仗的 lcs  飄在空中
     //glScalef(5,5,5);
     draw_magic_wand();
     glPopMatrix();
@@ -328,43 +440,7 @@ void draw_coord_sys(void)
     glPopMatrix();
 }
 void draw_robot() {
-
-    glScalef(2, 2, 2);
-
-    glPushMatrix();
-    glTranslatef(0,4,0);               //走到肚子
-    glutSolidSphere(2, 10, 10);
-
-    node tp = ball_cor(2, 90, 30);
-    glColor3f(0, 1, 1);
-    glPushMatrix();
-    glTranslatef(tp.x, tp.y, tp.z);    //走到右肩膀
-    glutSolidSphere(0.5, 10, 10);
-
-    glColor3f(1, 0, 0);
-    glPushMatrix();
-    glTranslatef(-0.25, 0, 0.25);      //走到手
-    glRotatef(180,1,0,0);               
-    glScalef(0.5,1,0.5);
-    draw_cube();
-    glPopMatrix();
-    glPopMatrix();
-
-    tp = ball_cor(2, 270, 330);
-    glColor3f(0, 1, 1);
-    glPushMatrix();
-    glTranslatef(tp.x, tp.y, tp.z);              //走到左肩膀
-    glutSolidSphere(0.5, 10, 10);
-    glPopMatrix();
-
-
-    glColor3f(1, 0, 1);
-    glPushMatrix();
-    glTranslatef(0, 3, 0);             //在走到頭
-    glutSolidSphere(1.5, 10, 10);
-    glPopMatrix();
-    glPopMatrix();
-    //glScalef(5, 5, 5);
+    myRobot.draw();
 }
 void display()
 {
@@ -403,29 +479,6 @@ void display()
 
     glutSwapBuffers();
     return;
-
-    /*-------Draw another cube---*/
-    glPushMatrix();
-    glTranslatef(0.0, 0.0, 3.0);
-    glTranslatef(0.5, 0.50, 2.0);
-    glRotatef(angle, 0.0, 1.0, 0.0);
-    glTranslatef(-0.5, -0.50, -2.0);
-    glScalef(1.0, 1.0, 4.0);
-    draw_cube();
-    glPopMatrix();
-
-    /*-------Draw the third cube ---*/
-    glPushMatrix();
-    glTranslatef(3.0, 0.0, 0.0);
-    glScalef(4.0, 1.0, 1.0);
-    glTranslatef(0.5, 0.5, 0.5);
-    glRotatef(angle, 1.0, 0.0, 0.0);
-    glTranslatef(-0.5, -0.5, -0.5);
-    draw_cube();
-    glPopMatrix();
-
-    /*-------Swap the back buffer to the front --------*/
-    glutSwapBuffers();
 }
 void my_reshape(int w, int h)
 {
@@ -435,23 +488,7 @@ void my_reshape(int w, int h)
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
 
-    /*
-     if (w>h)
-       glOrtho(-10.0, 10.0, -10.0*(float)h/(float)w, 10.0*(float)h/(float)w,
-                0.50, 30.0);
-     else
-       glOrtho(-10.0*(float)w/(float)h, 10.0*(float)w/(float)h, -10.0, 10.0,
-               0.50, 30.0);
-
-   */
-   // if (see) {
-        //glOrtho(0.0, 30.0, -20.0, 20.0, 0.0, 120);  //動作
-   // }
-   // else {
-        //glOrtho(-20.0, 20.0, -20.0, 20.0, 0.0, 120);
-        glOrtho(-40.0, 40.0, -40.0, 40.0, 0.0, 120);       //場景
-        //printf("kk");
-   // }
+    glOrtho(-40.0, 40.0, -40.0, 40.0, 0.0, 120);       //場景
     width = w; height = h;
 }
 void timerFunc(int nTimerID){
@@ -464,27 +501,31 @@ void timerFunc(int nTimerID){
     }
 }
 void my_order(unsigned char key, int x, int y){
-    printf("key: %c\n",key);
+    //printf("key: %c\n",key);
 
     if (key == 'Y' || key == 'y') {
         see = ~see;
     }
+    if (key == 'Q' || key == 'q') {
+        myRobot.right_h.angle_x += 90;
+        if (myRobot.right_h.angle_x > 360) myRobot.right_h.angle_x -= 360;
+    }
 
-    if (key == 'Q' || key == 'q') exit(0);
-    if (key == 'Z') {
-        if (pos[2] < 9.0) pos[2] += 1.0;
+    if (key == 'S' || key == 's') {
+        pos[2] += 1.0;
     }
-    else if (key == 'z') {
-        if (pos[2] > 0.0) pos[2] -= 1.0;
+    else if (key == 'W' || key == 'w') {
+        pos[2] -= 1.0;
     }
-    if (key == 'x') {
-        if (pos[0] > 0.0) pos[0] -= 1.0;
+    else if (key == 'A' || key == 'a') {
+        pos[0] -= 1.0;
     }
-    else if (key == 'X' && pos[0] < 50.0) pos[0] += 1.0;
+    else if (key == 'D' || key == 'd') {
+        pos[0] += 1.0;
+    }
+
     else if (key == 'R' || key == 'r') angle += 3.0;
     else if (key == 'L' || key == 'l') angle -= 3.0;
-    if (key == '1') polygonMode = FILL;
-    else if (key == '2') polygonMode = LINE;
 
     if (angle >= 360.0) angle -= 360.0;
     else if (angle < 0.0) angle += 360.0;
