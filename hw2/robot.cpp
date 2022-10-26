@@ -46,7 +46,6 @@ GLUquadricObj* sphere = NULL, * cylind = NULL, * mycircle = NULL;
 int    polygonMode = FILL;
 
 int see = 0;
-bool magic_wand_show = 1;
 
 void draw_magic_field();
 void draw_cylinder(double up, double down, int height);
@@ -64,12 +63,26 @@ node ball_cor(double r, int A, int B) {
     return rt;
 }
 struct magic_wand {
+    //float x1 = 0, y1 = 0, x2 = 0;                    //自己的座標
     float angle_x = 0, angle_y = 0, angle_z = 0;
+    bool show = 1;
+    magic_wand(float x = 0,float y = 0,float z = 0){
+        angle_x = x;
+        angle_y = y;
+        angle_z = z;
+    }
+   /* void setPos(int x_, int y_, int z_) {
+        x = x_;
+        y = y_;
+        z = z_;
+    }*/
     void draw() {
         //x右 y上 z前 中心點:法杖的中間
         change_color(WOOD);
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
         glRotatef(angle_x, 1, 0, 0);
+        glRotatef(angle_y, 0, 1, 0);
+        glRotatef(angle_z, 0, 0, 1);
         glPushMatrix();
         glTranslatef(0, 0, -4);
         draw_cylinder(0.5, 0.8, 8);
@@ -111,22 +124,22 @@ struct magic_wand {
     }
 }myMagic_wand;
 struct robot {
+    magic_wand* magic_wand_r = new magic_wand(180,0,0);
     struct hand {
         node tp;
-        magic_wand magic_wand_r;
         bool carry_mw = 0;
-        float shoulderAng_x = 0, shoulderAng_y = 0, shoulderAng_z = -35;
+        float shoulderAng_x = 180, shoulderAng_y = 0, shoulderAng_z = -35;
         float elbowAng_x = 0, elbowAng_y = 0, elbowAng_z = 0;
         float fingerAng_x = 0, fingerAng_y = 0, fingerAng_z = 0;
         void draw() {
             glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
             glRotatef(shoulderAng_x, 1, 0, 0);           //移動關節角度 180放下
             glRotatef(shoulderAng_z, 0, 0, 1);           //-35放在身體旁邊 對z轉控制左右
-            //glRotatef(90, 1, 0, 0);                    //往前  對x軸轉控制舉起放下
+            glColor3f(173 / 255.0, 214 / 255.0, 1);
             glutSolidSphere(0.5, 10, 10);                //半徑為 0.5 的肩膀
 
-            //forearms
-            glColor3f(1, 0, 0);
+            //forarms
+            glColor3f(167/255.0,167/255.0,167/255.0);
             glTranslatef(0, 0.75, 0);              //走到 肩膀上方0.25 + 圓中心0.75(畫1.5的手臂) - 0.25重疊
 
             glPushMatrix();
@@ -136,11 +149,11 @@ struct robot {
 
             glTranslatef(0, 0.75, 0);               //手臂前端中心
             
-            glColor3f(1, 1, 0);
-            glutSolidSphere(0.25, 10, 10);          //直徑為 0.5 的手軸      0.25重疊
+            glColor3f(173 / 255.0, 214 / 255.0, 1);
+            glutSolidSphere(0.25, 10, 10);          //直徑為 0.5 的手肘      0.25重疊
 
             //手前臂
-            glColor3f(1, 0, 0);
+            glColor3f(167 / 255.0, 167 / 255.0, 167 / 255.0);
             glTranslatef(0, 0.75, 0);                //走到 手軸前端0.25 + 圓中心0.75(畫1.5的手前臂) - 0.25重疊
 
             glPushMatrix();
@@ -148,10 +161,10 @@ struct robot {
             glutSolidSphere(0.5, 10, 10);           //直徑為1.5的手前臂
             glPopMatrix();
 
-            glTranslatef(0, 0.75, 0);               //手前臂前端
+            glTranslatef(0, 0.75, 0);               //手前臂前端   
             //換手指方向應該在這轉
             //左手指頭
-            glColor3f(0, 1, 1);
+            glColor3f(173 / 255.0, 214 / 255.0, 1);
             glPushMatrix();
             glTranslatef(-0.25, 0.2, 0);
             glRotatef(15, 0, 0, 1);               //張開角度
@@ -166,14 +179,7 @@ struct robot {
             glScalef(0.3, 0.7, 0.3);              //手指長: 0.7
             glutSolidSphere(0.5, 10, 10);
             glPopMatrix();
-
-            magic_wand_r.angle_x = 270;
-            glPushMatrix();
-            glScalef(1/3.0,1/3.0,1/3.0);
-            glRotatef(-shoulderAng_x, 1, 0, 0);           //移動關節角度 180放下
-            glRotatef(-shoulderAng_z, 0, 0, 1);           //-35放在身體旁邊 對z轉控制左右
-            if(carry_mw) magic_wand_r.draw();
-            glPopMatrix();
+            glRotatef(-shoulderAng_z, 0, 0, 1);   //變回正常的座標系統
         }
     }right_h, left_h;
     struct foot {          //腿長2.75
@@ -185,10 +191,11 @@ struct robot {
             glRotatef(hipJointAng_x, 1, 0, 0);          //移動關節角度 180放下
             //glRotatef(-30, 0, 0, 1);            
             //glRotatef(90, 1, 0, 0);             //往前  對x軸轉控制舉起放下
+            glColor3f(173 / 255.0, 214 / 255.0, 1);
             glutSolidSphere(0.25, 10, 10);        //大腿上的關節 0.5直徑
 
             //大腿
-            glColor3f(1, 0, 0);                   
+            glColor3f(167 / 255.0, 167 / 255.0, 167 / 255.0);
             glTranslatef(0, 0.625, 0);           //走到 膝蓋0.125 + 圓中心0.5(畫1的圓)
 
             glPushMatrix();
@@ -200,14 +207,14 @@ struct robot {
 
             glRotatef(kneeAng_x, 1, 0, 0);       //膝蓋角度
             //膝蓋
-            glColor3f(0, 1, 1);
+            glColor3f(173 / 255.0, 214 / 255.0, 1);
             glPushMatrix();
             glutSolidSphere(0.25, 10, 10);       //直徑0.5的膝蓋
             glPopMatrix();
 
             glTranslatef(0, 0.5, 0);             //膝蓋前端 0.25 + 腿中間0.5(腿長1) - 0.25(重疊地方)
 
-            glColor3f(1, 0, 1);
+            glColor3f(167 / 255.0, 167 / 255.0, 167 / 255.0);
             glPushMatrix();
             glScalef(0.5, 1, 0.5);               //小腿長1
             glutSolidSphere(0.5, 10, 10);
@@ -222,6 +229,7 @@ struct robot {
     void draw() {
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
         //肚子
+        glColor3f(219/255.0,1,1);
         glPushMatrix();
         //glTranslatef(0, 4.75, 0);              //走到肚子
 
@@ -232,16 +240,20 @@ struct robot {
 
         //右肩膀
         node tp = ball_cor(2, 90, 30);
-        glColor3f(0, 1, 1);
         glPushMatrix();
         glTranslatef(tp.x, tp.y, tp.z);        //走到右肩膀
         right_h.carry_mw = 1;
         right_h.draw();
+
+        glPushMatrix();
+        glScalef(1 / 3.0, 1 / 3.0, 1 / 3.0);
+        magic_wand_r -> draw();
+        glPopMatrix();
+
         glPopMatrix();
 
         //左肩膀
         tp = ball_cor(2, 270, 330);
-        glColor3f(0, 1, 1);
         glPushMatrix();
         glTranslatef(tp.x, tp.y, tp.z);       //走到左肩膀
         left_h.shoulderAng_z = 30;
@@ -249,30 +261,57 @@ struct robot {
         glPopMatrix();
 
         //右大腿上面的關節  蠻在身體裡
-        glColor3f(0, 1, 1);
         glPushMatrix();
         glTranslatef(-0.4,-1.75,0);     
         left_f.draw();
         glPopMatrix();
 
         //左大腿上面的關節
-        glColor3f(0, 1, 1);
         glPushMatrix();
         glTranslatef(0.4, -1.75, 0);     
         right_f.draw();
         glPopMatrix();
 
         //頭
-        glColor3f(1, 0, 1);
+        glColor3f(219 / 255.0, 1, 1);
         glPushMatrix();
         glTranslatef(0, 3, 0);               //在走到頭  和身體重疊0.5
         glutSolidSphere(1.5, 10, 10);        //直徑3
-        glPopMatrix();                       //離開右肩膀坐標系
 
+        glColor3f(128/255.0, 128/255.0, 1);  //藍
+        glPushMatrix();                      //眼睛
+        glTranslatef(0.6, 0.5, 1.2);
+        glScalef(0.4,0.8,0.4);
+        glutSolidSphere(0.5, 10, 10);
+        glColor3f(1, 1, 1);                  //眼白
+        glTranslatef(0, 0.2, 0.15);
+        glutSolidSphere(0.33, 10, 10);
+        glPopMatrix();
+
+        glColor3f(1, 122/255.0, 189);        //粉眼
+        glPushMatrix();
+        glTranslatef(-0.6, 0.5, 1.2);
+        glScalef(0.4, 0.8, 0.4);
+        glutSolidSphere(0.5, 10, 10);
+        glColor3f(1, 1, 1);                  //眼白
+        glTranslatef(0, 0.2, 0.15);
+        glutSolidSphere(0.33, 10, 10);
+        glPopMatrix();            
+        
+        glColor3f(1, 0, 0);
+        glPushMatrix();                      
+        glTranslatef(0, -0.15, 1.5);         //嘴巴
+        glLineWidth(1);
+        glBegin(GL_LINES);
+        glVertex3f(-0.2,0,0);
+        glVertex3f(0.2,0,0);
+        glEnd();
+        glPopMatrix();
+
+        glPopMatrix();
         glPopMatrix();                       //離開肚子坐標系
     }
 }myRobot;
-
 void change_color(int value) {  //設定畫筆顏色
     switch (value){
     case ICE:
@@ -426,7 +465,8 @@ void draw_scene1() {
 
     glPushMatrix();
     glTranslatef(30 ,7, 30);      //法仗的 lcs  飄在空中
-    if(magic_wand_show) draw_magic_wand();
+   // myMagic_wand.setPos(30,7,30);
+    if(myMagic_wand.show) draw_magic_wand();
     glPopMatrix();
 }
 void draw_cylinder(double up,double down,int height){
@@ -556,10 +596,14 @@ void timerFunc(int nTimerID){
         break;
     }
 }
-void my_order(unsigned char key, int x, int y){
+void my_order(unsigned char key, int x, int y) {
     //printf("key: %c\n",key);
+    float tpPos[3] = {pos[0], pos[1], pos[2]};
+    if (key == 'o' || key == 'O') {
+        cout << ++myRobot.magic_wand_r -> angle_x<< "\n";
+    }
     if (key == 'p' || key == 'P') {
-        magic_wand_show = !magic_wand_show;
+        myMagic_wand.show = !myMagic_wand.show;
     }
     if (key == 'Y' || key == 'y') {
         see = ~see;
@@ -583,19 +627,22 @@ void my_order(unsigned char key, int x, int y){
         if (myRobot.right_h.elbowAng_x > 360)  myRobot.right_h.elbowAng_x -= 360;
     }
     if (key == 'S' || key == 's') {
-        pos[2] += 1.0;
+        tpPos[2] += 1.0;
     }
     else if (key == 'W' || key == 'w') {
-        pos[2] -= 1.0;
+        tpPos[2] -= 1.0;
     }
     else if (key == 'A' || key == 'a') {
-        pos[0] -= 1.0;
+        tpPos[0] -= 1.0;
     }
     else if (key == 'D' || key == 'd') {
-        pos[0] += 1.0;
+        tpPos[0] += 1.0;
     }
+    for (int i = 0; i < 3; i++) pos[i] = tpPos[i];
+    //if (myMagic_wand.x ) {
+    //}
 
-    else if (key == 'R' || key == 'r') angle += 3.0;
+    if (key == 'R' || key == 'r') angle += 3.0;
     else if (key == 'L' || key == 'l') angle -= 3.0;
 
     if (angle >= 360.0) angle -= 360.0;
