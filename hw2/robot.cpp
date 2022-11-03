@@ -20,6 +20,7 @@
 
 #define WALK 0
 #define RUN 1
+#define TURN 2
 
 #define RUNTIMER 50
 using namespace std;
@@ -43,12 +44,12 @@ int    width = 700, height = 700;
 //define a base position in the z-x plane
 float  pos[3] = { 0.0, 0.0, 0.0 };
 //declare the rotational angle.
-float  angle = 0.0;
+float  anglex = 0.0, angley = 0.0;
 
 //Quodri objects for drawing the world coordinate system.
 /*-----Define GLU quadric objects, a sphere and a cylinder----*/
 GLUquadricObj* sphere = NULL, * cylind = NULL, * mycircle = NULL;
-int    polygonMode = FILL;
+int polygonMode = FILL;
 int see = 0;
 int preKey = 0;
 int moveMode = 0;
@@ -72,13 +73,11 @@ node ball_cor(double r, int A, int B) {
 }
 struct magic_wand {
     float x = 0, y = 0, z = 0;                    //自己的座標
-    float r = 0;                                     //半徑
     float angle_x = 0, angle_y = 0, angle_z = 0;
     float scale = 0;
     bool show = 1;
     magic_wand(float s_ = 1,float x = 0,float y = 0,float z = 0){
         scale = s_;
-        r = 8.0 * scale;
         angle_x = x;
         angle_y = y;
         angle_z = z;
@@ -98,7 +97,7 @@ struct magic_wand {
         glScalef(scale, scale, scale);
         //f
         glTranslatef(0, 0, -7);
-        draw_cylinder(0.5, 0.8, 14);             //長度為8 寬為0.8
+        draw_cylinder(0.5, 0.8, 14);             //長度為14 寬為0.8
 
         glColor3f(102 / 255.0, 34 / 255.0, 0);   //法杖底部的圓
         glPushMatrix();
@@ -136,13 +135,17 @@ struct magic_wand {
     }
 }myMagic_wand;
 struct robot {
-    magic_wand* magic_wand_r = new magic_wand(0.34, 180, 0, 0);
-    bool carry_mw = 0;
+    magic_wand* magic_wand_r = new magic_wand(0.34, 180, 0, 0); //魔法棒物件
+    float angle_x = 0.0, angle_y = 0.0;                         //旋轉角度
+    bool carry_mw = 0;                                          //目前有拿魔法棒嗎
+    bool isMagician = 0;                                        //是不是魔法師
+    bool isJump_ready = 0;                                      //準備跳的姿勢嗎 (不畫手腳)
+    float x = 0, y = 0, z = 0;                                  //控制機器人座標
     struct hand {
         node tp;
-        float shoulderAng_x = 180, shoulderAng_y = 0, shoulderAng_z = -35;
-        float elbowAng_x = 0, elbowAng_y = 0, elbowAng_z = 0;
-        float fingerAng_x = 0, fingerAng_y = 0, fingerAng_z = 0;
+        float shoulderAng_x = 180, shoulderAng_y = 0, shoulderAng_z = -35;   //肩膀
+        float elbowAng_x = 0, elbowAng_y = 0, elbowAng_z = 0;                //手肘
+        float fingerAng_x = 0, fingerAng_y = 0, fingerAng_z = 0;             //手指
         void draw() {
             glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
             glRotatef(shoulderAng_x, 1, 0, 0);           //移動關節角度 180放下
@@ -160,9 +163,11 @@ struct robot {
             glPopMatrix();
 
             glTranslatef(0, 0.75, 0);               //手臂前端中心
+
             glRotatef(elbowAng_x, 1, 0, 0);
             glRotatef(elbowAng_y, 0, 1, 0);
             glRotatef(elbowAng_z, 0, 0, 1);
+
             glColor3f(173 / 255.0, 214 / 255.0, 1);
 
             glutSolidSphere(0.25, 10, 10);          //直徑為 0.5 的手肘      0.25重疊
@@ -246,55 +251,55 @@ struct robot {
     }left_f, right_f;
     void draw_hat() {
         glPushMatrix();
-        glRotatef(80, 1, 0, 0);
+        glRotatef(270, 1, 0, 0);  //轉直 往上畫
+        glRotatef(-10, 1, 0, 0);
         //draw_cylinder(0,3,6); 裙子效果
         //glRotatef(80, 1, 0, 0);
 
         glColor3f(38 / 255.0, 38 / 255.0, 38 / 255.0);          //帽沿
         glPushMatrix();
-        glTranslatef(0, 0, -1);
-        draw_cylinder(0, 3, 1);
+        draw_cylinder(3, 0, 1);
 
         glColor3f(61 / 255.0, 61 / 255.0, 61 / 255.0);  //帽子
-        glTranslatef(0, 0, -3);
-        draw_cylinder(0, 2, 4);
-        glPopMatrix();
+        draw_cylinder(2, 0, 4);
 
-        glPushMatrix();                                  //花紋
+        //花紋
         glColor3f(1, 1, 168 / 255.0);                      //寬
-        glTranslatef(0, 0, -1.2);
-        draw_cylinder(1.2, 2, 0.8);
+        glTranslatef(0, 0, 0.5);
+        draw_cylinder(2, 1, 0.8);
 
         glColor3f(173 / 255.0, 214 / 255.0, 1);          //細
-        glTranslatef(0, 0, -0.5);
-        draw_cylinder(0.8, 1.5, 0.6);
+        glTranslatef(0, 0, 0.6);
+        draw_cylinder(1.5, 0.8, 0.6);
         glPopMatrix();
         glPopMatrix();
     }
     void draw() {
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
         //肚子
-        glColor3f(219/255.0,1,1);
-        glPushMatrix();
-        if (moveMode == RUN) glRotatef(5, 1, 0, 0);
-        //glTranslatef(0, 4.75, 0);              //走到肚子
+        glColor3f(219 / 255.0, 1, 1);
 
-        
+        glPushMatrix();
         glScalef(2.5, 2.5, 2.5);
-        glTranslatef(0, 4.75, 0); 
+        glTranslatef(x, y, z);                      //整隻的座標
+
+        glRotatef(angle_y, 0, 1, 0);
+        glRotatef(angle_x, 1, 0, 0);
+
+        if (!isJump_ready)glTranslatef(0, 4.75, 0);                   //移到肚子
+        else glTranslatef(0, 2, 0);
         //glTranslatef(0, 14.25, 0);
         //glRotatef(180,1,0,0);
-        glutSolidSphere(2, 10, 10);             //畫肚子 直徑4
+        glutSolidSphere(2, 10, 10);                 //畫肚子 直徑4
 
-        //右肩膀
         node tp = ball_cor(2, 90, 30);
         glPushMatrix();
-        glTranslatef(tp.x, tp.y, tp.z);        //走到右肩膀
+        glTranslatef(tp.x, tp.y, tp.z);         //走到右肩膀
         right_h.draw();
 
         glPushMatrix();
-        glTranslatef(0,0.3,0);
-        if(carry_mw) magic_wand_r -> draw();
+        glTranslatef(0, 0.3, 0);
+        if (carry_mw && isMagician) magic_wand_r->draw();
         glPopMatrix();
 
         glPopMatrix();
@@ -309,13 +314,13 @@ struct robot {
 
         //右大腿上面的關節  蠻在身體裡
         glPushMatrix();
-        glTranslatef(-0.4,-1.75,0);     
+        glTranslatef(-0.4, -1.75, 0);
         left_f.draw();
         glPopMatrix();
 
         //左大腿上面的關節
         glPushMatrix();
-        glTranslatef(0.4, -1.75, 0);     
+        glTranslatef(0.4, -1.75, 0);
         right_f.draw();
         glPopMatrix();
 
@@ -325,17 +330,17 @@ struct robot {
         glPushMatrix();
         glutSolidSphere(1.5, 10, 10);        //直徑3
 
-        glColor3f(128/255.0, 128/255.0, 1);  //藍
+        glColor3f(128 / 255.0, 128 / 255.0, 1);  //藍
         glPushMatrix();                      //眼睛
         glTranslatef(0.6, 0.5, 1.2);
-        glScalef(0.4,0.8,0.4);
+        glScalef(0.4, 0.8, 0.4);
         glutSolidSphere(0.5, 10, 10);
         glColor3f(1, 1, 1);                  //眼白
         glTranslatef(0, 0.2, 0.15);
         glutSolidSphere(0.33, 10, 10);
         glPopMatrix();
 
-        glColor3f(1, 122/255.0, 189);        //粉眼
+        glColor3f(1, 122 / 255.0, 189);        //粉眼
         glPushMatrix();
         glTranslatef(-0.6, 0.5, 1.2);
         glScalef(0.4, 0.8, 0.4);
@@ -343,20 +348,20 @@ struct robot {
         glColor3f(1, 1, 1);                  //眼白
         glTranslatef(0, 0.2, 0.15);
         glutSolidSphere(0.33, 10, 10);
-        glPopMatrix();            
-        
+        glPopMatrix();
+
         glColor3f(1, 0, 0);
-        glPushMatrix();                      
+        glPushMatrix();
         glTranslatef(0, -0.15, 1.5);         //嘴巴
         glLineWidth(1);
         glBegin(GL_LINES);
-        glVertex3f(-0.2,0,0);
-        glVertex3f(0.2,0,0);
+        glVertex3f(-0.2, 0, 0);
+        glVertex3f(0.2, 0, 0);
         glEnd();
         glPopMatrix();
-        glPopMatrix();     
-    
-        glTranslatef(0, 1, 0);                         //帽子坐標系
+        glPopMatrix();
+
+        glTranslatef(0, 1, 0);               //帽子坐標系
         if (carry_mw) draw_hat();
 
         glPopMatrix();                       //離開頭
@@ -364,6 +369,7 @@ struct robot {
         glPopMatrix();                       //離開肚子坐標系
     }
     void stand() {
+        angle_x = 0;
         right_f.hipJointAng_x = 180;
         right_f.kneeAng_x = 0;
         left_f.hipJointAng_x = 180;
@@ -381,6 +387,7 @@ struct robot {
         //(肩膀)
         //手往前(180) ~ (200)        20 +4   100 +20
         //手往後(180) ~ (170)        20 -4
+        int hipJointXLimit = 130;
         int hipJointFrontOffset = -10;
         int kneeFrontOffset = 7;
         int hipJointBackOffset = 4;
@@ -389,6 +396,7 @@ struct robot {
         left_h.elbowAng_x = -20;
         right_h.elbowAng_x = -20;
         if (mode == RUN) {
+            angle_x = 5;
             hipJointFrontOffset = -20;
             kneeFrontOffset = 14;
             hipJointBackOffset = 8;
@@ -397,15 +405,18 @@ struct robot {
             left_h.elbowAng_x = -40;
             right_h.elbowAng_x = -40;
         }
+        if (mode == TURN) {
+            hipJointXLimit = 160;
+        }
         if (flag == 0) {  
             if (flag2 == 0) {  //右腳往前，左腳往後             
                 right_f.hipJointAng_x += hipJointFrontOffset /2.0;         //右腳往前伸
                 right_f.kneeAng_x += kneeFrontOffset/2.0;
-                left_f.hipJointAng_x += hipJointBackOffset/2.0;           //左腳往後
+                left_f.hipJointAng_x += hipJointBackOffset/2.0;            //左腳往後
                 left_f.kneeAng_x += kneeBackOffset /2.0;
-                left_h.shoulderAng_x += shoulderOffset/2.0;               //左手往前
-                right_h.shoulderAng_x -= shoulderOffset/ 2.0;             //右手往後
-                if (right_f.hipJointAng_x <= 130) {      //邊界條件
+                left_h.shoulderAng_x += shoulderOffset/2.0;                //左手往前
+                right_h.shoulderAng_x -= shoulderOffset/ 2.0;              //右手往後
+                if (right_f.hipJointAng_x <= hipJointXLimit) {             //邊界條件
                     flag2 = 1;                           
                 }
             }
@@ -415,7 +426,7 @@ struct robot {
                 left_f.hipJointAng_x -= hipJointBackOffset / 2.0;           //左腳往後
                 left_f.kneeAng_x -= kneeBackOffset / 2.0;
                 left_h.shoulderAng_x -= shoulderOffset / 2.0;               //左手往前
-                right_h.shoulderAng_x += shoulderOffset / 2.0;             //右手往後      
+                right_h.shoulderAng_x += shoulderOffset / 2.0;              //右手往後      
                 if (right_f.hipJointAng_x >= 180) {      //腳在最前面
                     flag2 = 0;
                     flag = 1;
@@ -430,7 +441,7 @@ struct robot {
                 right_f.kneeAng_x += kneeBackOffset / 2.0;
                 left_h.shoulderAng_x -= shoulderOffset / 2.0;              
                 right_h.shoulderAng_x += shoulderOffset / 2.0;           
-                if (left_f.hipJointAng_x <= 130) {      //腳在最前面
+                if (left_f.hipJointAng_x <= hipJointXLimit) {      //腳在最前面
                     flag2 = 1;
                 }
             }
@@ -446,8 +457,77 @@ struct robot {
                     flag = 0;
                 }
             }
-        }
+        }   
+    }
+    void jump_ready() {
+
+        left_f.kneeAng_x = 45;      
+        right_f.kneeAng_x = 45;
         
+        left_f.hipJointAng_x = 150;           //110
+        right_f.hipJointAng_x = 150;           
+        
+        //angle_x = 30;
+        
+        left_h.shoulderAng_x = 200;
+        right_h.shoulderAng_x = 200;
+        //isJump_ready = 1; 
+    }
+    int jump_cmd = 0;
+    bool jump() {
+        //jump_ready();
+        //isJump_ready = 1;
+        switch (jump_cmd) {
+        case 0:              //離地板2.75 先掉到地板
+            y += 0.5;
+            left_f.kneeAng_x -= 45/4.0;
+            right_f.kneeAng_x -= 45/4.0;
+            left_f.hipJointAng_x += 30/4.0;
+            right_f.hipJointAng_x += 30/4.0;
+            //angle_x -= 30/4.0;
+            left_h.shoulderAng_x -= 40/4.0;
+            right_h.shoulderAng_x -= 40/4.0;
+            if (y == 2) jump_cmd++;
+            break;
+        case 1:
+            y -= 1;
+            left_f.kneeAng_x      +=  45 / 2.0;
+            right_f.kneeAng_x     +=  45 / 2.0;                                        
+            left_f.hipJointAng_x  -=  30 / 2.0;
+            right_f.hipJointAng_x -=  30 / 2.0;                                   
+            //angle_x               +=  30 / 2.0;                                         
+            left_h.shoulderAng_x  +=  40 / 2.0;
+            right_h.shoulderAng_x +=  40 / 2.0;
+            if (y == 0) jump_cmd++;
+            break;
+        case 2:
+            y += 0.8;
+            left_f.kneeAng_x -= 45 / 5.0;
+            right_f.kneeAng_x -= 45 / 5.0;
+            left_f.hipJointAng_x += 30 / 5.0;
+            right_f.hipJointAng_x += 30 / 5.0;
+            //angle_x -= 30 / 5.0;
+            left_h.shoulderAng_x -= 40 / 5.0;
+            right_h.shoulderAng_x -= 40 / 5.0;
+            if (y == 4) jump_cmd++;
+            break;
+        case 3:
+            y -= 1;
+            left_f.kneeAng_x += 45 / 4.0;
+            right_f.kneeAng_x += 45 / 4.0;
+            left_f.hipJointAng_x -= 30 / 4.0;
+            right_f.hipJointAng_x -= 30 / 4.0;
+            //angle_x += 30 / 4.0;
+            left_h.shoulderAng_x += 40 / 4.0;
+            right_h.shoulderAng_x += 40 / 4.0;
+            if (y == 0) jump_cmd++;
+            break;
+        }
+        if (jump_cmd == 4) {
+            jump_cmd = 0;
+            return 1;
+        }
+        return 0;
     }
 }myRobot;
 void change_color(int value) {  //設定畫筆顏色
@@ -619,60 +699,6 @@ void draw_cylinder(double up,double down, double height){
         20,                       /* use 12-side polygon approximating circle*/
         4);                       /* Divide it into 3 sections */
 }
-void draw_arrow(void)
-{
-    if (cylind == NULL) {
-        cylind = gluNewQuadric();
-    }
-    /*--- Draw a cylinder ---*/
-
-    gluCylinder(cylind, 0.6, 0.0, /* radius of top and bottom circle */
-        1.0,              /* height of the cylinder */
-        12,               /* use 12-side polygon approximating circle*/
-        4);               /* Divide it into 3 sections */
-
-}
-void draw_coord_sys(void)
-{
-
-    //draw coord. sys. in line or fill mode.
-    if (polygonMode == LINE)
-        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-    else glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-
-    //Draw a sphere to show the origin
-    if (sphere == NULL) {
-        sphere = gluNewQuadric();
-    }
-    glColor3f(1.0, 1.0, 1.0);
-    gluSphere(sphere, 0.5,   /* radius=0.5 */
-        12,            /* composing of 12 slices*/
-        12);           /* composing of 12 stacks */
-//Draw the x-axis in RED.
-    glColor3f(1.0, 0.0, 0.0);
-    glPushMatrix();
-    glRotatef(90.0, 0, 1, 0);   // The x-axis
-    //draw_cylinder();
-    glTranslatef(0, 0, 3.5);
-    // glColor3f(1.0, 1.0, 0.0);
-     //draw_arrow();
-    glPopMatrix();
-    //Draw the Y-axis in GREEN.
-    glColor3f(0.0, 1.0, 0.0);
-    glPushMatrix();  //The y-axis
-    glRotatef(-90.0, 1, 0, 0);
-    //draw_cylinder();
-    glTranslatef(0, 0, 3.5);
-    draw_arrow();
-    glPopMatrix();
-    //Draw the z-axis in BLUE.
-    glColor3f(0.0, 0.0, 1.0);
-    glPushMatrix();
-    //draw_cylinder();   //The z-axis
-    glTranslatef(0, 0, 3.5);
-    draw_arrow();
-    glPopMatrix();
-}
 void draw_robot() {
     myRobot.draw();
 }
@@ -701,7 +727,7 @@ void display()
 
     glPushMatrix();  
     glTranslatef(pos[0], pos[1], pos[2]);
-    glRotatef(angle,0,1,0);
+
     draw_robot();
     glPopMatrix();
 
@@ -722,7 +748,7 @@ void my_reshape(int w, int h)
     width = w; height = h;
 }
 void timerFunc(int nTimerID){
-    switch (nTimerID){
+    switch (nTimerID) {
     case 1:
         //printf("h\n");
         //glutPostRedisplay();
@@ -733,9 +759,9 @@ void timerFunc(int nTimerID){
         break;
         //cout << "time out\n";
     case 2:
-        if (pos[1] > 10) return;
-        pos[1] += 2;
-        glutTimerFunc(300, timerFunc, 2);
+        if (!myRobot.jump()) {
+            glutTimerFunc(100, timerFunc, 2);
+        }
         display();
         break;
     }
@@ -744,64 +770,72 @@ void my_move_order(unsigned char key) {        //跟移動相關的判斷
     float tpPos[3] = { pos[0], pos[1], pos[2] };
     float offset = 0;
     if (preKey == key && (key == 'W' || key == 'w' || key == 'A' || key == 'a' || key == 'S' || key == 's' || key == 'D' || key == 'd'))
-        moveMode = RUN;                      //0.3秒內連續按 就變成跑跑
+        moveMode = RUN;                       //0.3秒內連續按 就變成跑跑
     if (moveMode == RUN) offset = 2;          //跑步一次走2
     else if (moveMode == WALK) offset = 0.5;  //走路一次0.5
     if (key == 'S' || key == 's') {
-        angle = 0;
+        myRobot.angle_y = 0;
         tpPos[2] += offset;
         myRobot.move(moveMode);
     }
     else if (key == 'W' || key == 'w') {
-        angle = 180;
+        myRobot.angle_y = 180;
         tpPos[2] -= offset;
         myRobot.move(moveMode);
     }
     else if (key == 'A' || key == 'a') {
-        angle = 270;
+        myRobot.angle_y = 270;
         tpPos[0] -= offset;
         myRobot.move(moveMode);
     }
     else if (key == 'D' || key == 'd') {
-        angle = 90;
+        myRobot.angle_y = 90;
         tpPos[0] += offset;
         myRobot.move(moveMode);
     }
+    else if (key == 'r' || key == 'R') {            //轉圈圈
+        myRobot.angle_y += 5;
+        myRobot.move(TURN);
+    }
 
     //todo判斷碰到障礙物
-    if (myMagic_wand.show && getDis(tpPos[0], tpPos[2], myMagic_wand.x, myMagic_wand.z)  < myMagic_wand.r) {
+    for (int i = -7; myMagic_wand.show && i < 7; i++) {
+        if (getDis(tpPos[0], tpPos[2], myMagic_wand.x, myMagic_wand.z + i) < 3.5) return;
+    }
+    //if (myMagic_wand.show && getDis(tpPos[0], tpPos[2], myMagic_wand.x, myMagic_wand.z)  < myMagic_wand.r) {
         
         //cout << myMagic_wand.x << " " << myMagic_wand.z << "\n";
         //cout << tpPos[0] << " " << tpPos[2] << "\n";
-        return;
-    }
+      //  return;
+    //}
 
     for (int i = 0; i < 3; i++) pos[i] = tpPos[i];
     display();
 }
 void special_func(int key, int x, int y) {
-    cout << key << "\n";
-    
+    cout << key << "\n";   
 }
 void keyboardUp_func(unsigned char key, int x, int y) {
     glutTimerFunc(300, timerFunc, RUNTIMER);
     if (preKey != key) moveMode = WALK;
     preKey = key;
-    if (key == 'W' || key == 'w'|| key == 'A' || key == 'a' || key == 'S' || key == 's' || key == 'D' || key == 'd')myRobot.stand();
+    if (key == 'W' || key == 'w'|| key == 'A' || key == 'a' || key == 'S' || key == 's' || key == 'D' || key == 'd' || key == 'r' || key == 'R') myRobot.stand();
     display();
 }
 void keybaord_fun(unsigned char key, int x, int y) {
-    printf("key: %c\n", key);
+    //printf("key: %c\n", key);
     my_move_order(key);
     if (key == 'o' || key == 'O') {     
         cout << ++myRobot.magic_wand_r->angle_x << "\n";
     }
-    if (key == 'p' || key == 'P') {
-        if (getDis(pos[0], pos[2], myMagic_wand.x, myMagic_wand.z) <= myMagic_wand.r + 5) {
-            myMagic_wand.show = 0;
-            myRobot.carry_mw = 1;
+    if (myMagic_wand.show && (key == 'p' || key == 'P')) {
+        for (int i = -7; i < 7; i++) {
+            if (getDis(pos[0], pos[2], myMagic_wand.x, myMagic_wand.z + i) < 3.5 + 5) {
+                myMagic_wand.show = 0;
+                myRobot.carry_mw = 1;
+                myRobot.isMagician = 1;
+            }
         }
-        //myMagic_wand.show = !myMagic_wand.show;
     }
     if (key == 'Y' || key == 'y') {
         see = ~see;
@@ -811,42 +845,34 @@ void keybaord_fun(unsigned char key, int x, int y) {
         myRobot.left_h.shoulderAng_x++;
         if (myRobot.right_h.shoulderAng_x > 360) myRobot.right_h.shoulderAng_x -= 360;
         if (myRobot.left_h.shoulderAng_x > 360) myRobot.right_h.shoulderAng_x -= 360;
+        cout << myRobot.right_h.shoulderAng_x << "\n";
     }
     if (key == '1') {
         myRobot.right_f.kneeAng_x++;
+        myRobot.left_f.kneeAng_x++;
         if (myRobot.right_f.kneeAng_x > 360) myRobot.right_f.kneeAng_x -= 360;
         cout << myRobot.right_f.kneeAng_x << "\n";
     }
     else if (key == '2') {
         myRobot.right_f.hipJointAng_x++;
+        myRobot.left_f.hipJointAng_x++;
         if (myRobot.right_f.hipJointAng_x > 360)  myRobot.right_f.hipJointAng_x -= 360;
         cout << myRobot.right_f.hipJointAng_x << "\n";
     }
     else if (key == '3') {
-        myRobot.left_f.kneeAng_x++;
-        if (myRobot.left_f.kneeAng_x > 360) myRobot.left_f.kneeAng_x -= 360;
-        cout << myRobot.left_f.kneeAng_x << "\n";
-    }
-    else if (key == '4') {
-        myRobot.left_f.hipJointAng_x++;
-        if (myRobot.left_f.hipJointAng_x > 360)  myRobot.left_f.hipJointAng_x -= 360;
-        cout << myRobot.left_f.hipJointAng_x << "\n";
-    }
-    else if (key == '5') {
         myRobot.right_f.ankle_x++;
         if (myRobot.right_f.ankle_x > 360)  myRobot.right_f.ankle_x -= 360;
         cout << myRobot.right_f.ankle_x << "\n";
     }
-    else if (key == ' ') {
-        glutTimerFunc(50, timerFunc, 2);
+    else if (key == '4') {
+        myRobot.angle_x+=5;
+        if (myRobot.angle_x > 360)  myRobot.angle_x -= 360;
+        cout << myRobot.angle_x << "\n";
     }
-    
-    if (key == 'R' || key == 'r') angle += 5.0;
-    else if (key == 'L' || key == 'l') angle -= 5.0;
-
-    if (angle >= 360.0) angle -= 360.0;
-    else if (angle < 0.0) angle += 360.0;
-
+    else if (key == ' ') {
+        myRobot.jump_ready();
+        glutTimerFunc(100, timerFunc, 2);
+    }
     display();
 }
 void motion_func(int  x, int y) {};
