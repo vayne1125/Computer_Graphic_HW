@@ -63,6 +63,7 @@ int preKey = 0;
 int scene = MAGICFIELD;
 bool isLock = 0;
 void draw_magic_field();
+void draw_cube();
 void draw_cylinder(double up, double down, double height);
 void change_color(int value);
 void draw_circle(double size, int wid);
@@ -673,6 +674,58 @@ struct robot {
         return 0;
     }
 }myRobot;
+struct big_chair {
+    float angle_x = 0.0;
+    void draw() {            
+        glPushMatrix();              //橫木
+        glTranslatef(0, 0, -20);
+        draw_cylinder(0.8,0.8,40);
+        glPopMatrix();
+
+        glPushMatrix();              //2個架子
+        glTranslatef(0, 0, -20);
+        glRotatef(90, 0, 1, 0);
+        glRotatef(75, 1, 0, 0);
+        draw_cylinder(0.5, 0.5, 30);
+        glRotatef(30, 1, 0, 0);
+        draw_cylinder(0.5, 0.5, 30);
+        glPopMatrix();              //pop架子
+
+        glPushMatrix();
+        glTranslatef(0, 0, 20);
+        glRotatef(90, 0, 1, 0);
+        glRotatef(75, 1, 0, 0);
+        draw_cylinder(0.5, 0.5, 30);
+        glRotatef(30, 1, 0, 0);
+        draw_cylinder(0.5, 0.5, 30);
+        glPopMatrix();              //pop架子
+
+        glColor3f(1, 1, 0);
+        glPushMatrix();             //線線
+        glTranslatef(0, 0, -13);
+        glRotatef(90, 0, 1, 0);
+        glRotatef(90, 1, 0, 0);
+        draw_cylinder(0.3, 0.3, 20);
+        glPopMatrix();              
+
+        glColor3f(1, 1, 0);
+        glPushMatrix();             //線線
+        glTranslatef(0, 0, 13);
+        glRotatef(90, 0, 1, 0);
+        glRotatef(90, 1, 0, 0);     //晃動改著
+        draw_cylinder(0.3, 0.3, 20);
+
+        glColor3f(1, 0, 1);
+        glPushMatrix();
+        glTranslatef(0, 0, 20);
+        glScalef(26, 10, 1);
+        draw_cube();
+        glPopMatrix();
+
+        glPopMatrix();
+
+    }
+}myBig_chair;
 void change_color(int value) {  //設定畫筆顏色
     switch (value) {
     case ICE:
@@ -686,6 +739,7 @@ void change_color(int value) {  //設定畫筆顏色
     }
 }
 void init() {
+    //障礙物座標收集
     for (pp p : river) {
         for (int i = p.a1; i < p.a2; i++) {
             limit.push_back({ p.x + p.r * cos(i * 0.01745) ,p.z + p.r * sin(i * 0.01745) });
@@ -905,20 +959,20 @@ void draw_scene(int mode) {
         glColor3f(204 / 255.0, 1, 204 / 255.0); //草地
         draw_square(200, 200);
 
-        glColor3f(0, 0, 0);
-        glPushMatrix();
-        for (int i = 0; i < 200; i += 10) {
-            if(i%100 == 0) glLineWidth(3);
-            else if (i%50  == 0) glLineWidth(2);
-            else glLineWidth(1);
-            glBegin(GL_LINES);
-            glVertex3f(i, 0.1, 0);
-            glVertex3f(i, 0.1, 200);
-            glVertex3f(0, 0.1, i);
-            glVertex3f(200, 0.1, i);
-            glEnd();
-        }
-        glPopMatrix();
+        //glColor3f(0, 0, 0);
+        //glPushMatrix();
+        //for (int i = 0; i < 200; i += 10) {
+        //    if(i%100 == 0) glLineWidth(3);
+        //    else if (i%50  == 0) glLineWidth(2);
+        //    else glLineWidth(1);
+        //    glBegin(GL_LINES);
+        //    glVertex3f(i, 0.1, 0);
+        //    glVertex3f(i, 0.1, 200);
+        //    glVertex3f(0, 0.1, i);
+        //    glVertex3f(200, 0.1, i);
+        //    glEnd();
+        //}
+        //glPopMatrix();
         //pool + river
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
         glColor3f(188 / 255.0, 217 / 255.0, 246 / 255.0);
@@ -958,6 +1012,12 @@ void draw_scene(int mode) {
         glPushMatrix();
         glTranslatef(145,0,130);               //70*50
         draw_home();
+        glPopMatrix();
+
+        glPushMatrix();
+        glTranslatef(50, 25, 50);    
+        glRotatef(angley,0,1,0);
+        myBig_chair.draw();
         glPopMatrix();
     }
 }
@@ -1000,7 +1060,7 @@ void display()
         gluLookAt(100, 150, 100, 100, 0, 100, 0.0, 0.0, -1.0);
     /*-------Draw the floor------*/
     scene = GRASSLAND;
-    draw_scene(GRASSLAND);
+    draw_scene(scene);
     //draw_scene(scene);
 
     glPushMatrix();
@@ -1124,6 +1184,7 @@ void my_move_order(unsigned char key) {        //跟移動相關的判斷
         tpPos[0] += offset;
     }
     else if (key == 'r' || key == 'R') {            //轉圈圈
+        angley++;
         myRobot.angle_y += 5;
         if (!myRobot.isOnWand) {
             myRobot.moveMode = TURN;
