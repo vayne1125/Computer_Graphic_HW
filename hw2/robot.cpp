@@ -1,90 +1,83 @@
-/***************************************************
- * Example program: Draw a moving cube
- *   Author: S. K. Ueng
- *   National Taiwan Ocean Univ. Comp. Sci. Dept.
- */
 #include <stdio.h>
 #include <math.h>
 #include <iostream>
 #include <GL/glut.h>
 #include <vector>
-
 #define   PI   3.1415927
- //Define polygon drwaing models, filled or outlined.
-#define   FILL   1
-#define   LINE  2   
+//定義顏色
+#define ICE_COLOR 100
+#define WAND_WOOD_COLOR 102
+#define ROBOT_BLUE_MAIN 103
+#define ROBOT_BLUE_SUB 104
+#define ROBOT_PINK_MAIN 105
+#define ROBOT_PINK_SUB 106
+#define HOME_COLOR 107
 
-#define ICE 100
-#define FLOOR 101
-#define WOOD 102
-
+//移動方式
 #define WALK 0
 #define RUN 1
-#define TURN 2
-#define FLY 3
+#define TURN 2   //轉
+#define FLY 3    //飛行
 
-#define RUNTIMER 50
-#define JUMPTIMER 51
-#define JUMPONWANDTIMER 52
-#define JUMPTOFLOORTIMER 53
+//時間模式
+#define RUNTIMER 50             //判斷是否跑跑跑
+#define JUMPTIMER 51            //一般跳
+#define JUMPONWANDTIMER 52      //跳上法杖
+#define JUMPTOFLOORTIMER 53     //跳回地板
+#define CHAIR_MOVE 54           //椅子擺動
 
+//鎖按鍵 todo:還有小bug q
 #define LOCK true
 #define UNLOCK false
 
+//場景模式選擇 todo:打獵場(未來展望哈哈...)
 #define MAGICFIELD 0
 #define GRASSLAND 1
 
 using namespace std;
-
-//coordinates of the 8 corners.(0,0,0)-(1,1,1)
-float  points[][3] = { {0.0, 0.0, 0.0}, {1.0, 0.0, 0.0},
+//定義cube
+float  points[][3] = { {0.0, 0.0, 0.0}, {1.0, 0.0, 0.0},       //coordinates of the 8 corners.(0,0,0)-(1,1,1)
                       {1.0, 0.0, 1.0}, {0.0, 0.0, 1.0},
                       {0.0, 1.0, 0.0}, {1.0, 1.0, 0.0},
 {1.0, 1, 1.0}, {0.0, 1.0, 1.0} };
-//Define 6 faces using the 8 corners (vertices)
-int    face[][4] = { {0, 1, 2, 3}, {7, 6, 5, 4}, {0, 4, 5, 1},
-                    {1, 5, 6, 2}, {3, 2, 6, 7}, {0, 3, 7, 4} };
-//Define the cube using the 6 faces.
-int    cube[6] = { 0, 1, 2, 3, 4, 5 };
 
-/* window shape */
-int    width = 700, height = 700;
-//define a base position in the z-x plane
-float  pos[3] = { 0.0, 0.0, 0.0 };
-//declare the rotational angle.
+int    face[][4] = { {0, 1, 2, 3}, {7, 6, 5, 4}, {0, 4, 5, 1},  //Define 6 faces using the 8 corners (vertices)
+                    {1, 5, 6, 2}, {3, 2, 6, 7}, {0, 3, 7, 4} };
+int    cube[6] = { 0, 1, 2, 3, 4, 5 };                          //Define the cube using the 6 faces.
+int    width = 700, height = 700;                               //window shape 
+float  pos[3] = { 0.0, 0.0, 0.0 };                              //位置
 float  anglex = 0.0, angley = 0.0;
 
-//Quodri objects for drawing the world coordinate system.
-/*-----Define GLU quadric objects, a sphere and a cylinder----*/
+//Define GLU quadric objects, a sphere and a cylinder
 GLUquadricObj* sphere = NULL, * cylind = NULL, * mycircle = NULL;
-int polygonMode = FILL;
-int see = 0;
-int preKey = 0;
-int scene = MAGICFIELD;
-bool isLock = 0;
-void draw_magic_field();
+int see = 0;             //切換視角(開發地圖用 實際無此功能)                                     
+int preKey = 0;          //上一個按鍵案誰
+int scene = MAGICFIELD;  //初始背景為魔法陣
+bool isLock = 0;         //按鍵是否鎖了
+bool sitOnChair = 0;
+void draw_magic_field(); 
 void draw_cube();
 void draw_cylinder(double up, double down, double height);
 void change_color(int value);
 void draw_circle(double size, int wid);
 void draw_square(int hei, int wid);
-float getDis(float x1, float y1, float x2, float y2) {
+float getDis(float x1, float y1, float x2, float y2) {           //算距離
     return sqrt((x1 - x2) * (x1 - x2) + (y1 - y2) * (y1 - y2));
 }
-struct node {
+struct node {   //定義極座標的點
     double x = 0, y = 0, z = 0;
 };
-struct pp {
+struct pp {   //各種位置結構
     float x1 = 0, x2 = 0, z1 = 0, z2 = 0;
     float x = 0, z = 0, r = 0;
-    int a1 = 0, a2 = 0;
-    pp(float x1_, float z1_, float x2_, float z2_) {
+    float a1 = 0, a2 = 0;
+    pp(float x1_, float z1_, float x2_, float z2_) {      //矩形
         x1 = x1_;
         x2 = x2_;
         z1 = z1_;
         z2 = z2_;
     }
-    pp(float x_, float z_, float r_, int a1_, int a2_) {
+    pp(float x_, float z_, float r_, float a1_, float a2_) {  //球
         x = x_;
         z = z_;
         r = r_;
@@ -92,19 +85,23 @@ struct pp {
         a2 = a2_;
     }
 };
-const vector<pp> river = { {-10,120 ,100,0,30},{190,120 ,100,180,220}, {24,9 ,100,-3,30}, {100,70 ,100,80,120}, {130,267 ,100,260,290},{200,80 ,100,93,110} };
+//河道
+const vector<pp> river = { {-10,120 ,100,0,25},{190,120 ,100,180,220}, {24,9 ,100,-3,30}, {100,70 ,100,75,115}, {130,267 ,100,268,290},{200,80 ,100,93,112} };
+const vector<pp> rock = { {-10,120 ,100,0,25},{190,120 ,100,180,220}, {24,9 ,100,-3,30},{100,70 ,100,75,96} ,{100,70 ,100,101,115}, {130,267 ,100,268,290},{200,80 ,100,93,112} };
+//柱子
 const vector<pair<float, float>> pillar = { {110,100},{180,100},{110,160},{180,160} };
+//限制位置的座標
 vector<pair<float, float>>limit;
-node ball_cor(double r, int A, int B) {
+node ball_cor(double r, int A, int B) {          //極座標轉換
     node rt;
     rt.x = r * sin(A * 0.01745) * cos(B * 0.01745);
     rt.y = r * sin(A * 0.01745) * sin(B * 0.01745);
     rt.z = r * cos(A * 0.01745);
     return rt;
 }
-struct pupu {
+struct slime {           //史萊姆結構(todo:史萊姆跑來跑去)
     int scale = 0;
-    pupu(int s = 1) {
+    slime(int s = 1) {   //大小
         scale = s;
     }
     void draw() {
@@ -124,12 +121,12 @@ struct pupu {
 
         glPopMatrix();
     }
-}jakao;
+};
 struct magic_wand {
     float x = 0, y = 0, z = 0;                    //自己的座標
     float angle_x = 0, angle_y = 0, angle_z = 0;
     float scale = 0;
-    bool show = 1;
+    bool show = 1;   //是否顯示
     magic_wand(float s_ = 1, float x = 0, float y = 0, float z = 0) {
         scale = s_;
         angle_x = x;
@@ -143,13 +140,13 @@ struct magic_wand {
     }
     void draw() {
         //x右 y上 z前 中心點:法杖的中間
-        change_color(WOOD);
+        change_color(WAND_WOOD_COLOR);
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
         glRotatef(angle_x, 1, 0, 0);
         glRotatef(angle_y, 0, 1, 0);
         glRotatef(angle_z, 0, 0, 1);
         glScalef(scale, scale, scale);
-        //f
+
         glTranslatef(0, 0, -7);
         draw_cylinder(0.5, 0.8, 14);             //長度為14 寬為0.8
 
@@ -173,13 +170,13 @@ struct magic_wand {
         glTranslatef(0, 0, 14);
         glutSolidSphere(1.5, 10, 10);              //9.5
 
-        glColor3f(168 / 255.0, 1.0, 1);         //閃光圈(藍色)
+        glColor3f(168 / 255.0, 1.0, 1);            //閃光圈(藍色)
         glPushMatrix();
         glRotatef(30, 0, 1, 0);
         glutSolidTorus(0.1, 2.5, 100, 100);
         glPopMatrix();
 
-        glColor3f(168 / 255.0, 1.0, 1);          //閃光圈(藍色)
+        glColor3f(168 / 255.0, 1.0, 1);           //閃光圈(藍色)
         glPushMatrix();
         glRotatef(330, 0, 1, 0);
         glutSolidTorus(0.1, 2.5, 100, 100);
@@ -190,29 +187,30 @@ struct magic_wand {
 }myMagic_wand;
 struct robot {
     magic_wand* magic_wand_carry = new magic_wand(0.34, 180, 0, 0); //魔法棒物件(手持)
-    magic_wand* magic_wand_sit = new magic_wand(0.5, 0, -90, 0); //魔法棒物件(坐著)
-    int moveMode = 0;
-    //0->walk  1->run  2->turn  3->fly
+    magic_wand* magic_wand_sit = new magic_wand(0.5, 0, -90, 0);    //魔法棒物件(坐著)
+    int mainColor = ROBOT_BLUE_MAIN,subColor = ROBOT_BLUE_SUB;    //顏色
+    int moveMode = 0; //移動模式 0->walk  1->run  2->turn  3->fly
     robot() {
         stand();
     }
     float angle_x = 0.0, angle_y = 0.0;                         //旋轉角度
     bool carry_mw = 0;                                          //目前有拿魔法棒嗎
     bool isMagician = 0;                                        //是不是魔法師
-    bool isJump_ready = 0;                                      //準備跳的姿勢嗎 (不畫手腳)
+    bool isJump_ready = 0;                                      //準備跳的姿勢嗎
     float x = 0, y = 0, z = 0;                                  //控制機器人座標
     struct hand {
         node tp;
-        float shoulderAng_x = 180, shoulderAng_y = 0, shoulderAng_z = 35;   //肩膀
+        float shoulderAng_x = 180, shoulderAng_y = 0, shoulderAng_z = 35;    //肩膀
         float elbowAng_x = 0, elbowAng_y = 0, elbowAng_z = 0;                //手肘
         float fingerAng_x = 0, fingerAng_y = 0, fingerAng_z = 0;             //手指
+        int subColor = 0;
         void draw() {
             glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
             //glRotatef(shoulderAng_x, 1, 0, 0);           //移動關節角度 180放下
             glRotatef(shoulderAng_z, 0, 0, 1);             //-35放在身體旁邊 對z轉控制左右
             glRotatef(shoulderAng_x, 1, 0, 0);
-            glColor3f(173 / 255.0, 214 / 255.0, 1);
-            glutSolidSphere(0.5, 10, 10);                //半徑為 0.5 的肩膀
+            change_color(subColor);
+            glutSolidSphere(0.5, 10, 10);                  //半徑為 0.5 的肩膀
 
             //forarms
             glColor3f(167 / 255.0, 167 / 255.0, 167 / 255.0);
@@ -225,11 +223,11 @@ struct robot {
 
             glTranslatef(0, 0.75, 0);               //手臂前端中心
 
-            glRotatef(elbowAng_x, 1, 0, 0);
+            glRotatef(elbowAng_x, 1, 0, 0);         //旋轉手肘
             glRotatef(elbowAng_y, 0, 1, 0);
             glRotatef(elbowAng_z, 0, 0, 1);
 
-            glColor3f(173 / 255.0, 214 / 255.0, 1);
+            change_color(subColor);
 
             glutSolidSphere(0.25, 10, 10);          //直徑為 0.5 的手肘      0.25重疊
 
@@ -244,8 +242,9 @@ struct robot {
 
             glTranslatef(0, 0.75, 0);               //手前臂前端   
             //換手指方向應該在這轉
+            glRotatef(fingerAng_y,0,1,0);
             //左手指頭
-            glColor3f(173 / 255.0, 214 / 255.0, 1);
+            change_color(subColor);
             glPushMatrix();
             glTranslatef(-0.25, 0.2, 0);
             glRotatef(15, 0, 0, 1);               //張開角度
@@ -262,18 +261,19 @@ struct robot {
             glPopMatrix();
             //glRotatef(-shoulderAng_z, 0, 0, 1);   //變回正常的座標系統
         }
-    }right_h, left_h;
+    };
     struct foot {          //腿長2.75
         node tp;
         float hipJointAng_x = 180, hipJointAng_y = 0, hipJointAng_z = 0;   //髖關節
         float kneeAng_x = 0, kneeAng_y = 0, kneeAng_z = 0;
         float ankle_x = 0, ankle_y = 0, ankle_z = 0;
+        int subColor = 0;
         void draw() {
             glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
             glRotatef(hipJointAng_x, 1, 0, 0);          //移動關節角度 180放下
             //glRotatef(-30, 0, 0, 1);            
             //glRotatef(90, 1, 0, 0);             //往前  對x軸轉控制舉起放下
-            glColor3f(173 / 255.0, 214 / 255.0, 1);
+            change_color(subColor);
             glutSolidSphere(0.25, 10, 10);        //大腿上的關節 0.5直徑
 
             //大腿
@@ -289,10 +289,8 @@ struct robot {
 
             glRotatef(kneeAng_x, 1, 0, 0);       //膝蓋角度
             //膝蓋
-            glColor3f(173 / 255.0, 214 / 255.0, 1);
-            glPushMatrix();
+            change_color(subColor);
             glutSolidSphere(0.25, 10, 10);       //直徑0.5的膝蓋
-            glPopMatrix();
 
             glTranslatef(0, 0.5, 0);             //膝蓋前端 0.25 + 腿中間0.5(腿長1) - 0.25(重疊地方)
 
@@ -303,43 +301,53 @@ struct robot {
             glPopMatrix();
 
             glTranslatef(0, 0.5, 0);             //小腿前端中心 0.5 和腿重疊0.25
-            glRotatef(ankle_x, 1, 0, 0);
-
             glColor3f(0.5, 0.5, 0.5);
             glutSolidSphere(0.5, 10, 10);        //腳 直徑1
         }
-    }left_f, right_f;
+    };
+    hand* right_h = new hand;
+    hand* left_h = new hand;
+    foot* left_f = new foot;
+    foot* right_f = new foot;
+    void setColor(int m,int s) {
+        mainColor = m;
+        subColor = s;
+    };
     void draw_hat() {
-        glPushMatrix();
+        glPushMatrix();           //push1
         glRotatef(270, 1, 0, 0);  //轉直 往上畫
         glRotatef(-10, 1, 0, 0);
         //draw_cylinder(0,3,6); 裙子效果
         //glRotatef(80, 1, 0, 0);
 
-        glColor3f(38 / 255.0, 38 / 255.0, 38 / 255.0);          //帽沿
-        glPushMatrix();
+        glColor3f(38 / 255.0, 38 / 255.0, 38 / 255.0);   //帽沿
+        glPushMatrix();           //push2
         draw_cylinder(3, 0, 1);
 
         glColor3f(61 / 255.0, 61 / 255.0, 61 / 255.0);  //帽子
         draw_cylinder(2, 0, 4);
 
         //花紋
-        glColor3f(1, 1, 168 / 255.0);                      //寬
+        glColor3f(1, 1, 168 / 255.0);                    //寬
         glTranslatef(0, 0, 0.5);
         draw_cylinder(2, 1, 0.8);
 
-        glColor3f(173 / 255.0, 214 / 255.0, 1);          //細
+        change_color(subColor);          //細
         glTranslatef(0, 0, 0.6);
         draw_cylinder(1.5, 0.8, 0.6);
-        glPopMatrix();
-        glPopMatrix();
+        glPopMatrix();                  //pop2
+        glPopMatrix();                  //pop1
     }
     void draw() {
+        right_h->subColor = subColor;
+        left_h->subColor = subColor;
+        left_f->subColor = subColor;
+        right_f->subColor = subColor;
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
         //肚子
-        glColor3f(219 / 255.0, 1, 1);
+        change_color(mainColor);
 
-        glPushMatrix();
+        glPushMatrix();                             //push1
         glScalef(2.5, 2.5, 2.5);
         glTranslatef(x, y, z);                      //整隻的座標
 
@@ -347,105 +355,108 @@ struct robot {
         glRotatef(angle_x, 1, 0, 0);
 
         glTranslatef(0, 4.75, 0);                   //移到肚子
-        //glTranslatef(0, 14.25, 0);
-        //glRotatef(180,1,0,0);
         glutSolidSphere(2, 10, 10);                 //畫肚子 直徑4
 
         node tp = ball_cor(2, 90, 30);
-        glPushMatrix();
-        glTranslatef(tp.x, tp.y, tp.z);         //走到右肩膀
-        right_h.draw();
+        glPushMatrix();                             //push2
+        glTranslatef(tp.x, tp.y, tp.z);             //走到右肩膀
+        right_h->draw();
 
-        glPushMatrix();
+        glPushMatrix();                             //push3
         glTranslatef(0, 0.3, 0);
         if (carry_mw && isMagician) magic_wand_carry->draw();
-        glPopMatrix();
+        glPopMatrix();                              //pop3
 
-        glPopMatrix();
+        glPopMatrix();                              //pop2
 
         //左肩膀
         tp = ball_cor(2, 270, 330);
-        glPushMatrix();
+        glPushMatrix();                            //push2
         glTranslatef(tp.x, tp.y, tp.z);       //走到左肩膀
-        left_h.draw();
-        glPopMatrix();
+        left_h->draw();
+        glPopMatrix();                             //pop2
 
-        glPushMatrix();                       //坐在法杖上
+        glPushMatrix();                       //坐在法杖上  push2
         glTranslatef(0, -2, 0);
         if (isOnWand) magic_wand_sit->draw();
-        glPopMatrix();
+        glPopMatrix();                         //pop2
 
-        //右大腿上面的關節  蠻在身體裡
-        glPushMatrix();
+        //左大腿上面的關節  埋在身體裡
+        glPushMatrix();                       //push2
         glTranslatef(-0.4, -1.75, 0);
-        left_f.draw();
-        glPopMatrix();
+        left_f->draw();
+        glPopMatrix();                        //pop2
 
-        //左大腿上面的關節
-        glPushMatrix();
-        glTranslatef(0.4, -1.75, 0);
-        right_f.draw();
-        glPopMatrix();
+        //右大腿上面的關節
+        glPushMatrix();                       //push2
+        glTranslatef(0.4, -1.75, 0); 
+        right_f->draw();
+        glPopMatrix();                        //pop2
 
         //頭
-        glColor3f(219 / 255.0, 1, 1);
+        change_color(mainColor);
         glTranslatef(0, 3, 0);               //在走到頭  和身體重疊0.5
-        glPushMatrix();
+        glPushMatrix();                      //push2
         glutSolidSphere(1.5, 10, 10);        //直徑3
 
-        glColor3f(128 / 255.0, 128 / 255.0, 1);  //藍
-        glPushMatrix();                      //眼睛
+        if(isMagician)
+            glColor3f(128 / 255.0, 128 / 255.0, 1);  //藍
+        else 
+            glColor3f(0,0,0);
+        glPushMatrix();                          //眼睛  push3
         glTranslatef(0.6, 0.5, 1.2);
         glScalef(0.4, 0.8, 0.4);
         glutSolidSphere(0.5, 10, 10);
-        glColor3f(1, 1, 1);                  //眼白
+        glColor3f(1, 1, 1);                      //眼白
         glTranslatef(0, 0.2, 0.15);
         glutSolidSphere(0.33, 10, 10);
-        glPopMatrix();
+        glPopMatrix();                           //pop3
 
-        glColor3f(1, 122 / 255.0, 189);        //粉眼
-        glPushMatrix();
+        if (isMagician)
+            glColor3f(1, 122 / 255.0, 189);      //粉
+        else
+            glColor3f(0, 0, 0);
+        glPushMatrix();                          //push3
         glTranslatef(-0.6, 0.5, 1.2);
         glScalef(0.4, 0.8, 0.4);
         glutSolidSphere(0.5, 10, 10);
-        glColor3f(1, 1, 1);                  //眼白
+        glColor3f(1, 1, 1);                      //眼白
         glTranslatef(0, 0.2, 0.15);
         glutSolidSphere(0.33, 10, 10);
-        glPopMatrix();
+        glPopMatrix();                           //pop3
 
         glColor3f(1, 0, 0);
-        glPushMatrix();
-        glTranslatef(0, -0.15, 1.5);         //嘴巴
+        glPushMatrix();                           //push3
+        glTranslatef(0, -0.15, 1.5);              //嘴巴
         glLineWidth(1);
         glBegin(GL_LINES);
         glVertex3f(-0.2, 0, 0);
         glVertex3f(0.2, 0, 0);
         glEnd();
-        glPopMatrix();
-        glPopMatrix();
+        glPopMatrix();                          //pop3
 
-        glTranslatef(0, 1, 0);               //帽子坐標系
+        glTranslatef(0, 1, 0);                //帽子坐標系
         if (isMagician) draw_hat();
 
-        glPopMatrix();                       //離開頭
+        glPopMatrix();                       //離開頭 pop2
 
-        glPopMatrix();                       //離開肚子坐標系
+        glPopMatrix();                       //離開肚子坐標系 pop1
     }
-    void stand() {                  //定義站著(初始化)
+    void stand() {                           //定義站著(初始化)
         y = 0;
         x = 0;
         y = 0;
         angle_x = 0;
-        right_f.hipJointAng_x = 180;
-        right_f.kneeAng_x = 0;
-        left_f.hipJointAng_x = 180;
-        left_f.kneeAng_x = 0;
-        left_h.shoulderAng_x = 180;
-        right_h.shoulderAng_x = 180;
-        left_h.elbowAng_x = 0;
-        right_h.elbowAng_x = 0;
-        left_h.shoulderAng_z = -35;
-        right_h.shoulderAng_z = 35;
+        right_f->hipJointAng_x = 180;
+        right_f->kneeAng_x = 0;
+        left_f->hipJointAng_x = 180;
+        left_f->kneeAng_x = 0;
+        left_h->shoulderAng_x = 180;
+        right_h->shoulderAng_x = 180;
+        left_h->elbowAng_x = 0;
+        right_h->elbowAng_x = 0;
+        left_h->shoulderAng_z = -35;
+        right_h->shoulderAng_z = 35;
     }
     bool flag = 0, flag2 = 0;
     void move() {
@@ -462,8 +473,8 @@ struct robot {
         int hipJointBackOffset = 4;
         int kneeBackOffset = 7;
         int shoulderOffset = -4;
-        left_h.elbowAng_x = -20;
-        right_h.elbowAng_x = -20;
+        left_h->elbowAng_x = -20;
+        right_h->elbowAng_x = -20;
         if (moveMode == RUN) {
             angle_x = 5;
             hipJointFrontOffset = -20;
@@ -471,127 +482,127 @@ struct robot {
             hipJointBackOffset = 8;
             kneeBackOffset = 25;
             shoulderOffset = -20;
-            left_h.elbowAng_x = -40;
-            right_h.elbowAng_x = -40;
+            left_h->elbowAng_x = -40;
+            right_h->elbowAng_x = -40;
         }
         if (moveMode == TURN) {
             hipJointXLimit = 160;
         }
         if (flag == 0) {
             if (flag2 == 0) {  //右腳往前，左腳往後             
-                right_f.hipJointAng_x += hipJointFrontOffset / 2.0;         //右腳往前伸
-                right_f.kneeAng_x += kneeFrontOffset / 2.0;
-                left_f.hipJointAng_x += hipJointBackOffset / 2.0;            //左腳往後
-                left_f.kneeAng_x += kneeBackOffset / 2.0;
-                left_h.shoulderAng_x += shoulderOffset / 2.0;                //左手往前
-                right_h.shoulderAng_x -= shoulderOffset / 2.0;              //右手往後
-                if (right_f.hipJointAng_x <= hipJointXLimit) {             //邊界條件
+                right_f->hipJointAng_x += hipJointFrontOffset / 2.0;          //右腳往前伸
+                right_f->kneeAng_x += kneeFrontOffset / 2.0;
+                left_f->hipJointAng_x += hipJointBackOffset / 2.0;            //左腳往後
+                left_f->kneeAng_x += kneeBackOffset / 2.0;
+                left_h->shoulderAng_x += shoulderOffset / 2.0;                //左手往前
+                right_h->shoulderAng_x -= shoulderOffset / 2.0;               //右手往後
+                if (right_f->hipJointAng_x <= hipJointXLimit) {               //邊界條件
                     flag2 = 1;
                 }
             }
             else { //右腳往後到原點，左腳往前到原點
-                right_f.hipJointAng_x -= hipJointFrontOffset / 2.0;         //右腳往前伸
-                right_f.kneeAng_x -= kneeFrontOffset / 2.0;
-                left_f.hipJointAng_x -= hipJointBackOffset / 2.0;           //左腳往後
-                left_f.kneeAng_x -= kneeBackOffset / 2.0;
-                left_h.shoulderAng_x -= shoulderOffset / 2.0;               //左手往前
-                right_h.shoulderAng_x += shoulderOffset / 2.0;              //右手往後      
-                if (right_f.hipJointAng_x >= 180) {      //腳在最前面
+                right_f->hipJointAng_x -= hipJointFrontOffset / 2.0;         
+                right_f->kneeAng_x -= kneeFrontOffset / 2.0;
+                left_f->hipJointAng_x -= hipJointBackOffset / 2.0;           
+                left_f->kneeAng_x -= kneeBackOffset / 2.0;
+                left_h->shoulderAng_x -= shoulderOffset / 2.0;               
+                right_h->shoulderAng_x += shoulderOffset / 2.0;                   
+                if (right_f->hipJointAng_x >= 180) {                       
                     flag2 = 0;
                     flag = 1;
                 }
             }
         }
         else {   //左腳往前，右腳往後 
-            if (flag2 == 0) {                        //腳往前伸
-                left_f.hipJointAng_x += hipJointFrontOffset / 2.0;
-                left_f.kneeAng_x += kneeFrontOffset / 2.0;
-                right_f.hipJointAng_x += hipJointBackOffset / 2.0;
-                right_f.kneeAng_x += kneeBackOffset / 2.0;
-                left_h.shoulderAng_x -= shoulderOffset / 2.0;
-                right_h.shoulderAng_x += shoulderOffset / 2.0;
-                if (left_f.hipJointAng_x <= hipJointXLimit) {      //腳在最前面
+            if (flag2 == 0) {                        
+                left_f->hipJointAng_x += hipJointFrontOffset / 2.0;
+                left_f->kneeAng_x += kneeFrontOffset / 2.0;
+                right_f->hipJointAng_x += hipJointBackOffset / 2.0;
+                right_f->kneeAng_x += kneeBackOffset / 2.0;
+                left_h->shoulderAng_x -= shoulderOffset / 2.0;
+                right_h->shoulderAng_x += shoulderOffset / 2.0;
+                if (left_f->hipJointAng_x <= hipJointXLimit) {      
                     flag2 = 1;
                 }
             }
             else { //左腳往後到原點，右腳往前到原點
-                left_f.hipJointAng_x -= hipJointFrontOffset / 2.0;
-                left_f.kneeAng_x -= kneeFrontOffset / 2.0;
-                right_f.hipJointAng_x -= hipJointBackOffset / 2.0;
-                right_f.kneeAng_x -= kneeBackOffset / 2.0;
-                left_h.shoulderAng_x += shoulderOffset / 2.0;
-                right_h.shoulderAng_x -= shoulderOffset / 2.0;
-                if (left_f.hipJointAng_x >= 180) {      //腳在最前面
+                left_f->hipJointAng_x -= hipJointFrontOffset / 2.0;
+                left_f->kneeAng_x -= kneeFrontOffset / 2.0;
+                right_f->hipJointAng_x -= hipJointBackOffset / 2.0;
+                right_f->kneeAng_x -= kneeBackOffset / 2.0;
+                left_h->shoulderAng_x += shoulderOffset / 2.0;
+                right_h->shoulderAng_x -= shoulderOffset / 2.0;
+                if (left_f->hipJointAng_x >= 180) {     
                     flag2 = 0;
                     flag = 0;
                 }
             }
         }
     }
-    void jump_ready() {
-        left_f.kneeAng_x = 45;
-        right_f.kneeAng_x = 45;
+    void jump_ready() {               //跳的預備動作
+        left_f->kneeAng_x = 45;
+        right_f->kneeAng_x = 45;
 
-        left_f.hipJointAng_x = 150;           //110
-        right_f.hipJointAng_x = 150;
+        left_f->hipJointAng_x = 150;         
+        right_f->hipJointAng_x = 150;
 
-        left_h.shoulderAng_x = 200;
-        right_h.shoulderAng_x = 200; //180 160
+        left_h->shoulderAng_x = 200;
+        right_h->shoulderAng_x = 200; //180 160
         isJump_ready = 1;
     }
-    int jump_cmd = 0;
+    int jump_cmd = 0;              //fsm
     bool jump() {
-        left_h.elbowAng_x = -15;
-        right_h.elbowAng_x = -15;
+        left_h->elbowAng_x = -15;
+        right_h->elbowAng_x = -15;
         switch (jump_cmd) {
         case 0:              //往上跳  關節變正常 手往前
             y += 0.5;
-            left_f.kneeAng_x -= 45 / 4.0;
-            right_f.kneeAng_x -= 45 / 4.0;
-            left_f.hipJointAng_x += 30 / 4.0;
-            right_f.hipJointAng_x += 30 / 4.0;
-            left_h.shoulderAng_x -= 40 / 4.0;
-            right_h.shoulderAng_x -= 40 / 4.0;   //160
+            left_f->kneeAng_x -= 45 / 4.0;
+            right_f->kneeAng_x -= 45 / 4.0;
+            left_f->hipJointAng_x += 30 / 4.0;
+            right_f->hipJointAng_x += 30 / 4.0;
+            left_h->shoulderAng_x -= 40 / 4.0;
+            right_h->shoulderAng_x -= 40 / 4.0;   //160
             if (y == 2) jump_cmd++;
             break;
         case 1:              //到地板 彎曲
             y -= 1;
-            left_f.kneeAng_x += 60 / 2.0;
-            right_f.kneeAng_x += 60 / 2.0;
-            left_f.hipJointAng_x -= 40 / 2.0;
-            right_f.hipJointAng_x -= 40 / 2.0;
-            left_h.shoulderAng_x += 40 / 2.0;
-            right_h.shoulderAng_x += 40 / 2.0;  //200
+            left_f->kneeAng_x += 60 / 2.0;
+            right_f->kneeAng_x += 60 / 2.0;
+            left_f->hipJointAng_x -= 40 / 2.0;
+            right_f->hipJointAng_x -= 40 / 2.0;
+            left_h->shoulderAng_x += 40 / 2.0;
+            right_h->shoulderAng_x += 40 / 2.0;  //200
             if (y == 0) jump_cmd++;
             break;
         case 2:
             y += 0.8;
-            left_f.kneeAng_x -= 60 / 5.0;
-            right_f.kneeAng_x -= 60 / 5.0;
-            left_f.hipJointAng_x += 40 / 5.0;
-            right_f.hipJointAng_x += 40 / 5.0;
-            left_h.shoulderAng_x -= 40 / 5.0;
-            right_h.shoulderAng_x -= 40 / 5.0;
+            left_f->kneeAng_x -= 60 / 5.0;
+            right_f->kneeAng_x -= 60 / 5.0;
+            left_f->hipJointAng_x += 40 / 5.0;
+            right_f->hipJointAng_x += 40 / 5.0;
+            left_h->shoulderAng_x -= 40 / 5.0;
+            right_h->shoulderAng_x -= 40 / 5.0;
             if (y == 4) jump_cmd++;
             break;
         case 3:
             y -= 1;
-            left_f.kneeAng_x += 70 / 4.0;
-            right_f.kneeAng_x += 70 / 4.0;
-            left_f.hipJointAng_x -= 50 / 4.0;
-            right_f.hipJointAng_x -= 50 / 4.0;
-            left_h.shoulderAng_x += 40 / 4.0;
-            right_h.shoulderAng_x += 40 / 4.0;
+            left_f->kneeAng_x += 70 / 4.0;
+            right_f->kneeAng_x += 70 / 4.0;
+            left_f->hipJointAng_x -= 50 / 4.0;
+            right_f->hipJointAng_x -= 50 / 4.0;
+            left_h->shoulderAng_x += 40 / 4.0;
+            right_h->shoulderAng_x += 40 / 4.0;
             if (y == 0) jump_cmd++;
             break;
         case 4:
         case 5:
-            left_f.kneeAng_x -= 70 / 2.0;
-            right_f.kneeAng_x -= 70 / 2.0;
-            left_f.hipJointAng_x += 50 / 2.0;
-            right_f.hipJointAng_x += 50 / 2.0;
-            left_h.shoulderAng_x -= 20 / 2.0;
-            right_h.shoulderAng_x -= 20 / 2.0;
+            left_f->kneeAng_x -= 70 / 2.0;
+            right_f->kneeAng_x -= 70 / 2.0;
+            left_f->hipJointAng_x += 50 / 2.0;
+            right_f->hipJointAng_x += 50 / 2.0;
+            left_h->shoulderAng_x -= 20 / 2.0;
+            right_h->shoulderAng_x -= 20 / 2.0;
             jump_cmd++;
             break;
         }
@@ -601,67 +612,60 @@ struct robot {
         }
         return 0;
     }
-    bool isOnWand = 0;
-    bool jumpOnWand() {
+    bool isOnWand = 0;             //是否坐在法杖上
+    bool jumpOnWand() {            //跳上法杖
         carry_mw = 0;
         isOnWand = 1;
-        left_h.elbowAng_x = -15;
-        right_h.elbowAng_x = -15;
+        left_h->elbowAng_x = -15;
+        right_h->elbowAng_x = -15;
         switch (jump_cmd) {
         case 0:              //往上跳  關節變正常 手往前
             y += 0.5;
-            left_f.kneeAng_x -= 45 / 4.0;
-            right_f.kneeAng_x -= 45 / 4.0;
-            left_f.hipJointAng_x += 30 / 4.0;
-            right_f.hipJointAng_x += 30 / 4.0;
-            left_h.shoulderAng_x -= 40 / 4.0;
-            right_h.shoulderAng_x -= 40 / 4.0;   //160
+            left_f->kneeAng_x -= 45 / 4.0;
+            right_f->kneeAng_x -= 45 / 4.0;
+            left_f->hipJointAng_x += 30 / 4.0;
+            right_f->hipJointAng_x += 30 / 4.0;
+            left_h->shoulderAng_x -= 40 / 4.0;
+            right_h->shoulderAng_x -= 40 / 4.0;   //160
             if (y == 2) jump_cmd++;
             break;
         case 1:
-            left_f.kneeAng_x = 80;
-            right_f.kneeAng_x = 80;
-            left_f.hipJointAng_x = 100;
-            right_f.hipJointAng_x = 100;
-            left_h.shoulderAng_x = 180;
-            right_h.shoulderAng_x = 180;
-            left_h.shoulderAng_z = -15;
-            right_h.shoulderAng_z = 15;
+            sit();
             jump_cmd++;
             break;
         }
         if (jump_cmd == 2) {
             jump_cmd = 0;
-            cout << y << " " << jump_cmd << " " << left_f.kneeAng_x << " " << left_f.hipJointAng_x << " " << left_h.shoulderAng_x << "\n";
+            cout << y << " " << jump_cmd << " " << left_f->kneeAng_x << " " << left_f->hipJointAng_x << " " << left_h->shoulderAng_x << "\n";
             return 1;
         }
         return 0;
     }
-    bool jumpToFloor() {
+    bool jumpToFloor() {           //跳到地板
         //80 80 100 100 180 180
-        left_h.elbowAng_x = -15;
-        right_h.elbowAng_x = -15;
+        left_h->elbowAng_x = -15;
+        right_h->elbowAng_x = -15;
         switch (jump_cmd) {
-        case 0:              //到地板 彎曲
+        case 0:                 //到地板 彎曲
             y -= 1;
-            left_f.kneeAng_x += 60 / 2.0;
-            right_f.kneeAng_x += 60 / 2.0;
-            left_f.hipJointAng_x -= 40 / 2.0;
-            right_f.hipJointAng_x -= 40 / 2.0;
-            left_h.shoulderAng_x += 40 / 2.0;
-            right_h.shoulderAng_x += 40 / 2.0;
+            left_f->kneeAng_x += 60 / 2.0;
+            right_f->kneeAng_x += 60 / 2.0;
+            left_f->hipJointAng_x -= 40 / 2.0;
+            right_f->hipJointAng_x -= 40 / 2.0;
+            left_h->shoulderAng_x += 40 / 2.0;
+            right_h->shoulderAng_x += 40 / 2.0;
             if (y == 0) jump_cmd++;
             break;
         case 1:
         case 2:
         case 3:
         case 4:
-            left_f.kneeAng_x -= 140 / 4.0;
-            right_f.kneeAng_x -= 140 / 4.0;
-            left_f.hipJointAng_x += 120 / 4.0;
-            right_f.hipJointAng_x += 120 / 4.0;
-            left_h.shoulderAng_x -= 40 / 4.0;
-            right_h.shoulderAng_x -= 40 / 4.0;
+            left_f->kneeAng_x -= 140 / 4.0;
+            right_f->kneeAng_x -= 140 / 4.0;
+            left_f->hipJointAng_x += 120 / 4.0;
+            right_f->hipJointAng_x += 120 / 4.0;
+            left_h->shoulderAng_x -= 40 / 4.0;
+            right_h->shoulderAng_x -= 40 / 4.0;
             jump_cmd++;
             break;
         }
@@ -673,15 +677,39 @@ struct robot {
         }
         return 0;
     }
-}myRobot;
+    void sit() {
+        left_f->kneeAng_x = 80;
+        right_f->kneeAng_x = 80;
+        left_f->hipJointAng_x = 100;
+        right_f->hipJointAng_x = 100;
+        left_h->shoulderAng_x = 180;
+        right_h->shoulderAng_x = 180;
+        left_h->shoulderAng_z = -15;
+        right_h->shoulderAng_z = 15;
+    }
+}myRobot,jakao,pupu;
 struct big_chair {
-    float angle_x = 0.0;
+    float x = 0, y = 0, z = 0;                    //自己的座標
+    float angle_z = 0.0;
+    int flag = 0;
+    void setPos(int x_, int y_, int z_) {
+        x = x_;
+        y = y_;
+        z = z_;
+    }
+    void move() {                                 //搖擺
+        if (flag == 0) {
+            angle_z+=3;
+            if (angle_z >= 20) flag = 1;
+        }
+        else {
+            angle_z-=3;
+            if (angle_z <= -20) flag = 0;       
+        }
+    }
     void draw() {            
-        glPushMatrix();              //橫木
-        glTranslatef(0, 0, -20);
-        draw_cylinder(0.8,0.8,40);
-        glPopMatrix();
-
+        //椅子高度25 寬10 長26
+        glColor3f(141 / 255.0, 84 / 255.0, 28 / 255.0);
         glPushMatrix();              //2個架子
         glTranslatef(0, 0, -20);
         glRotatef(90, 0, 1, 0);
@@ -690,7 +718,7 @@ struct big_chair {
         glRotatef(30, 1, 0, 0);
         draw_cylinder(0.5, 0.5, 30);
         glPopMatrix();              //pop架子
-
+        
         glPushMatrix();
         glTranslatef(0, 0, 20);
         glRotatef(90, 0, 1, 0);
@@ -698,47 +726,100 @@ struct big_chair {
         draw_cylinder(0.5, 0.5, 30);
         glRotatef(30, 1, 0, 0);
         draw_cylinder(0.5, 0.5, 30);
-        glPopMatrix();              //pop架子
-
-        glColor3f(1, 1, 0);
+        glPopMatrix();               //pop架子
+        
+        glPushMatrix();
+        glRotatef(angle_z,0,0,1);       //旋轉椅子
+        glTranslatef(0, 0, -20);        //橫木
+        draw_cylinder(0.8, 0.8, 40);
+        
+        
+        glColor3f(1, 1, 1);
         glPushMatrix();             //線線
-        glTranslatef(0, 0, -13);
+        glTranslatef(0, 0, 7);
         glRotatef(90, 0, 1, 0);
         glRotatef(90, 1, 0, 0);
         draw_cylinder(0.3, 0.3, 20);
         glPopMatrix();              
-
-        glColor3f(1, 1, 0);
+        
         glPushMatrix();             //線線
-        glTranslatef(0, 0, 13);
+        glTranslatef(0, 0, 33);
         glRotatef(90, 0, 1, 0);
-        glRotatef(90, 1, 0, 0);     //晃動改著
+        glRotatef(90, 1, 0, 0);    
         draw_cylinder(0.3, 0.3, 20);
-
-        glColor3f(1, 0, 1);
-        glPushMatrix();
-        glTranslatef(0, 0, 20);
-        glScalef(26, 10, 1);
+        glPopMatrix();
+        
+        glColor3f(162 / 255.0, 92 / 255.0, 21 / 255.0);         
+        glTranslatef(0, -20, 7);
+        
+        glPushMatrix();               //椅子
+        glScalef(10, 2, 26);
         draw_cube();
         glPopMatrix();
-
+        
+        glColor3f(141/255.0, 84/255.0, 28/255.0);
+        glPushMatrix();               //椅背
+        glRotatef(110, 0, 0, 1);
+        glScalef(10, 2, 26);
+        draw_cube();
         glPopMatrix();
+    
+        jakao.sit();
+        jakao.left_h->shoulderAng_x -= 20;
+        jakao.right_h->shoulderAng_x -= 20;
+
+        glPushMatrix();  
+        glTranslatef(8, -4.5, 6);   //往前坐 往下 往右
+        glRotatef(90, 0, 1, 0);
+        jakao.draw();
+        glPopMatrix();
+
+        pupu.sit();
+        pupu.left_h->shoulderAng_x -= 20;
+        pupu.right_h->shoulderAng_x -= 20;
+
+        glPushMatrix();
+        glTranslatef(8, -4.5, 19);   //往前坐 往下 往右
+        glRotatef(90, 0, 1, 0);
+        if(sitOnChair) pupu.draw();
+        glPopMatrix();
+
+        glPopMatrix();          //pop橫木
 
     }
 }myBig_chair;
-void change_color(int value) {  //設定畫筆顏色
+void change_color(int value) {  //設定顏色
     switch (value) {
-    case ICE:
+    case ICE_COLOR:
         glColor3f(235 / 255.0, 1.0, 1.0);
         break;
-    case FLOOR:
-        glColor3f(50 / 255.0, 50 / 255.0, 50 / 255.0);
-        break;
-    case WOOD:
+    case WAND_WOOD_COLOR:
         glColor3f(158 / 255.0, 79 / 255.0, 0);
+        break;
+    case ROBOT_BLUE_MAIN:
+        glColor3f(219 / 255.0, 1, 1);
+        break;
+    case ROBOT_BLUE_SUB:
+        glColor3f(173 / 255.0, 214 / 255.0, 1);
+        break;
+    case ROBOT_PINK_MAIN:
+        glColor3f(1, 1, 1);
+        break;
+    case ROBOT_PINK_SUB:
+        glColor3f(255 / 255.0, 219 / 255.0, 237 / 255.0);
+        break;
+    case HOME_COLOR:
+        glColor3f(105 / 255.0, 66 / 255.0, 27 / 255.0);
+        break;
     }
 }
-void init() {
+void init() {  //初始化
+    //定義機器人顏色
+    myRobot.setColor(ROBOT_BLUE_MAIN, ROBOT_BLUE_SUB);
+    pupu.setColor(ROBOT_BLUE_MAIN, ROBOT_BLUE_SUB);
+    jakao.setColor(ROBOT_PINK_MAIN, ROBOT_PINK_SUB);
+    pupu.isMagician = 1;
+    pupu.carry_mw = 0;
     //障礙物座標收集
     for (pp p : river) {
         for (int i = p.a1; i < p.a2; i++) {
@@ -776,7 +857,7 @@ void draw_cube() {
         glEnd();
     }
 }
-void draw_circle(double size, int wid) {    // Procedure to draw a circle
+void draw_circle(double size, int wid) {    //大小 線寬度
     glLineWidth(wid);
     glBegin(GL_POLYGON);
     for (int i = 0; i < 1440; ++i)
@@ -798,13 +879,10 @@ void draw_magic_wand() {
     myMagic_wand.draw();
 }
 void draw_home() {               //給中心點
-    // (110,100
-    //  180,100
-    //  110,150
-    //  180,150) 
     float offsetx = 35;
     float offsetz = 30;
-    glColor3f(105 / 255.0, 66 / 255.0, 27 / 255.0);
+    change_color(HOME_COLOR);
+    //柱子 70 * 60
     glPushMatrix();
     glTranslatef(-offsetx, 0, -offsetz);
     glScalef(2.5, 40, 2.5);
@@ -829,7 +907,7 @@ void draw_home() {               //給中心點
     draw_cube();
     glPopMatrix();
 
-    glPushMatrix();                               //橫屋頂
+    glPushMatrix();                               //橫屋頂 
     glTranslatef(-offsetx, 40, -offsetz);
     glScalef(offsetx*2, 1, 1);
     draw_cube();
@@ -841,7 +919,7 @@ void draw_home() {               //給中心點
     draw_cube();
     glPopMatrix();
 
-    for (int i = -offsetx; i <= offsetx; i+=5) {            //直屋頂
+    for (int i = -offsetx; i <= offsetx; i+=5) {   //直屋頂
         glPushMatrix();
         glTranslatef(i, 40, -offsetz);
         glScalef(2, 1, 2*offsetz);
@@ -849,8 +927,8 @@ void draw_home() {               //給中心點
         glPopMatrix();
     }
 }
-void draw_floor() {           //畫牆壁和地板
-    change_color(ICE);
+void draw_floor() {                  //畫牆壁和地板
+    change_color(ICE_COLOR);
     glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
     glPushMatrix();                   //保存0,0
@@ -888,7 +966,6 @@ void draw_magic_field() {
     draw_circle(25.3, 1);   //2
     draw_circle(24.8, 1);   //0.5
 
-
     glLineWidth(2);
     for (int t = 0; t < 3; t++) {            //星星陣
         glBegin(GL_POLYGON);
@@ -897,7 +974,6 @@ void draw_magic_field() {
         }
         glEnd();
     }
-    //glColor3f(1, 0, 0);
 
     draw_circle(17, 1);       //6
 
@@ -909,7 +985,7 @@ void draw_magic_field() {
             glVertex3f((14 - t * 0.2) * cos(i * 0.01745), 0, (t * 0.23) + (14 - t * 0.2) * sin(i * 0.01745));
         glEnd();
     }
-    //change_color(ICE);
+
     for (int i = 0, j = 0; i < 360; i += 15, j++) { //太陽陣
         if (i % 30 == 0) {
             glLineWidth(1);
@@ -929,14 +1005,13 @@ void draw_magic_field() {
         glEnd();
     }
     draw_circle(8.2, 2);         //9.5
-    draw_circle(7.7, 2);          //0.5
-
+    draw_circle(7.7, 2);         //0.5
 }
 void draw_scene(int mode) {
     //draw_floor();
-    if (mode == MAGICFIELD) {
-        if (!myRobot.isMagician) change_color(ICE);
-        else glColor3f(188 / 255.0, 217 / 255.0, 246 / 255.0);
+    if (mode == MAGICFIELD) {        //魔法陣 位置(30,30) 邊界限制(60,60) todo:碰界亮紅
+        if (!myRobot.isMagician) change_color(ICE_COLOR);
+        else glColor3f(235 / 255.0, 244 / 255.0, 255 / 255.0);
         glPushMatrix();
         glTranslatef(30, 0, 30);       //法陣的 lcs
         draw_magic_field();
@@ -956,10 +1031,17 @@ void draw_scene(int mode) {
         draw_cube();
         glPopMatrix();
 
-        glColor3f(204 / 255.0, 1, 204 / 255.0); //草地
+        glColor3f(204 / 255.0, 1, 204 / 255.0);     //草屏
         draw_square(200, 200);
 
-        //glColor3f(0, 0, 0);
+        glPushMatrix();                             //轉移法陣(17,12) 20*20
+        glColor3f(188 / 255.0, 217 / 255.0, 246 / 255.0);
+        glTranslatef(17, 0.5, 12);
+        glScalef(1/3.0, 1/3.0, 1/3.0);
+        draw_magic_field();
+        glPopMatrix();
+
+        //glColor3f(0, 0, 0);         //格子線(開發用)
         //glPushMatrix();
         //for (int i = 0; i < 200; i += 10) {
         //    if(i%100 == 0) glLineWidth(3);
@@ -973,14 +1055,16 @@ void draw_scene(int mode) {
         //    glEnd();
         //}
         //glPopMatrix();
+        
         //pool + river
+        //{ {-10,120 ,100,0,30},{190,120 ,100,180,220}, {24,9 ,100,-3,30}, {100,70 ,100,80,120}, {130,267 ,100,260,290},{200,80 ,100,93,113} };
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
         glColor3f(188 / 255.0, 217 / 255.0, 246 / 255.0);
         glPushMatrix();
         glTranslatef(30, 0.5, 160);
         draw_circle(30, 1);
         glPopMatrix();
-        for (pp p : river) {
+        for (const pp p : river) {
             for (int i = p.a1; i < p.a2; i++) {
                 glPushMatrix();
                 glTranslatef(p.x + p.r * cos(i * 0.01745), 0.5, p.z + p.r * sin(i * 0.01745));
@@ -988,35 +1072,146 @@ void draw_scene(int mode) {
                 glPopMatrix();
             }
         }
+        //rock pool
+        for (int i = 10; i < 356; i += 2) {
+            glPushMatrix();
+            glTranslatef(30 + 30 * cos(i * 0.01745), 0.5, 160 + 30 * sin(i * 0.01745));
+            if (i % 7 == 0) {
+                glColor3f(92 / 255.0, 92 / 255.0, 92 / 255.0);
+                glutSolidSphere(1.75, 10, 10);
+            }
+            else if (i % 5 == 0) {               
+                glColor3f(191 / 255.0, 191 / 255.0, 191 / 255.0);
+                glutSolidSphere(1.5, 10, 10);
+            }
+            else if (i % 3 == 0) {
+                glColor3f(122 / 255.0, 122 / 255.0, 122 / 255.0);
+                glutSolidSphere(2, 10, 10);
+            }
+            else if (i % 2 == 0) {
+                glColor3f(61 / 255.0, 61 / 255.0, 61 / 255.0);
+                glutSolidSphere(1.25, 10, 10);
+            }
+            else {
+                glColor3f(38 / 255.0, 38 / 255.0, 38 / 255.0);
+                glutSolidSphere(0.5, 10, 10);
+            }
+            glPopMatrix();
+        }
+        //rock 外側
+        for (int j = 0; j < rock.size();j++) {
+            pp p = rock[j];
+            int l = p.a1, r = p.a2;
+            float offset = 0;
+            if (j == 2) l -= 3;
+            if (j == 3) r += 5;
+            if (j >= 3)offset += 0.4;
+            for (int i = l; i < r; i++) {
+                glPushMatrix();
+                 if (i % 7 == 0) {
+                    glTranslatef(p.x + 3.75 + offset + p.r * cos(i * 0.01745), 0.5, p.z + 3.75 + offset + p.r * sin(i * 0.01745));
+                    glColor3f(92 / 255.0, 92 / 255.0, 92 / 255.0);
+                    glutSolidSphere(1.75, 10, 10);
+                }
+                else if (i % 5 == 0) {
+                    glTranslatef(p.x + 4 + offset + p.r * cos(i * 0.01745), 0.5, p.z + 4 + offset + p.r * sin(i * 0.01745));
+                    glColor3f(191 / 255.0, 191 / 255.0, 191 / 255.0);
+                    glutSolidSphere(1.5, 10, 10);
+                }
+                else if (i % 3 == 0) {
+                    glTranslatef(p.x + 3.5 + offset + p.r * cos(i * 0.01745), 0.5, p.z + 3.5 + offset + p.r * sin(i * 0.01745));
+                    glColor3f(122 / 255.0, 122 / 255.0, 122 / 255.0);
+                    glutSolidSphere(2, 10, 10);
+                 }
+                 else if (i % 2 == 0) {
+                     glTranslatef(p.x + 3.75 + offset + p.r * cos(i * 0.01745), 0.5, p.z + 3.75 + offset + p.r * sin(i * 0.01745));
+                     glColor3f(61 / 255.0, 61 / 255.0, 61 / 255.0);
+                     glutSolidSphere(1.25, 10, 10);
+                 }
+                 else {
+                     glTranslatef(p.x + 4 + offset + p.r * cos(i * 0.01745), 0.5, p.z + 4 + offset + p.r * sin(i * 0.01745));
+                     glColor3f(38 / 255.0, 38 / 255.0, 38 / 255.0);
+                     glutSolidSphere(0.5, 10, 10);
+                 }
+                glPopMatrix();
+            }
+        }
+        //rock 內側       
+        for (int j = 0; j < rock.size(); j++) {
+            pp p = rock[j];
+            int l = p.a1, r = p.a2;
+            float offset = 0;
+            if (j == 4) {
+                r -= 4;
+                offset -= 1;
+            }
+            if (j == 0) r += 2;
+            if (j >= 3) offset -= 0.5;
+            if (j == 6) l -= 5;
+            for (int i = l; i < r; i++) {
+                glPushMatrix();
+                if (i % 7 == 0) {
+                    glTranslatef(p.x - 3.75 + offset + p.r * cos(i * 0.01745), 0.5, p.z - 3.75 + offset + p.r * sin(i * 0.01745));
+                    glColor3f(92 / 255.0, 92 / 255.0, 92 / 255.0);
+                    glutSolidSphere(1.75, 10, 10);
+                }
+                else if (i % 5 == 0) {
+                    glTranslatef(p.x - 4 + offset + p.r * cos(i * 0.01745), 0.5, p.z - 4 + offset + p.r * sin(i * 0.01745));
+                    glColor3f(191 / 255.0, 191 / 255.0, 191 / 255.0);
+                    glutSolidSphere(1.5, 10, 10);
+                }
+                else if (i % 3 == 0) {
+                    glTranslatef(p.x - 3.5 + offset + p.r * cos(i * 0.01745), 0.5, p.z - 3.5 + offset + p.r * sin(i * 0.01745));
+                    glColor3f(122 / 255.0, 122 / 255.0, 122 / 255.0);
+                    glutSolidSphere(2, 10, 10);
+                }
+                else if (i % 2 == 0) {
+                    glTranslatef(p.x - 3.75 + offset + p.r * cos(i * 0.01745), 0.5, p.z - 3.75 + offset + p.r * sin(i * 0.01745));
+                    glColor3f(61 / 255.0, 61 / 255.0, 61 / 255.0);
+                    glutSolidSphere(1.25, 10, 10);
+                }
+                else {
+                    glTranslatef(p.x - 4 + offset + p.r * cos(i * 0.01745), 0.5, p.z - 4 + offset + p.r * sin(i * 0.01745));
+                    glColor3f(38 / 255.0, 38 / 255.0, 38 / 255.0);
+                    glutSolidSphere(0.5, 10, 10);
+                }
+                glPopMatrix();
+            }
+        }
         //road
         //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-        glColor3f(133 / 255.0, 66 / 255.0, 0 / 255.0);
-        for (int i = 115; i < 180; i+=6) {
+        for (int i = 115; i < 168; i+=6) {              //180從頭
             glBegin(GL_POLYGON);
+            glColor3f(133 / 255.0, 66 / 255.0, 0 / 255.0);
             glVertex3f(150 + 150 * cos(i * 0.01745),      0.4, 0 + 100 * sin(i * 0.01745));
             glVertex3f(150 + 150 * cos((i+3) * 0.01745), 0.4, 0 + 100 * sin((i+3) * 0.01745));
+            glColor3f(96 / 255.0, 47 / 255.0, 47 / 255.0);
             glVertex3f(150 + 120 * cos((i+3) * 0.01745), 0.4, 0 + 80 * sin((i+3) * 0.01745));
             glVertex3f(150 + 120 * cos(i * 0.01745), 0.4, 0 + 80 * sin(i * 0.01745));
             glEnd();
         }
         for (int i = -46; i < 30; i += 6) {
             glBegin(GL_POLYGON);
+            glColor3f(96 / 255.0, 47 / 255.0, 47 / 255.0);
             glVertex3f( 4 + 150 * cos(i * 0.01745), 0.4, 150 + 100 * sin(i * 0.01745));
             glVertex3f( 4 + 150 * cos((i + 3) * 0.01745), 0.4, 150 + 100 * sin((i + 3) * 0.01745));
+            glColor3f(133 / 255.0, 66 / 255.0, 0 / 255.0);
             glVertex3f( 4 + 120 * cos((i + 3) * 0.01745), 0.4, 150 + 80 * sin((i + 3) * 0.01745));
             glVertex3f( 4 + 120 * cos(i * 0.01745), 0.4, 150 + 80 * sin(i * 0.01745));
             glEnd();
         }
-        //home 
-        //todo 判斷home不可飛行 柱子不可碰撞   
+        //home   
         glPushMatrix();
         glTranslatef(145,0,130);               //70*50
         draw_home();
         glPopMatrix();
 
-        glPushMatrix();
-        glTranslatef(50, 25, 50);    
-        glRotatef(angley,0,1,0);
+        //big chair
+        myBig_chair.setPos(160,0,110);
+        glPushMatrix();                        //40*15
+        glTranslatef(160, 25, 110);            //中心
+        glRotatef(45, 0, 1, 0);
+        glRotatef(180,0,1,0);
         myBig_chair.draw();
         glPopMatrix();
     }
@@ -1032,10 +1227,11 @@ void draw_cylinder(double up, double down, double height) {
         4);                       /* Divide it into 3 sections */
 }
 void draw_robot() {
+    if (sitOnChair) return;  //坐在椅子上不要畫
     myRobot.draw();
 }
-void draw_pupu() {
-    jakao.draw();
+void draw_slime() {   //todo: 史萊姆在地圖上走
+
 }
 void display()
 {
@@ -1050,30 +1246,28 @@ void display()
     //動作
     //相機位置    相機對準的位置   相機向上的角度
 
+    //開發用參數
     //if(see)
     //    gluLookAt(35.0, 30.0, 80.0,       20.0, 0.0, 0.0,         0.0, 1.0, 0.0);         //動作
     //else
     //    gluLookAt(40.0, 70.0, 55.0,       25.0, 0.0, 25.0,        0.0, 1.0, 0.0);         //場景
-    if (see)
-        gluLookAt(pos[0]-5, 30, pos[2] + 30, pos[0], 15, pos[2], 0.0, 1.0, 0.0);
-    else
-        gluLookAt(100, 150, 100, 100, 0, 100, 0.0, 0.0, -1.0);
-    /*-------Draw the floor------*/
-    scene = GRASSLAND;
+   //if (see)
+    gluLookAt(pos[0]-5, 30, pos[2] + 30, pos[0], 15, pos[2], 0.0, 1.0, 0.0);
+   //else
+      // gluLookAt(100, 150, 100, 100, 0, 100, 0.0, 0.0, -1.0);
+   //
+   //scene = GRASSLAND;
     draw_scene(scene);
-    //draw_scene(scene);
 
     glPushMatrix();
-    glTranslatef(pos[0], pos[1], pos[2]);
+    glTranslatef(pos[0], pos[1], pos[2]);      //機器人
     draw_robot();
     glPopMatrix();
 
-    glPushMatrix();
-    glTranslatef(10, 0, 10);
-    draw_pupu();
-    glPopMatrix();
-
-
+    //glPushMatrix();                          //todo: 史萊姆
+    //glTranslatef(10, 0, 10);
+    //draw_slime();
+    //glPopMatrix();
 
     glutSwapBuffers();
     return;
@@ -1088,21 +1282,20 @@ void my_reshape(int w, int h)
 
     //glOrtho(-40.0, 50.0, -40.0, 40.0, 0.0, 120); 
 
-    if(see)
-        glOrtho(-40.0, 40.0, -40.0, 40.0, -100.0, 200);
-    else 
-        glOrtho(-100.0, 100.0, -100.0, 100.0, -100.0, 200);
-    width = w; height = h;
+   //if(see)
+      glOrtho(-40.0, 40.0, -40.0, 40.0, -100.0, 200);
+   //else 
+   //   glOrtho(-100.0, 100.0, -100.0, 100.0, -100.0, 200);
+   width = w; height = h;
 }
 void timerFunc(int nTimerID) {
     switch (nTimerID) {
-    case RUNTIMER:
+    case RUNTIMER:                //偵測跑
         preKey = -1;
         break;
-        //cout << "time out\n";
-    case JUMPTIMER:
+    case JUMPTIMER:               //跳躍
         if (!myRobot.jump()) {
-            isLock = LOCK;
+            isLock = LOCK;        //跳時不可以按
             glutTimerFunc(100, timerFunc, JUMPTIMER);
         }
         else {
@@ -1111,7 +1304,7 @@ void timerFunc(int nTimerID) {
         }
         glutPostRedisplay();
         break;
-    case JUMPONWANDTIMER:
+    case JUMPONWANDTIMER:           //跳上法杖
         if (!myRobot.jumpOnWand()) {
             isLock = LOCK;
             glutTimerFunc(100, timerFunc, JUMPONWANDTIMER);
@@ -1121,7 +1314,7 @@ void timerFunc(int nTimerID) {
         }
         glutPostRedisplay();
         break;
-    case JUMPTOFLOORTIMER:
+    case JUMPTOFLOORTIMER:          //跳回地面
         if (!myRobot.jumpToFloor()) {
             isLock = LOCK;
             glutTimerFunc(100, timerFunc, JUMPTOFLOORTIMER);
@@ -1132,9 +1325,44 @@ void timerFunc(int nTimerID) {
         }
         glutPostRedisplay();
         break;
+    case CHAIR_MOVE:                //搖椅擺擺擺
+        myBig_chair.move();
+        if (scene == GRASSLAND) {   
+            glutTimerFunc(100, timerFunc, CHAIR_MOVE);
+        }
+        glutPostRedisplay();
+        break;
     }
 }
+bool detectCollision(int x,int y,int z) { //偵測碰撞
+    //判斷碰到障礙物
+    for (int i = -7; myMagic_wand.show && i < 7; i++) {
+        if (getDis(x, z, myMagic_wand.x, myMagic_wand.z + i) < 3.5) return 1;  //magic wand
+    }
+    if (scene == GRASSLAND) {
+        if (myRobot.moveMode != FLY) {
+            for (auto i : limit) {
+                if (getDis(x, z, i.first, i.second) < 5) return 1;     //river
+            }
+            if (getDis(x, z, 30, 160) < 30) return 1;                  //pool
+        }
+        for (auto i : pillar) {
+            if (getDis(x, z, i.first, i.second) < 1.25 + 2*2.5) return 1;     //pillar 柱子    
+        }
+        if (getDis(x, z, myBig_chair.x, myBig_chair.z) < 18 + 2*2.5) return 1;  //chair
+    }
+
+    //判斷邊界
+    if (scene == MAGICFIELD) {
+        if (x < 0 || x > 60 || z < 0 || z > 60) return 1;
+    }
+    else if (scene == GRASSLAND) {
+        if (x < 0 || x > 200 || z < 0 || z > 200) return 1;
+    }
+    return 0;
+}
 void my_move_order(unsigned char key) {        //跟移動相關的判斷
+    if (sitOnChair) return; //如果坐在椅子上就不能動
     float tpPos[3] = { pos[0], pos[1], pos[2] };
     float offset = 0;
     if (myRobot.moveMode == WALK && preKey == key && (key == 'W' || key == 'w' || key == 'A' || key == 'a' || key == 'S' || key == 's' || key == 'D' || key == 'd'))
@@ -1184,98 +1412,46 @@ void my_move_order(unsigned char key) {        //跟移動相關的判斷
         tpPos[0] += offset;
     }
     else if (key == 'r' || key == 'R') {            //轉圈圈
-        angley++;
         myRobot.angle_y += 5;
         if (!myRobot.isOnWand) {
             myRobot.moveMode = TURN;
             myRobot.move();    //在地板才要動腳
         }
     }
-
-    //判斷碰到障礙物
-    for (int i = -7; myMagic_wand.show && i < 7; i++) {
-        if (getDis(tpPos[0], tpPos[2], myMagic_wand.x, myMagic_wand.z + i) < 3.5) return;  //magic wand
-    }
-    if (myRobot.moveMode != FLY && scene == GRASSLAND) {
-        for (auto i : limit) {
-            if (getDis(tpPos[0], tpPos[2], i.first, i.second) < 5) return;    //river
-        }
-        if (getDis(tpPos[0], tpPos[2], 30, 160) < 30) return;                 //pool
-    }
-    for (auto i : pillar) {
-        if (getDis(tpPos[0], tpPos[2], i.first, i.second) < 1.25 + 2) return;     //pillar 柱子    
-    }
-
-    //判斷邊界
-    if (scene == MAGICFIELD) {
-        if (tpPos[0] < 0 || tpPos[0] > 60 || tpPos[2] < 0 || tpPos[2] > 60) return;
-    }
-    else if (scene == GRASSLAND) {
-        if (tpPos[0] < 0 || tpPos[0] > 200 || tpPos[2] < 0 || tpPos[2] > 200) return;
-    }
+    if (detectCollision(tpPos[0], tpPos[1], tpPos[2])) return;
     for (int i = 0; i < 3; i++) pos[i] = tpPos[i];
     display();
 }
 void special_func(int key, int x, int y) {
-    cout << key << "\n";
+    //cout << key << "\n";
 }
 void keyboardUp_func(unsigned char key, int x, int y) {
     if (isLock == LOCK) return;
-    glutTimerFunc(200, timerFunc, RUNTIMER);
+    glutTimerFunc(200, timerFunc, RUNTIMER);           
     if (myRobot.moveMode != FLY && preKey != key)  myRobot.moveMode = WALK;
     preKey = key;
-    if (!myRobot.isOnWand && (key == 'W' || key == 'w' || key == 'A' || key == 'a' || key == 'S' || key == 's' || key == 'D' || key == 'd' || key == 'r' || key == 'R')) myRobot.stand();
+    if (myRobot.moveMode != FLY && (key == 'W' || key == 'w' || key == 'A' || key == 'a' || key == 'S' || key == 's' || key == 'D' || key == 'd' || key == 'r' || key == 'R')) myRobot.stand();
     display();
 }
 void keybaord_fun(unsigned char key, int x, int y) {
-    printf("key: %d\n", key);
+    //printf("key: %d\n", key);
     if (isLock == LOCK) return;
     my_move_order(key);
-    if (key == 'o' || key == 'O') {
-        cout << ++myRobot.magic_wand_carry->angle_x << "\n";
-    }
-    if (myMagic_wand.show && (key == 'p' || key == 'P')) {
-        for (int i = -7; i < 7; i++) {
-            if (getDis(pos[0], pos[2], myMagic_wand.x, myMagic_wand.z + i) < 3.5 + 5) {
-                myMagic_wand.show = 0;
-                myRobot.carry_mw = 1;
-                myRobot.isMagician = 1;
+    if ((key == 'p' || key == 'P')) {                     //互動東西
+        if (myMagic_wand.show) {
+            for (int i = -7; i < 7; i++) {
+                if (getDis(pos[0], pos[2], myMagic_wand.x, myMagic_wand.z + i) < 3.5 + 5) {           //拿法杖
+                    myMagic_wand.show = 0;
+                    myRobot.carry_mw = 1;
+                    myRobot.isMagician = 1;
+                }
             }
         }
+        if (scene == GRASSLAND && getDis(pos[0], pos[2], myBig_chair.x, myBig_chair.z) < 18 + 2*2.5 + 2) {   //坐上椅子
+            sitOnChair = !sitOnChair;
+        }
     }
-    if (key == 'Y' || key == 'y') {
-        see = ~see;
-    }
-    if (key == 'Q' || key == 'q') {
-        myRobot.right_h.shoulderAng_x++;
-        myRobot.left_h.shoulderAng_x++;
-        if (myRobot.right_h.shoulderAng_x > 360) myRobot.right_h.shoulderAng_x -= 360;
-        if (myRobot.left_h.shoulderAng_x > 360) myRobot.right_h.shoulderAng_x -= 360;
-        cout << myRobot.right_h.shoulderAng_x << "\n";
-    }
-    if (key == '1') {
-        myRobot.right_f.kneeAng_x++;
-        myRobot.left_f.kneeAng_x++;
-        if (myRobot.right_f.kneeAng_x > 360) myRobot.right_f.kneeAng_x -= 360;
-        cout << myRobot.right_f.kneeAng_x << "\n";
-    }
-    else if (key == '2') {
-        myRobot.right_f.hipJointAng_x++;
-        myRobot.left_f.hipJointAng_x++;
-        if (myRobot.right_f.hipJointAng_x > 360)  myRobot.right_f.hipJointAng_x -= 360;
-        cout << myRobot.right_f.hipJointAng_x << "\n";
-    }
-    else if (key == '3') {
-        myRobot.right_f.ankle_x++;
-        if (myRobot.right_f.ankle_x > 360)  myRobot.right_f.ankle_x -= 360;
-        cout << myRobot.right_f.ankle_x << "\n";
-    }
-    else if (key == '4') {
-        myRobot.angle_x += 5;
-        if (myRobot.angle_x > 360)  myRobot.angle_x -= 360;
-        cout << myRobot.angle_x << "\n";
-    }
-    else if (key == ' ') {
+    if (key == ' ') {                   //跳
         if (myRobot.isMagician) {
             if (myRobot.isOnWand) {
                 glutTimerFunc(100, timerFunc, JUMPTOFLOORTIMER);
@@ -1292,12 +1468,71 @@ void keybaord_fun(unsigned char key, int x, int y) {
             glutTimerFunc(100, timerFunc, JUMPTIMER);
         }
     }
-    else if ((int)key == 13) {          //enter 進入草地
-        if (myRobot.isMagician && getDis(pos[0], pos[2], 30, 30) < 30) {
-            pos[0] = pos[2] = 0;
+    else if ((int)key == 13) {          //enter 進入草地(起始點17 12)
+        if (scene == MAGICFIELD && myRobot.isMagician && getDis(pos[0], pos[2], 30, 30) < 30) {
+            pos[0] = 17;
+            pos[2] = 12;
             scene = GRASSLAND;
+            glutTimerFunc(100, timerFunc, CHAIR_MOVE);
+        }                               //enter 進入魔法陣(起始點30 30)
+        else if (scene == GRASSLAND && getDis(pos[0], pos[2], 17, 12) <= 10) {
+            pos[0] = pos[2] = 30;
+            scene = MAGICFIELD;
         }
     }
+    //開發用 不支援!!
+    //if (key == 'u') glutTimerFunc(100, timerFunc, CHAIR_MOVE);
+    //if (key == 'o' || key == 'O') {
+    //    cout << ++myRobot.magic_wand_carry->angle_x << "\n";
+    //}
+    if (key == 'Y' || key == 'y') {
+        see = ~see;
+    }
+    //if (key == '1') {
+    //    myRobot.right_h->shoulderAng_x+=3;
+    //    if (myRobot.right_h->shoulderAng_x > 360) myRobot.right_h->shoulderAng_x -= 360;
+    //    cout << myRobot.right_h->shoulderAng_x << "\n";
+    //}
+    //if (key == '2') {
+    //    myRobot.right_h->fingerAng_y+=3;
+    //    if (myRobot.right_h->fingerAng_y > 360) myRobot.right_h->fingerAng_y -= 360;
+    //    cout << myRobot.right_h->fingerAng_y << "\n";
+    //}
+    //if (key == '5') {
+    //    myRobot.left_h->shoulderAng_x += 3;
+    //    if (myRobot.left_h->shoulderAng_x > 360) myRobot.left_h->shoulderAng_x -= 360;
+    //    cout << myRobot.left_h->shoulderAng_x << "\n";
+    //}
+    //if (key == '6') {
+    //    myRobot.left_h->fingerAng_y += 3;
+    //    if (myRobot.left_h->fingerAng_y > 360) myRobot.left_h->fingerAng_y -= 360;
+    //    cout << myRobot.left_h->fingerAng_y << "\n";
+    //}
+    //if (key == '3') {
+    //    myRobot.right_h->shoulderAng_z+= 3;
+    //    if (myRobot.right_h->shoulderAng_z > 360) myRobot.right_h->shoulderAng_z -= 360;
+    //    cout << myRobot.right_h->shoulderAng_z << "\n";
+    //}
+    //if (key == '3') {
+    //    myRobot.left_f->kneeAng_x += 3;
+    //    if (myRobot.left_f->kneeAng_x > 360)  myRobot.left_f->kneeAng_x -= 360;
+    //    cout << myRobot.left_f->kneeAng_x << "\n";
+    //}
+    //else if (key == '4') {
+    //    myRobot.left_f->hipJointAng_x++;
+    //    if (myRobot.right_f->hipJointAng_x > 360)  myRobot.left_f->hipJointAng_x -= 360;
+    //    cout << myRobot.left_f->hipJointAng_x << "\n";
+    //}
+    //else if (key == '3') {
+    //    myRobot.right_f->ankle_x++;
+    //    if (myRobot.right_f->ankle_x > 360)  myRobot.right_f->ankle_x -= 360;
+    //    cout << myRobot.right_f->ankle_x << "\n";
+    //}
+    //else if (key == '4') {
+    //    myRobot.angle_x += 5;
+    //    if (myRobot.angle_x > 360)  myRobot.angle_x -= 360;
+    //    cout << myRobot.angle_x << "\n";
+    //}
     display();
 }
 void motion_func(int  x, int y) {};
@@ -1327,7 +1562,6 @@ void main(int argc, char** argv)
     glutMouseFunc(mouse_func);  /* Mouse Button Callback func */
     glutMotionFunc(motion_func);/* Mouse motion event callback func */
     glutPassiveMotionFunc(passive_motion_func);
-    glutTimerFunc(1000, timerFunc, 1);
     glutSpecialFunc(special_func);
     glutKeyboardUpFunc(keyboardUp_func);
     glutMainLoop();
