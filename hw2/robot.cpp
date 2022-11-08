@@ -61,6 +61,7 @@ void draw_cylinder(double up, double down, double height);
 void change_color(int value);
 void draw_circle(double size, int wid);
 void draw_square(int hei, int wid);
+void draw_slime();
 float getDis(float x1, float y1, float x2, float y2) {           //算距離
     return sqrt((x1 - x2) * (x1 - x2) + (y1 - y2) * (y1 - y2));
 }
@@ -105,23 +106,60 @@ struct slime {           //史萊姆結構(todo:史萊姆跑來跑去)
         scale = s;
     }
     void draw() {
-
-        glColor3f(1, 1, 0);
-
+        glColor3f(1, 0, 1);
         glScalef(9, 9, 9);
-
         glTranslatef(0, 0.5, 0);
 
         glPushMatrix();
+        glRotatef(90,0,0,1);
+        draw_square(1,1);
+        glPopMatrix();
+
+        glColor3f(1, 1, 0);
+        glPushMatrix();
         glScalef(1.5, 1, 1);
-        glutSolidSphere(0.5, 10, 10);
+        glutSolidSphere(0.5, 10, 10);      //1.5 * 1
+        glPopMatrix();
+
+        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+        glLineWidth(2);
+        glColor3f(0, 0, 0);
+
+        glPushMatrix();                    //眼睛
+        glTranslatef(-0.3, 0.1, 0.4);
+        glRotatef(-15, 0, 0, 1);
+        glRotatef(90,1,0,0);
+        glBegin(GL_POINTS);
+        for (int i = 235; i < 315; ++i)
+            glVertex3f(0.3 * cos(i * 0.01745), 0, 0.2 * sin(i * 0.01745));
+        glEnd();
         glPopMatrix();
 
         glPushMatrix();                    //眼睛
+        glTranslatef(0.3, 0.1, 0.4);
+        glRotatef(20, 0, 0, 1);
+        glRotatef(90, 1, 0, 0);
+        glBegin(GL_POINTS);
+        for (int i = 235; i < 315; ++i)
+            glVertex3f(0.3 * cos(i * 0.01745), 0, 0.2 * sin(i * 0.01745));
+        glEnd();
+        glPopMatrix();
 
+        glColor3f(1,0,0);
+        glPushMatrix();
+        glTranslatef(-0.65, 0.3,0.15);
+        glScalef(0.3,0.15,0.15);
+        glutSolidSphere(0.5,10,10);
+        glPopMatrix();
+
+        glColor3f(1, 0, 0);
+        glPushMatrix();
+        glTranslatef(0.65, 0.3, 0.5);
+        glScalef(0.3, 0.15, 0.15);
+        glutSolidSphere(0.5, 10, 10);
         glPopMatrix();
     }
-};
+}tp;
 struct magic_wand {
     float x = 0, y = 0, z = 0;                    //自己的座標
     float angle_x = 0, angle_y = 0, angle_z = 0;
@@ -843,6 +881,9 @@ void myinit()
 
     glEnable(GL_DEPTH_TEST);  /*Enable depth buffer for shading computing */
 
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
     glFlush();/*Enforce window system display the results*/
 }
 void draw_cube() {
@@ -948,7 +989,6 @@ void draw_floor() {                  //畫牆壁和地板
 void draw_magic_field() {
     //魔法陣
     glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-
     glRotatef(90, 0, 1, 0);                          //旋轉90度(對y軸) -> 改變月亮開口
     draw_circle(30, 1);
     draw_circle(29, 1);
@@ -1214,6 +1254,7 @@ void draw_scene(int mode) {
         glRotatef(180,0,1,0);
         myBig_chair.draw();
         glPopMatrix();
+
     }
 }
 void draw_cylinder(double up, double down, double height) {
@@ -1231,7 +1272,9 @@ void draw_robot() {
     myRobot.draw();
 }
 void draw_slime() {   //todo: 史萊姆在地圖上走
-
+    glTranslatef(20,0,20);
+    glRotatef(angley, 0, 1, 0);
+        tp.draw();
 }
 void display()
 {
@@ -1413,6 +1456,7 @@ void my_move_order(unsigned char key) {        //跟移動相關的判斷
     }
     else if (key == 'r' || key == 'R') {            //轉圈圈
         myRobot.angle_y += 5;
+        angley++;
         if (!myRobot.isOnWand) {
             myRobot.moveMode = TURN;
             myRobot.move();    //在地板才要動腳
