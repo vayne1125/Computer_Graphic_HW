@@ -1076,7 +1076,7 @@ void draw_scene(int mode) {
 
         glPushMatrix();                             //Âà²¾ªk°}(17,12) 20*20
         glColor3f(188 / 255.0, 217 / 255.0, 246 / 255.0);
-        glTranslatef(17, 0.5, 12);
+        glTranslatef(17, 0.3, 12);
         glScalef(1/3.0, 1/3.0, 1/3.0);
         draw_magic_field();
         glPopMatrix();
@@ -1099,6 +1099,7 @@ void draw_scene(int mode) {
         //pool + river
         //{ {-10,120 ,100,0,30},{190,120 ,100,180,220}, {24,9 ,100,-3,30}, {100,70 ,100,80,120}, {130,267 ,100,260,290},{200,80 ,100,93,113} };
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+
         glColor3f(188 / 255.0, 217 / 255.0, 246 / 255.0);
         glPushMatrix();
         glTranslatef(30, 0.5, 160);
@@ -1112,7 +1113,8 @@ void draw_scene(int mode) {
                 glPopMatrix();
             }
         }
-        //rock pool
+
+        //poolªºrock
         for (int i = 10; i < 356; i += 2) {
             glPushMatrix();
             glTranslatef(30 + 30 * cos(i * 0.01745), 0.5, 160 + 30 * sin(i * 0.01745));

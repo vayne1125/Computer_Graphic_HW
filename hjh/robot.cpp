@@ -3,7 +3,8 @@
  *   Author: S. K. Ueng
  *   National Taiwan Ocean Univ. Comp. Sci. Dept.
  */
-#include<bits/stdc++.h>
+#include<vector>
+#include<iostream>
 #include <GL/glut.h>
 using namespace std;
 
@@ -199,7 +200,6 @@ struct Handlebar {
 
 		glPopMatrix();
 		glPopMatrix();
-
 	}
 }	handlebar;
 
