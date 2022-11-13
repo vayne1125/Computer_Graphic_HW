@@ -15,5 +15,9 @@ Use Visual Stdio 2022 and OpenGL [(set environment)](https://juejin.cn/post/7030
  <img src="/readmeImg/paint.png" alt="paint" title="paint" width="500"> 
  
 - project 2: Robot :0
- <img src="/readmeImg/robot-1.png" alt="robot-1" title="paint" width="500"> 
- <img src="/readmeImg/robot-2.png" alt="robot-1" title="paint" width="500"> 
+
+ <img src="/readmeImg/robot-1.png" alt="robot-1" title="paint" width="250"> <img src="/readmeImg/robot-2.png" alt="robot-1" title="paint" width="250"> 
+ 
+ My robot's name is magic snow robot! <br>
+ She is good at useing magic! <br>
+ And...pink robot is my boyfriend❤ <br>
