@@ -2137,7 +2137,7 @@ void my_end(unsigned char key, int x, int y) {
 		robot.act.action = TUN;
 		glutTimerFunc(300, timerFunc, robot.act.action);
 	}
-	if (key == 'o') robot.act.action = RIS;
+	if (key == 'o' || key == 'O') robot.act.action = RIS;
 	if (key == 'a' || key == 'A') {
 		prekey = 'a'; check = true;
 		robot.act.action = LWALK;
