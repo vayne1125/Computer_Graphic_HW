@@ -998,6 +998,31 @@ void draw_floor() {                  //畫牆壁和地板
     draw_square(60, 60);              //畫地板
     glPopMatrix();
 }
+void draw_debug(){
+    glPushMatrix();
+    glColor3f(1, 1, 0);
+
+    glPushMatrix();
+    glScalef(10, 1, 1);
+    draw_cube();
+    glPopMatrix();
+
+    glColor3f(1, 0, 1);
+    glPushMatrix();
+    glColor3f(1, 1, 0);
+    glScalef(1, 10, 1);
+    draw_cube();
+    glPopMatrix();
+
+    glColor3f(0, 1, 1);
+    glPushMatrix();
+    glColor3f(1, 1, 0);
+    glScalef(1, 1, 10);
+    draw_cube();
+    glPopMatrix();
+
+    glPopMatrix();
+}
 void draw_magic_field() {
     //魔法陣
     glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
@@ -1068,6 +1093,8 @@ void draw_scene(int mode) {
         glTranslatef(30, 0, 30);       //法陣的 lcs
         draw_magic_field();
         glPopMatrix();
+
+        draw_debug();
 
         glPushMatrix();
         glTranslatef(30, 7, 30);      //法仗的 lcs  飄在空中
@@ -1571,7 +1598,7 @@ void my_move_order(unsigned char key) {        //跟移動相關的判斷
 }
 bool change_view_order(unsigned char key) {
     cout << key << "\n";
-    if (key == 'y') {
+    if (key == 'y' || key == 'Y') {
         viewStyle++;
         viewStyle %= 5;
         display();
