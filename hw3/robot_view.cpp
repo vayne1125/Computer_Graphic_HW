@@ -25,6 +25,8 @@
 #define JUMPONWANDTIMER 52      //跳上法杖
 #define JUMPTOFLOORTIMER 53     //跳回地板
 #define CHAIR_MOVE 54           //椅子擺動
+#define DEBUG_MODE 55           //debug開啟動畫
+
 
 //鎖按鍵 todo:還有小bug q
 #define LOCK true
@@ -70,6 +72,8 @@ int preKey = 0;          //上一個按鍵案誰
 int scene = MAGICFIELD;  //初始背景為魔法陣
 bool isLock = 0;         //按鍵是否鎖了
 bool sitOnChair = 0;
+bool debugMode = 0;
+int debugModeCmd = 0;
 void draw_magic_field();
 void draw_cube();
 void draw_cylinder(double up, double down, double height);
@@ -910,6 +914,18 @@ void draw_cube() {
         glEnd();
     }
 }
+void draw_cube(int x) {
+    int i;
+    glPolygonMode(GL_FRONT, x);
+    for (i = 0; i < 6; i++) {     /* draw the six faces one by one */
+        glBegin(GL_POLYGON);  /* Draw the face */
+        glVertex3fv(points[face[i][0]]);
+        glVertex3fv(points[face[i][1]]);
+        glVertex3fv(points[face[i][2]]);
+        glVertex3fv(points[face[i][3]]);
+        glEnd();
+    }
+}
 void draw_circle(double size, int wid) {    //大小 線寬度
     glLineWidth(wid);
     glBegin(GL_POLYGON);
@@ -997,28 +1013,58 @@ void draw_floor() {                  //畫牆壁和地板
     glPushMatrix();
     draw_square(60, 60);              //畫地板
     glPopMatrix();
+
+    glPushMatrix();
+    glTranslatef(0,60,0);
+    draw_square(60, 60);              //畫天花板
+    glPopMatrix();
+
+    glPushMatrix();   
+    glTranslatef(60, 0, 0);            //保存0,0
+    glRotatef(90, 0, 0, 1);           //延z軸逆時針轉270度
+    draw_square(60, 60);
+    glPopMatrix();
+
+    glPushMatrix();                   //保存0,0
+    glTranslatef(0, 0, 60);
+    glRotatef(270, 1, 0, 0);          //延x軸逆時針轉270度
+    draw_square(60, 60);
+    glPopMatrix();
 }
 void draw_debug(){
     glPushMatrix();
-    glColor3f(1, 1, 0);
+    glColor3f(1, 122 / 255.0, 189); //粉
 
     glPushMatrix();
-    glScalef(10, 1, 1);
-    draw_cube();
+    for (int i = 0; i < debugModeCmd; i++) {
+        glPushMatrix();
+        glScalef(5, 5, 5);
+        draw_cube(GL_LINE);
+        glPopMatrix();
+        glTranslatef(5, 0, 0);
+    }
     glPopMatrix();
 
-    glColor3f(1, 0, 1);
+    glColor3f(128 / 255.0, 128 / 255.0, 1); //藍
     glPushMatrix();
-    glColor3f(1, 1, 0);
-    glScalef(1, 10, 1);
-    draw_cube();
+    for (int i = 0; i < debugModeCmd; i++) {
+        glPushMatrix();
+        glScalef(5, 5, 5);
+        draw_cube(GL_LINE);
+        glPopMatrix();
+        glTranslatef(0, 5, 0);
+    }
     glPopMatrix();
 
-    glColor3f(0, 1, 1);
+    glColor3f(1, 1, 168 / 255.0);  //黃
     glPushMatrix();
-    glColor3f(1, 1, 0);
-    glScalef(1, 1, 10);
-    draw_cube();
+    for (int i = 0; i < debugModeCmd; i++) {
+        glPushMatrix();
+        glScalef(5, 5, 5);
+        draw_cube(GL_LINE);
+        glPopMatrix();
+        glTranslatef(0, 0, 5);
+    }
     glPopMatrix();
 
     glPopMatrix();
@@ -1085,7 +1131,6 @@ void draw_magic_field() {
     draw_circle(7.7, 2);         //0.5
 }
 void draw_scene(int mode) {
-    //draw_floor();
     if (mode == MAGICFIELD) {        //魔法陣 位置(30,30) 邊界限制(60,60) todo:碰界亮紅
         if (!myRobot.isMagician) change_color(ICE_COLOR);
         else glColor3f(235 / 255.0, 244 / 255.0, 255 / 255.0);
@@ -1093,8 +1138,10 @@ void draw_scene(int mode) {
         glTranslatef(30, 0, 30);       //法陣的 lcs
         draw_magic_field();
         glPopMatrix();
-
-        draw_debug();
+        if (debugMode) {
+            draw_floor();
+            draw_debug();
+        }
 
         glPushMatrix();
         glTranslatef(30, 7, 30);      //法仗的 lcs  飄在空中
@@ -1365,6 +1412,8 @@ void make_view(int x)
         gluLookAt(30.0, 30.0, 80.0, 30.0, 0.0, 0.0, 0.0, 1.0, 0.0);
         //gluLookAt(eye[0], eye[1], eye[2], eye[0] - u[2][0], eye[1] - u[2][1], eye[2] - u[2][2], u[1][0], u[1][1], u[1][2]);
         break;
+    case 5:
+        gluLookAt(pos[0] - 5, 30, pos[2] + 30, pos[0], 15, pos[2], 0.0, 1.0, 0.0);
     }
 }
 void display()
@@ -1420,6 +1469,12 @@ void display()
         glViewport(width / 2, 0, width / 2, height / 2);
         make_projection(3);
         make_view(3);
+        draw_view();
+        break;
+    case 5:
+        glViewport(0, 0, width, height);
+        make_projection(0);
+        make_view(5);
         draw_view();
         break;
     }
@@ -1503,6 +1558,12 @@ void timerFunc(int nTimerID) {
         if (scene == GRASSLAND) {
             glutTimerFunc(100, timerFunc, CHAIR_MOVE);
         }
+        glutPostRedisplay();
+        break;
+    case DEBUG_MODE:
+        if (debugModeCmd == 12) return;
+        else glutTimerFunc(100 - debugModeCmd*4, timerFunc, DEBUG_MODE);
+        debugModeCmd++;
         glutPostRedisplay();
         break;
     }
@@ -1600,8 +1661,16 @@ bool change_view_order(unsigned char key) {
     cout << key << "\n";
     if (key == 'y' || key == 'Y') {
         viewStyle++;
-        viewStyle %= 5;
+        viewStyle %= 6;
         display();
+        return 1;
+    }
+    if (key == 'x' || key == 'X') {
+        debugMode ^= 1;
+        debugModeCmd = 0;
+        if (debugMode) {
+            glutTimerFunc(100, timerFunc, DEBUG_MODE);
+        }
         return 1;
     }
     return 0;
