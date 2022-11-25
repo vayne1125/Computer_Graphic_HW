@@ -26,6 +26,10 @@
 #define JUMPTOFLOORTIMER 53     //跳回地板
 #define CHAIR_MOVE 54           //椅子擺動
 #define DEBUG_MODE 55           //debug開啟動畫
+#define OUT_LINE_FRONT   56           //debug mode 碰到邊界 前
+#define OUT_LINE_BACK    57           //debug mode 碰到邊界 後
+#define OUT_LINE_LEFT    58           //debug mode 碰到邊界 左
+#define OUT_LINE_RIGHT   59           //debug mode 碰到邊界 右
 
 
 //鎖按鍵 todo:還有小bug q
@@ -79,7 +83,7 @@ void draw_cube();
 void draw_cylinder(double up, double down, double height);
 void change_color(int value);
 void draw_circle(double size, int wid);
-void draw_square(int hei, int wid);
+void draw_square(int hei, int wid,int sz);
 void draw_slime();
 float getDis(float x1, float y1, float x2, float y2) {           //算距離
     return sqrt((x1 - x2) * (x1 - x2) + (y1 - y2) * (y1 - y2));
@@ -131,7 +135,7 @@ struct slime {           //史萊姆結構(todo:史萊姆跑來跑去)
 
         glPushMatrix();
         glRotatef(90, 0, 0, 1);
-        draw_square(1, 1);
+        draw_square(1, 1,1);
         glPopMatrix();
 
         glColor3f(1, 1, 0);
@@ -845,6 +849,151 @@ struct big_chair {
 
     }
 }myBig_chair;
+struct floor {
+    int light[6] = { 0 }; //上下左右前後
+    void draw() {                  //畫牆壁和地板
+        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+        //上
+        if (light[0] % 2 == 0)
+            change_color(ICE_COLOR);
+        else {
+            glColor3f(1, 0, 0);
+        }
+        glPushMatrix();
+        glTranslatef(0, 60, 0);
+        draw_square(60, 60, 1);              //畫天花板
+        glPopMatrix();
+
+        //下
+        change_color(ICE_COLOR);
+        glPushMatrix();
+        draw_square(60, 60, 1);              //畫地板
+        glPopMatrix();
+
+        //左
+        if (light[2] % 2 == 0)
+            change_color(ICE_COLOR);
+        else
+            glColor3f(1, 0, 0);
+        glPushMatrix();                   //保存0,0
+        glRotatef(90, 0, 0, 1);           //延z軸逆時針轉270度
+        draw_square(60, 60, 1);
+        if (light[2] % 2 == 1) {
+            glPushMatrix();
+            for (int i = 0; i < 6; i++) {
+                glBegin(GL_LINES);
+                glVertex3f(0, 0, 0);
+                glVertex3f(0, 0, 60);
+                glEnd();
+                glTranslated(10, 0, 0);
+            }
+            glPopMatrix();
+            glPushMatrix();
+            for (int i = 0; i < 6; i++) {
+                glBegin(GL_LINES);
+                glVertex3f(0, 0, 0);
+                glVertex3f(60, 0, 0);
+                glEnd();
+                glTranslated(0, 0, 10);
+            }
+            glPopMatrix();
+        }
+        glPopMatrix();                    //回到0,0
+
+        //右
+        if (light[3] % 2 == 0)
+            change_color(ICE_COLOR);
+        else
+            glColor3f(1, 0, 0);
+        glPushMatrix();
+        glTranslatef(60, 0, 0);            //保存0,0
+        glRotatef(90, 0, 0, 1);           //延z軸逆時針轉270度
+        draw_square(60, 60, 1);
+        if (light[3] % 2 == 1) {
+            glPushMatrix();
+            for (int i = 0; i < 6; i++) {
+                glBegin(GL_LINES);
+                glVertex3f(0, 0, 0);
+                glVertex3f(0, 0, 60);
+                glEnd();
+                glTranslated(10, 0, 0);
+            }
+            glPopMatrix();
+            glPushMatrix();
+            for (int i = 0; i < 6; i++) {
+                glBegin(GL_LINES);
+                glVertex3f(0, 0, 0);
+                glVertex3f(60, 0, 0);
+                glEnd();
+                glTranslated(0, 0, 10);
+            }
+            glPopMatrix();
+        }
+        glPopMatrix();
+        
+
+        //前
+        if (light[4] % 2 == 0)
+            change_color(ICE_COLOR);
+        else
+            glColor3f(1, 0, 0);
+        glPushMatrix();                   //保存0,0
+        glTranslatef(0, 0, 60);
+        glRotatef(270, 1, 0, 0);          //延x軸逆時針轉270度
+        draw_square(60, 60, 1);
+        if (light[4] % 2 == 1) {
+            glPushMatrix();
+            for (int i = 0; i < 6; i++) {
+                glBegin(GL_LINES);
+                glVertex3f(0, 0, 0);
+                glVertex3f(0, 0, 60);
+                glEnd();
+                glTranslated(10, 0, 0);
+            }
+            glPopMatrix();
+            glPushMatrix();
+            for (int i = 0; i < 6; i++) {
+                glBegin(GL_LINES);
+                glVertex3f(0, 0, 0);
+                glVertex3f(60, 0, 0);
+                glEnd();
+                glTranslated(0, 0, 10);
+            }
+            glPopMatrix();
+        }
+        glPopMatrix();
+
+        //後
+        if (light[5] % 2 == 0)
+            change_color(ICE_COLOR);
+        else
+            glColor3f(1, 0, 0);
+        glPushMatrix();                   //保存0,0
+        glRotatef(270, 1, 0, 0);          //延x軸逆時針轉270度
+        draw_square(60, 60, 1);
+        if (light[5] % 2 == 1) {
+            glPushMatrix();
+            for (int i = 0; i < 6; i++) {
+                glBegin(GL_LINES);
+                glVertex3f(0, 0, 0);
+                glVertex3f(0, 0, 60);
+                glEnd();
+                glTranslated(10, 0, 0);
+            }
+            glPopMatrix();
+            glPushMatrix();
+            for (int i = 0; i < 6; i++) {
+                glBegin(GL_LINES);
+                glVertex3f(0, 0, 0);
+                glVertex3f(60, 0, 0);
+                glEnd();
+                glTranslated(0, 0, 10);
+            }
+            glPopMatrix();
+        }
+        glPopMatrix();                    //回到0,0
+    }
+}myFloor;
 void change_color(int value) {  //設定顏色
     switch (value) {
     case ICE_COLOR:
@@ -933,7 +1082,8 @@ void draw_circle(double size, int wid) {    //大小 線寬度
         glVertex3f(size * cos(i * 0.01745), 0, size * sin(i * 0.01745));
     glEnd();
 }
-void draw_square(int hei, int wid) {     //躺在地上的正方形 定義: x軸向為寬，z向為高
+void draw_square(int hei, int wid,int sz) {     //躺在地上的正方形 定義: x軸向為寬，z向為高
+    glLineWidth(sz);
     glPushMatrix();
     glScaled(wid, 0, hei);
     glBegin(GL_POLYGON);
@@ -995,41 +1145,6 @@ void draw_home() {               //給中心點
         draw_cube();
         glPopMatrix();
     }
-}
-void draw_floor() {                  //畫牆壁和地板
-    change_color(ICE_COLOR);
-    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-
-    glPushMatrix();                   //保存0,0
-    glRotatef(270, 1, 0, 0);          //延x軸逆時針轉270度
-    draw_square(60, 60);
-    glPopMatrix();                    //回到0,0
-
-    glPushMatrix();                   //保存0,0
-    glRotatef(90, 0, 0, 1);           //延z軸逆時針轉270度
-    draw_square(60, 60);
-    glPopMatrix();                    //回到0,0
-
-    glPushMatrix();
-    draw_square(60, 60);              //畫地板
-    glPopMatrix();
-
-    glPushMatrix();
-    glTranslatef(0,60,0);
-    draw_square(60, 60);              //畫天花板
-    glPopMatrix();
-
-    glPushMatrix();   
-    glTranslatef(60, 0, 0);            //保存0,0
-    glRotatef(90, 0, 0, 1);           //延z軸逆時針轉270度
-    draw_square(60, 60);
-    glPopMatrix();
-
-    glPushMatrix();                   //保存0,0
-    glTranslatef(0, 0, 60);
-    glRotatef(270, 1, 0, 0);          //延x軸逆時針轉270度
-    draw_square(60, 60);
-    glPopMatrix();
 }
 void draw_debug(){
     glPushMatrix();
@@ -1139,7 +1254,7 @@ void draw_scene(int mode) {
         draw_magic_field();
         glPopMatrix();
         if (debugMode) {
-            draw_floor();
+            myFloor.draw();
             draw_debug();
         }
 
@@ -1158,7 +1273,7 @@ void draw_scene(int mode) {
         glPopMatrix();
 
         glColor3f(204 / 255.0, 1, 204 / 255.0);     //草屏
-        draw_square(200, 200);
+        draw_square(200, 200,1);
 
         glPushMatrix();                             //轉移法陣(17,12) 20*20
         glColor3f(188 / 255.0, 217 / 255.0, 246 / 255.0);
@@ -1566,6 +1681,42 @@ void timerFunc(int nTimerID) {
         debugModeCmd++;
         glutPostRedisplay();
         break;
+    case OUT_LINE_LEFT:
+        if (myFloor.light[2] == 12) {
+            myFloor.light[2] = 0;
+            return;
+        }
+        myFloor.light[2]++;
+        glutTimerFunc(100, timerFunc, OUT_LINE_LEFT);
+        glutPostRedisplay();
+        break;
+    case OUT_LINE_RIGHT:
+        if (myFloor.light[3] == 12) {
+            myFloor.light[3] = 0;
+            return;
+        }
+        myFloor.light[3]++;
+        glutTimerFunc(100, timerFunc, OUT_LINE_RIGHT);
+        glutPostRedisplay();
+        break;
+    case OUT_LINE_FRONT:
+        if (myFloor.light[4] == 12) {
+            myFloor.light[4] = 0;
+            return;
+        }
+        myFloor.light[4]++;
+        glutTimerFunc(100, timerFunc, OUT_LINE_FRONT);
+        glutPostRedisplay();
+        break;
+    case OUT_LINE_BACK:
+        if (myFloor.light[5] == 12) {
+            myFloor.light[5] = 0;
+            return;
+        }
+        myFloor.light[5]++;
+        glutTimerFunc(100, timerFunc, OUT_LINE_BACK);
+        glutPostRedisplay();
+        break;
     }
 }
 bool detectCollision(int x, int y, int z) { //偵測碰撞
@@ -1588,6 +1739,20 @@ bool detectCollision(int x, int y, int z) { //偵測碰撞
 
     //判斷邊界
     if (scene == MAGICFIELD) {
+        if (debugMode) {
+            if (x < 0) { //左
+                if(!myFloor.light[2]) glutTimerFunc(100, timerFunc, OUT_LINE_LEFT);
+            }
+            else if (x > 60) { //右
+                if (!myFloor.light[3])glutTimerFunc(100, timerFunc, OUT_LINE_RIGHT);
+            }
+            else if (z < 0) { //後
+                if (!myFloor.light[5])glutTimerFunc(100, timerFunc, OUT_LINE_BACK);
+            }
+            else if (z > 60) { //前
+                if(!myFloor.light[4]) glutTimerFunc(100, timerFunc, OUT_LINE_FRONT);
+            }
+        }
         if (x < 0 || x > 60 || z < 0 || z > 60) return 1;
     }
     else if (scene == GRASSLAND) {
@@ -1666,6 +1831,8 @@ bool change_view_order(unsigned char key) {
         return 1;
     }
     if (key == 'x' || key == 'X') {
+        if (scene != MAGICFIELD) return 1;   //只有在魔法陣有這個模式
+        if (debugModeCmd != 0 && debugModeCmd != 12) return 1;  //前面動畫沒跑完 不要一值刷新
         debugMode ^= 1;
         debugModeCmd = 0;
         if (debugMode) {
