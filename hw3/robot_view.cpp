@@ -5,19 +5,19 @@
 #include <vector>
 #define   PI   3.1415927
 //定義顏色
-#define ICE_COLOR 100
+#define ICE_COLOR       100
 #define WAND_WOOD_COLOR 102
 #define ROBOT_BLUE_MAIN 103
-#define ROBOT_BLUE_SUB 104
+#define ROBOT_BLUE_SUB  104
 #define ROBOT_PINK_MAIN 105
-#define ROBOT_PINK_SUB 106
-#define HOME_COLOR 107
+#define ROBOT_PINK_SUB  106
+#define HOME_COLOR      107
 
 //移動方式
 #define WALK 0
-#define RUN 1
+#define RUN  1
 #define TURN 2   //轉
-#define FLY 3    //飛行
+#define FLY  3   //飛行
 
 //時間模式
 #define RUNTIMER 50             //判斷是否跑跑跑
@@ -183,6 +183,34 @@ struct slime {           //史萊姆結構(todo:史萊姆跑來跑去)
         glPopMatrix();
     }
 }tp;
+struct elf {
+    void draw() {
+        glPushMatrix();
+
+        glColor3f(1, 0, 0);
+        glPushMatrix();
+        glutSolidSphere(1, 10, 10);
+        glPopMatrix();
+
+        glColor3f(1,0,1);
+        glPushMatrix();
+        glTranslatef(0.8,0.3,0);
+        glRotatef(-30,0,0,1);
+        glScalef(1,1,0.5);
+        draw_cube();
+        glPopMatrix();
+
+        glColor3f(1, 0, 1);
+        glPushMatrix();
+        glTranslatef(-0.8, 0.3, 0);
+        glRotatef(30, 0, 0, 1);
+        glScalef(1, 1, 0.5);
+        draw_cube();
+        glPopMatrix();
+     
+        glPopMatrix();
+    }
+}camera;
 struct magic_wand {
     float x = 0, y = 0, z = 0;                    //自己的座標
     float angle_x = 0, angle_y = 0, angle_z = 0;
@@ -1479,12 +1507,21 @@ void draw_slime() {   //todo: 史萊姆在地圖上走
     glRotatef(angley, 0, 1, 0);
     tp.draw();
 }
+void draw_camera() {
+    camera.draw();
+}
 void draw_view() {
     draw_scene(scene);
     glPushMatrix();
     glTranslatef(pos[0], pos[1], pos[2]);      //機器人
     draw_robot();
     glPopMatrix();
+
+    glPushMatrix();
+    glTranslatef(30, 30, 30);  
+    draw_camera();
+    glPopMatrix();
+
 
     //glPushMatrix();                          //todo: 史萊姆
     //glTranslatef(10, 0, 10);
