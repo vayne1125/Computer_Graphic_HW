@@ -1038,9 +1038,9 @@ void init_camera() {
     eye[1] = Eye[1];
     eye[2] = Eye[2];
     zNear = 20;
-    zFar = 50;
+    zFar = 60;
     aspect = width / (double)height;
-    fovy = 70;
+    fovy = 45;
 }
 void myinit()
 {
@@ -1515,27 +1515,28 @@ void draw_camera() {
     z2 = zFar / cos((fovy / 2.0) * PI / 180.0); //斜邊
     y2 = z2 * sin((fovy / 2.0) * PI / 180.0);    //寬
     x2 = y2 * aspect;
-    glColor4f(1,1,0,0.5);
+    glColor4f(235 / 255.0, 1, 1, 0.5);
     glBegin(GL_TRIANGLES);
     //內
-    glVertex3f(0, 0, 0);
-    glVertex3f(-x1, y1, zNear);
-    glVertex3f(x1, y1, zNear);
-
-    glVertex3f(0, 0, 0);
-    glVertex3f(-x1, y1, zNear);
-    glVertex3f(-x1, -y1, zNear);
-
-    glVertex3f(0, 0, 0);
-    glVertex3f(x1, y1, zNear);
-    glVertex3f(x1, -y1, zNear);
-
-    glVertex3f(0, 0, 0);
-    glVertex3f(-x1, -y1, zNear);
-    glVertex3f(x1, -y1, zNear);
     glColor4f(1, 1, 1, 0.5);
+    glVertex3f(0, 0, 0);
+    glVertex3f(-x1, y1, zNear);
+    glVertex3f(x1, y1, zNear);
+
+    glVertex3f(0, 0, 0);
+    glVertex3f(-x1, y1, zNear);
+    glVertex3f(-x1, -y1, zNear);
+
+    glVertex3f(0, 0, 0);
+    glVertex3f(x1, y1, zNear);
+    glVertex3f(x1, -y1, zNear);
+
+    glVertex3f(0, 0, 0);
+    glVertex3f(-x1, -y1, zNear);
+    glVertex3f(x1, -y1, zNear);
     glEnd();
     //外
+    glColor4f(235 / 255.0, 1, 1, 0.5);
     glBegin(GL_QUADS);
     glVertex3f(-x1, y1, zNear);
     glVertex3f(x1, y1, zNear);
@@ -1557,14 +1558,42 @@ void draw_camera() {
     glVertex3f(x2, -y2, zFar);
     glVertex3f(-x2 , -y2, zFar);
     glEnd();
-    /*
-    glColor4f(1, 0, 0, 0.5);
-    glBegin(GL_POLYGON);
-    glVertex3f(x1 , y1 , zNear);
-    glVertex3f(x1 , -y1, zNear);
-    glVertex3f(-x1, -y1, zNear);
-    glVertex3f(-x1, y1 , zNear);
+
+    glLineWidth(3);
+    glBegin(GL_LINES);
+    glVertex3f(0, 0, 0);
+    glVertex3f(-x2, y2, zFar);
+
+    glVertex3f(0, 0, 0);
+    glVertex3f(x2, y2, zFar);
+
+    glVertex3f(0, 0, 0);
+    glVertex3f(-x2, y2, zFar);
+
+    glVertex3f(0, 0, 0);
+    glVertex3f(-x2, -y2, zFar);
+
+    glVertex3f(0, 0, 0);
+    glVertex3f(x2, y2, zFar);
+
+    glVertex3f(0, 0, 0);
+    glVertex3f(x2, -y2, zFar);
+
+    glVertex3f(0, 0, 0);
+    glVertex3f(-x2, -y2, zFar);
+
+    glVertex3f(0, 0, 0);
+    glVertex3f(x2, -y2, zFar);
     glEnd();
+    /*
+    glPolygonMode(GL_FRONT_AND_BACK,GL_LINE);
+    glBegin(GL_POLYGON);
+    glVertex3f(x1 , y1 , zNear-0.1);
+    glVertex3f(x1 , -y1, zNear-0.1);
+    glVertex3f(-x1, -y1, zNear-0.1);
+    glVertex3f(-x1, y1 , zNear-0.1);
+    glEnd();*/
+    /*
     glColor4f(1, 0, 1, 0.5);
     glBegin(GL_POLYGON);
     glVertex3f(x2 , y2 , zFar);
@@ -1584,9 +1613,9 @@ void draw_view() {
 
     glPushMatrix();
     glTranslatef(eye[0], eye[1], eye[2]);
-    glRotatef(eyeAngx, 1, 0, 0);
-    glRotatef(eyeAngy, 0, 1, 0);
     glRotatef(eyeAngz, 0, 0, 1);
+    glRotatef(-eyeAngx, 1, 0, 0);
+    glRotatef(eyeAngy, 0, 1, 0);
     glRotatef(180, 0, 1, 0);
     draw_camera();
     glPopMatrix();
@@ -1924,27 +1953,6 @@ void my_move_order(unsigned char key) {        //跟移動相關的判斷
     for (int i = 0; i < 3; i++) pos[i] = tpPos[i];
     display();
 }
-bool change_view_order(int key) {
-    if (key == 103) {       //上
-        eyeDy += 0.5;       /* move up */
-        for (int i = 0; i < 3; i++) eye[i] -= 0.5 * u[1][i];
-    }
-    else if (key == 101) {   //下
-        eyeDy += -0.5;       /* move down */
-        for (int i = 0; i < 3; i++) eye[i] += 0.5 * u[1][i];
-    }
-    else if (key == 102) {   //左
-        eyeDx += -0.5;       /* move left */
-        for (int i = 0; i < 3; i++) eye[i] += 0.5 * u[0][i];
-    }
-    else if (key == 100) {   //右
-        eyeDx += 0.5;        /* move right */
-        for (int i = 0; i < 3; i++) eye[i] -= 0.5 * u[0][i];
-    }
-    else return 0;
-    display();
-    return 1;
-}
 bool change_view_order(unsigned char key) {
     cout << key << "\n";
     if (key == 'y' || key == 'Y') {
@@ -1989,8 +1997,7 @@ bool change_view_order(unsigned char key) {
         //eyeDz += -0.5;   //往後 ctrl + e
         for (i = 0; i < 3; i++) eye[i] += 0.5 * u[2][i];
     }
-    else
-    if (key == 24) {             //ctrl + x pitching 
+    else if (key == 24) {             //ctrl + x pitching 
         eyeAngx += 5.0;
         if (eyeAngx > 360.0) eyeAngx -= 360.0;
         y[0] = u[1][0] * cv - u[2][0] * sv;
@@ -2029,6 +2036,9 @@ bool change_view_order(unsigned char key) {
             u[0][i] = x[i];
             u[1][i] = y[i];
         }
+    }
+    else if (key == 18) {
+        init_camera();
     }else return 0;
     display();
 }
