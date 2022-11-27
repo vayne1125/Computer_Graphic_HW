@@ -4,7 +4,7 @@
 #include <GL/glut.h>
 #include <vector>
 #define   PI   3.1415927
-//©w¸qÃC¦â
+//å®šç¾©é¡è‰²
 #define ICE_COLOR       100
 #define WAND_WOOD_COLOR 102
 #define ROBOT_BLUE_MAIN 103
@@ -13,35 +13,42 @@
 #define ROBOT_PINK_SUB  106
 #define HOME_COLOR      107
 
-//²¾°Ê¤è¦¡
+//ç§»å‹•æ–¹å¼
 #define WALK 0
 #define RUN  1
-#define TURN 2   //Âà
-#define FLY  3   //­¸¦æ
+#define TURN 2   //è½‰
+#define FLY  3   //é£›è¡Œ
 
-//®É¶¡¼Ò¦¡
-#define RUNTIMER 50             //§PÂ_¬O§_¶]¶]¶]
-#define JUMPTIMER 51            //¤@¯ë¸õ
-#define JUMPONWANDTIMER 52      //¸õ¤Wªk§ú
-#define JUMPTOFLOORTIMER 53     //¸õ¦^¦aªO
-#define CHAIR_MOVE 54           //´È¤lÂ\°Ê
-#define DEBUG_MODE 55           //debug¶}±Ò°Êµe
-#define OUT_LINE_FRONT   56           //debug mode ¸I¨ìÃä¬É «e
-#define OUT_LINE_BACK    57           //debug mode ¸I¨ìÃä¬É «á
-#define OUT_LINE_LEFT    58           //debug mode ¸I¨ìÃä¬É ¥ª
-#define OUT_LINE_RIGHT   59           //debug mode ¸I¨ìÃä¬É ¥k
+//æ™‚é–“æ¨¡å¼
+#define RUNTIMER 50             //åˆ¤æ–·æ˜¯å¦è·‘è·‘è·‘
+#define JUMPTIMER 51            //ä¸€èˆ¬è·³
+#define JUMPONWANDTIMER 52      //è·³ä¸Šæ³•æ–
+#define JUMPTOFLOORTIMER 53     //è·³å›åœ°æ¿
+#define CHAIR_MOVE 54           //æ¤…å­æ“ºå‹•
+#define DEBUG_MODE 55           //debugé–‹å•Ÿå‹•ç•«
+#define OUT_LINE_FRONT   56           //debug mode ç¢°åˆ°é‚Šç•Œ å‰
+#define OUT_LINE_BACK    57           //debug mode ç¢°åˆ°é‚Šç•Œ å¾Œ
+#define OUT_LINE_LEFT    58           //debug mode ç¢°åˆ°é‚Šç•Œ å·¦
+#define OUT_LINE_RIGHT   59           //debug mode ç¢°åˆ°é‚Šç•Œ å³
 
 
-//Âê«öÁä todo:ÁÙ¦³¤pbug q
+//é–æŒ‰éµ todo:é‚„æœ‰å°bug q
 #define LOCK true
 #define UNLOCK false
 
-//³õ´º¼Ò¦¡¿ï¾Ü todo:¥´Ây³õ(¥¼¨Ó®i±æ«¢«¢...)
+//å ´æ™¯æ¨¡å¼é¸æ“‡ todo:æ‰“çµå ´(æœªä¾†å±•æœ›å“ˆå“ˆ...)
 #define MAGICFIELD 0
 #define GRASSLAND 1
 
+#define cwl 0
+#define cwr 1
+#define cwb 2
+#define cwt 3
+#define cwn 4
+#define cwf 5
+
 using namespace std;
-//©w¸qcube
+//å®šç¾©cube
 float  points[][3] = { {0.0, 0.0, 0.0}, {1.0, 0.0, 0.0},       //coordinates of the 8 corners.(0,0,0)-(1,1,1)
                       {1.0, 0.0, 1.0}, {0.0, 0.0, 1.0},
                       {0.0, 1.0, 0.0}, {1.0, 1.0, 0.0},
@@ -51,7 +58,7 @@ int    face[][4] = { {0, 1, 2, 3}, {7, 6, 5, 4}, {0, 4, 5, 1},  //Define 6 faces
                     {1, 5, 6, 2}, {3, 2, 6, 7}, {0, 3, 7, 4} };
 int    cube[6] = { 0, 1, 2, 3, 4, 5 };                          //Define the cube using the 6 faces.
 int    width = 700, height = 700;                               //window shape 
-float  pos[3] = { 0.0, 0.0, 0.0 };                              //¦ì¸m
+float  pos[3] = { 0.0, 0.0, 0.0 };                              //ä½ç½®
 float  anglex = 0.0, angley = 0.0;
 
 /*-----Translation and rotations of eye coordinate system---*/
@@ -59,26 +66,25 @@ float   eyeDx = 0.0, eyeDy = 0.0, eyeDz = 0.0;
 float   eyeAngx = 0.0, eyeAngy = 0.0, eyeAngz = 0.0;
 double  Eye[3] = { 30.0, 10.0, 80.0 }, Focus[3] = { 0.0, 0.0, 0.0 },
 Vup[3] = { 0.0, 1.0, 0.0 };
-
-float   u[3][3] = { {1.0,0.0,0.0}, {0.0,1.0,0.0}, {0.0,0.0,1.0} };
+double clippingWindow[6] = { 0,0,0,0,0,0 };;
+double   u[3][3] = { {1.0,0.0,0.0}, {0.0,1.0,0.0}, {0.0,0.0,1.0} };
 float   eye[3];
 float   cv, sv; /* cos(5.0) and sin(5.0) */
 int viewStyle = 0;    //viw change: 
                       //magic - 0x/1y/2z/3perspective/4all
                       //grass - 0x/1y/2z/3perspective
-//ªñ´º »·´º w/h ²´·ú±i¶}ªº¨¤«×(40~70)
-double zNear = 0, zFar = 0, aspect = 0, fovy = 0; 
-float mtx[16] = {1,0,0,30,0,1,0,10,0,0,1,80,0,0,0,1};
-
+//è¿‘æ™¯ é æ™¯ w/h çœ¼ç›å¼µé–‹çš„è§’åº¦(40~70)
+//double zNear = 0, zFar = 0, aspect = 0, fovy = 0; 
+//double tp1 = 0, x1 = 0, y1 = 0, z1 = 0, tp2 = 0, x2 = 0, y2 = 0, z2 = 0;
 /*----------------------------------------------------------*/
 
 
 //Define GLU quadric objects, a sphere and a cylinder
 GLUquadricObj* sphere = NULL, * cylind = NULL, * mycircle = NULL;
-int see = 0;             //¤Á´«µø¨¤(¶}µo¦a¹Ï¥Î ¹ê»ÚµL¦¹¥\¯à)                                     
-int preKey = 0;          //¤W¤@­Ó«öÁä®×½Ö
-int scene = MAGICFIELD;  //ªì©l­I´º¬°Å]ªk°}
-bool isLock = 0;         //«öÁä¬O§_Âê¤F
+int see = 0;             //åˆ‡æ›è¦–è§’(é–‹ç™¼åœ°åœ–ç”¨ å¯¦éš›ç„¡æ­¤åŠŸèƒ½)                                     
+int preKey = 0;          //ä¸Šä¸€å€‹æŒ‰éµæ¡ˆèª°
+int scene = MAGICFIELD;  //åˆå§‹èƒŒæ™¯ç‚ºé­”æ³•é™£
+bool isLock = 0;         //æŒ‰éµæ˜¯å¦é–äº†
 bool sitOnChair = 0;
 bool debugMode = 0;
 int debugModeCmd = 0;
@@ -88,23 +94,23 @@ void draw_cylinder(double up, double down, double height);
 void change_color(int value);
 void draw_circle(double size, int wid);
 void draw_square(int hei, int wid,int sz);
-float getDis(float x1, float y1, float x2, float y2) {           //ºâ¶ZÂ÷
+float getDis(float x1, float y1, float x2, float y2) {           //ç®—è·é›¢
     return sqrt((x1 - x2) * (x1 - x2) + (y1 - y2) * (y1 - y2));
 }
-struct node {   //©w¸q·¥®y¼ĞªºÂI
+struct node {   //å®šç¾©æ¥µåº§æ¨™çš„é»
     double x = 0, y = 0, z = 0;
 };
-struct pp {   //¦UºØ¦ì¸mµ²ºc
+struct pp {   //å„ç¨®ä½ç½®çµæ§‹
     float x1 = 0, x2 = 0, tp1 = 0, tp2 = 0;
     float x = 0, z = 0, r = 0;
     float a1 = 0, a2 = 0;
-    pp(float x1_, float tp1_, float x2_, float tp2_) {      //¯x§Î
+    pp(float x1_, float tp1_, float x2_, float tp2_) {      //çŸ©å½¢
         x1 = x1_;
         x2 = x2_;
         tp1 = tp1_;
         tp2 = tp2_;
     }
-    pp(float x_, float z_, float r_, float a1_, float a2_) {  //²y
+    pp(float x_, float z_, float r_, float a1_, float a2_) {  //çƒ
         x = x_;
         z = z_;
         r = r_;
@@ -112,14 +118,14 @@ struct pp {   //¦UºØ¦ì¸mµ²ºc
         a2 = a2_;
     }
 };
-//ªe¹D
+//æ²³é“
 const vector<pp> river = { {-10,120 ,100,0,25},{190,120 ,100,180,220}, {24,9 ,100,-3,30}, {100,70 ,100,75,115}, {130,267 ,100,268,290},{200,80 ,100,93,112} };
 const vector<pp> rock = { {-10,120 ,100,0,25},{190,120 ,100,180,220}, {24,9 ,100,-3,30},{100,70 ,100,75,96} ,{100,70 ,100,101,115}, {130,267 ,100,268,290},{200,80 ,100,93,112} };
-//¬W¤l
+//æŸ±å­
 const vector<pair<float, float>> pillar = { {110,100},{180,100},{110,160},{180,160} };
-//­­¨î¦ì¸mªº®y¼Ğ
+//é™åˆ¶ä½ç½®çš„åº§æ¨™
 vector<pair<float, float>>limit;
-node ball_cor(double r, int A, int B) {          //·¥®y¼ĞÂà´«
+node ball_cor(double r, int A, int B) {          //æ¥µåº§æ¨™è½‰æ›
     node rt;
     rt.x = r * sin(A * 0.01745) * cos(B * 0.01745);
     rt.y = r * sin(A * 0.01745) * sin(B * 0.01745);
@@ -131,18 +137,18 @@ struct elf {
         glPushMatrix();
 
         change_color(ROBOT_BLUE_MAIN);
-        glPushMatrix();                 //ÀY
+        glPushMatrix();                 //é ­
         glutSolidSphere(1, 50, 50);
         glPopMatrix();
 
         change_color(ROBOT_BLUE_SUB);
-        glPushMatrix();                 //¥~¥k¦Õ
+        glPushMatrix();                 //å¤–å³è€³
         glTranslatef(0.5,0.6,-0.2);
         glRotatef(20,0,0,1);
         glScalef(0.8, 0.8, 0.4);
         draw_cube();
 
-        glColor3f(167 / 255.0, 167 / 255.0, 167 / 255.0);            //¤º¦Õ
+        glColor3f(167 / 255.0, 167 / 255.0, 167 / 255.0);            //å…§è€³
         glPushMatrix();
         glTranslatef(0.2, 0.2, 0.7);
         glScalef(0.6,0.6,0.4);
@@ -158,7 +164,7 @@ struct elf {
         glScalef(0.8, 0.8, 0.4);
         draw_cube();
 
-        glColor3f(167 / 255.0, 167 / 255.0, 167 / 255.0);            //¤º¦Õ
+        glColor3f(167 / 255.0, 167 / 255.0, 167 / 255.0);            //å…§è€³
         glPushMatrix();
         glTranslatef(0.2, 0.2, -0.1);
         glScalef(0.6, 0.6, 0.4);
@@ -166,7 +172,7 @@ struct elf {
         glPopMatrix();
         glPopMatrix();
      
-        //²´·ú
+        //çœ¼ç›
         glColor3f(0,0,0);
         glPushMatrix();
         glTranslatef(0.4,0.15,1);
@@ -180,7 +186,7 @@ struct elf {
         glutSolidSphere(0.5, 10, 10);
         glPopMatrix();
 
-        //¸|¬õ
+        //è…®ç´…
         //#FFAAD5
         glColor3f(1, 168/255.0, 212/255.0);
         glPushMatrix();
@@ -199,10 +205,10 @@ struct elf {
     }
 }camera;
 struct magic_wand {
-    float x = 0, y = 0, z = 0;                    //¦Û¤vªº®y¼Ğ
+    float x = 0, y = 0, z = 0;                    //è‡ªå·±çš„åº§æ¨™
     float angle_x = 0, angle_y = 0, angle_z = 0;
     float scale = 0;
-    bool show = 1;   //¬O§_Åã¥Ü
+    bool show = 1;   //æ˜¯å¦é¡¯ç¤º
     magic_wand(float s_ = 1, float x = 0, float y = 0, float z = 0) {
         scale = s_;
         angle_x = x;
@@ -215,7 +221,7 @@ struct magic_wand {
         z = z_;
     }
     void draw() {
-        //x¥k y¤W z«e ¤¤¤ßÂI:ªk§úªº¤¤¶¡
+        //xå³ yä¸Š zå‰ ä¸­å¿ƒé»:æ³•æ–çš„ä¸­é–“
         change_color(WAND_WOOD_COLOR);
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
         glRotatef(angle_x, 1, 0, 0);
@@ -224,35 +230,35 @@ struct magic_wand {
         glScalef(scale, scale, scale);
 
         glTranslatef(0, 0, -7);
-        draw_cylinder(0.5, 0.8, 14);             //ªø«×¬°14 ¼e¬°0.8
+        draw_cylinder(0.5, 0.8, 14);             //é•·åº¦ç‚º14 å¯¬ç‚º0.8
 
-        glColor3f(102 / 255.0, 34 / 255.0, 0);   //ªk§ú©³³¡ªº¶ê
+        glColor3f(102 / 255.0, 34 / 255.0, 0);   //æ³•æ–åº•éƒ¨çš„åœ“
         glPushMatrix();
 
-        glTranslatef(0, 0, 0);                   //ªk§ú³»³¡ªº¶ê
-        glRotatef(270, 1, 0, 0);                 //¶ê§Î¯¸¥ß
+        glTranslatef(0, 0, 0);                   //æ³•æ–é ‚éƒ¨çš„åœ“
+        glRotatef(270, 1, 0, 0);                 //åœ“å½¢ç«™ç«‹
         draw_circle(0.5, 1);
         glPopMatrix();
 
-        glColor3f(102 / 255.0, 34 / 255.0, 0);   //ªk§ú©³³¡ªº¶ê
+        glColor3f(102 / 255.0, 34 / 255.0, 0);   //æ³•æ–åº•éƒ¨çš„åœ“
         glPushMatrix();
         glTranslatef(0, 0, 14);
-        glRotatef(270, 1, 0, 0);                 //¶ê§Î¯¸¥ß
+        glRotatef(270, 1, 0, 0);                 //åœ“å½¢ç«™ç«‹
         draw_circle(0.8, 1);
         glPopMatrix();
 
-        glColor3f(1, 1, 168 / 255.0);              //¤ô´¹(¶À)
+        glColor3f(1, 1, 168 / 255.0);              //æ°´æ™¶(é»ƒ)
         glPushMatrix();
         glTranslatef(0, 0, 14);
         glutSolidSphere(1.5, 10, 10);              //9.5
 
-        glColor3f(168 / 255.0, 1.0, 1);            //°{¥ú°é(ÂÅ¦â)
+        glColor3f(168 / 255.0, 1.0, 1);            //é–ƒå…‰åœˆ(è—è‰²)
         glPushMatrix();
         glRotatef(30, 0, 1, 0);
         glutSolidTorus(0.1, 2.5, 100, 100);
         glPopMatrix();
 
-        glColor3f(168 / 255.0, 1.0, 1);           //°{¥ú°é(ÂÅ¦â)
+        glColor3f(168 / 255.0, 1.0, 1);           //é–ƒå…‰åœˆ(è—è‰²)
         glPushMatrix();
         glRotatef(330, 0, 1, 0);
         glutSolidTorus(0.1, 2.5, 100, 100);
@@ -262,123 +268,123 @@ struct magic_wand {
     }
 }myMagic_wand;
 struct robot {
-    magic_wand* magic_wand_carry = new magic_wand(0.34, 180, 0, 0); //Å]ªk´Îª«¥ó(¤â«ù)
-    magic_wand* magic_wand_sit = new magic_wand(0.5, 0, -90, 0);    //Å]ªk´Îª«¥ó(§¤µÛ)
-    int mainColor = ROBOT_BLUE_MAIN, subColor = ROBOT_BLUE_SUB;    //ÃC¦â
-    int moveMode = 0; //²¾°Ê¼Ò¦¡ 0->walk  1->run  2->turn  3->fly
+    magic_wand* magic_wand_carry = new magic_wand(0.34, 180, 0, 0); //é­”æ³•æ£’ç‰©ä»¶(æ‰‹æŒ)
+    magic_wand* magic_wand_sit = new magic_wand(0.5, 0, -90, 0);    //é­”æ³•æ£’ç‰©ä»¶(åè‘—)
+    int mainColor = ROBOT_BLUE_MAIN, subColor = ROBOT_BLUE_SUB;    //é¡è‰²
+    int moveMode = 0; //ç§»å‹•æ¨¡å¼ 0->walk  1->run  2->turn  3->fly
     robot() {
         stand();
     }
-    float angle_x = 0.0, angle_y = 0.0;                         //±ÛÂà¨¤«×
-    bool carry_mw = 0;                                          //¥Ø«e¦³®³Å]ªk´Î¶Ü
-    bool isMagician = 0;                                        //¬O¤£¬OÅ]ªk®v
-    bool isJump_ready = 0;                                      //·Ç³Æ¸õªº«º¶Õ¶Ü
-    float x = 0, y = 0, z = 0;                                  //±±¨î¾÷¾¹¤H®y¼Ğ
+    float angle_x = 0.0, angle_y = 0.0;                         //æ—‹è½‰è§’åº¦
+    bool carry_mw = 0;                                          //ç›®å‰æœ‰æ‹¿é­”æ³•æ£’å—
+    bool isMagician = 0;                                        //æ˜¯ä¸æ˜¯é­”æ³•å¸«
+    bool isJump_ready = 0;                                      //æº–å‚™è·³çš„å§¿å‹¢å—
+    float x = 0, y = 0, z = 0;                                  //æ§åˆ¶æ©Ÿå™¨äººåº§æ¨™
     struct hand {
         node tp;
-        float shoulderAng_x = 180, shoulderAng_y = 0, shoulderAng_z = 35;    //ªÓ»H
-        float elbowAng_x = 0, elbowAng_y = 0, elbowAng_z = 0;                //¤â¨y
-        float fingerAng_x = 0, fingerAng_y = 0, fingerAng_z = 0;             //¤â«ü
+        float shoulderAng_x = 180, shoulderAng_y = 0, shoulderAng_z = 35;    //è‚©è†€
+        float elbowAng_x = 0, elbowAng_y = 0, elbowAng_z = 0;                //æ‰‹è‚˜
+        float fingerAng_x = 0, fingerAng_y = 0, fingerAng_z = 0;             //æ‰‹æŒ‡
         int subColor = 0;
         void draw() {
             glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-            //glRotatef(shoulderAng_x, 1, 0, 0);           //²¾°ÊÃö¸`¨¤«× 180©ñ¤U
-            glRotatef(shoulderAng_z, 0, 0, 1);             //-35©ñ¦b¨­Åé®ÇÃä ¹ïzÂà±±¨î¥ª¥k
+            //glRotatef(shoulderAng_x, 1, 0, 0);           //ç§»å‹•é—œç¯€è§’åº¦ 180æ”¾ä¸‹
+            glRotatef(shoulderAng_z, 0, 0, 1);             //-35æ”¾åœ¨èº«é«”æ—é‚Š å°zè½‰æ§åˆ¶å·¦å³
             glRotatef(shoulderAng_x, 1, 0, 0);
             change_color(subColor);
-            glutSolidSphere(0.5, 10, 10);                  //¥b®|¬° 0.5 ªºªÓ»H
+            glutSolidSphere(0.5, 10, 10);                  //åŠå¾‘ç‚º 0.5 çš„è‚©è†€
 
             //forarms
             glColor3f(167 / 255.0, 167 / 255.0, 167 / 255.0);
-            glTranslatef(0, 0.75, 0);              //¨«¨ì ªÓ»H¤W¤è0.25 + ¶ê¤¤¤ß0.75(µe1.5ªº¤âÁu) - 0.25­«Å|
+            glTranslatef(0, 0.75, 0);              //èµ°åˆ° è‚©è†€ä¸Šæ–¹0.25 + åœ“ä¸­å¿ƒ0.75(ç•«1.5çš„æ‰‹è‡‚) - 0.25é‡ç–Š
 
             glPushMatrix();
             glScalef(0.7, 1.5, 0.7);
-            glutSolidSphere(0.5, 10, 10);          //ª½®|¬°1.5ªº¤âÁu
+            glutSolidSphere(0.5, 10, 10);          //ç›´å¾‘ç‚º1.5çš„æ‰‹è‡‚
             glPopMatrix();
 
-            glTranslatef(0, 0.75, 0);               //¤âÁu«eºİ¤¤¤ß
+            glTranslatef(0, 0.75, 0);               //æ‰‹è‡‚å‰ç«¯ä¸­å¿ƒ
 
-            glRotatef(elbowAng_x, 1, 0, 0);         //±ÛÂà¤â¨y
+            glRotatef(elbowAng_x, 1, 0, 0);         //æ—‹è½‰æ‰‹è‚˜
             glRotatef(elbowAng_y, 0, 1, 0);
             glRotatef(elbowAng_z, 0, 0, 1);
 
             change_color(subColor);
 
-            glutSolidSphere(0.25, 10, 10);          //ª½®|¬° 0.5 ªº¤â¨y      0.25­«Å|
+            glutSolidSphere(0.25, 10, 10);          //ç›´å¾‘ç‚º 0.5 çš„æ‰‹è‚˜      0.25é‡ç–Š
 
-            //¤â«eÁu
+            //æ‰‹å‰è‡‚
             glColor3f(167 / 255.0, 167 / 255.0, 167 / 255.0);
-            glTranslatef(0, 0.75, 0);                //¨«¨ì ¤â¶b«eºİ0.25 + ¶ê¤¤¤ß0.75(µe1.5ªº¤â«eÁu) - 0.25­«Å|
+            glTranslatef(0, 0.75, 0);                //èµ°åˆ° æ‰‹è»¸å‰ç«¯0.25 + åœ“ä¸­å¿ƒ0.75(ç•«1.5çš„æ‰‹å‰è‡‚) - 0.25é‡ç–Š
 
             glPushMatrix();
             glScalef(0.55, 1.5, 0.55);
-            glutSolidSphere(0.5, 10, 10);           //ª½®|¬°1.5ªº¤â«eÁu
+            glutSolidSphere(0.5, 10, 10);           //ç›´å¾‘ç‚º1.5çš„æ‰‹å‰è‡‚
             glPopMatrix();
 
-            glTranslatef(0, 0.75, 0);               //¤â«eÁu«eºİ   
-            //´«¤â«ü¤è¦VÀ³¸Ó¦b³oÂà
+            glTranslatef(0, 0.75, 0);               //æ‰‹å‰è‡‚å‰ç«¯   
+            //æ›æ‰‹æŒ‡æ–¹å‘æ‡‰è©²åœ¨é€™è½‰
             glRotatef(fingerAng_y, 0, 1, 0);
-            //¥ª¤â«üÀY
+            //å·¦æ‰‹æŒ‡é ­
             change_color(subColor);
             glPushMatrix();
             glTranslatef(-0.25, 0.2, 0);
-            glRotatef(15, 0, 0, 1);               //±i¶}¨¤«×
-            glScalef(0.3, 0.7, 0.3);              //¤â«üªø: 0.7
+            glRotatef(15, 0, 0, 1);               //å¼µé–‹è§’åº¦
+            glScalef(0.3, 0.7, 0.3);              //æ‰‹æŒ‡é•·: 0.7
             glutSolidSphere(0.5, 10, 10);
             glPopMatrix();
 
-            //¥k¤â«üÀY
+            //å³æ‰‹æŒ‡é ­
             glPushMatrix();
             glTranslatef(0.25, 0.2, 0);
-            glRotatef(-15, 0, 0, 1);              //±i¶}¨¤«×
-            glScalef(0.3, 0.7, 0.3);              //¤â«üªø: 0.7
+            glRotatef(-15, 0, 0, 1);              //å¼µé–‹è§’åº¦
+            glScalef(0.3, 0.7, 0.3);              //æ‰‹æŒ‡é•·: 0.7
             glutSolidSphere(0.5, 10, 10);
             glPopMatrix();
-            //glRotatef(-shoulderAng_z, 0, 0, 1);   //ÅÜ¦^¥¿±`ªº®y¼Ğ¨t²Î
+            //glRotatef(-shoulderAng_z, 0, 0, 1);   //è®Šå›æ­£å¸¸çš„åº§æ¨™ç³»çµ±
         }
     };
-    struct foot {          //»Lªø2.75
+    struct foot {          //è…¿é•·2.75
         node tp;
-        float hipJointAng_x = 180, hipJointAng_y = 0, hipJointAng_z = 0;   //ÆbÃö¸`
+        float hipJointAng_x = 180, hipJointAng_y = 0, hipJointAng_z = 0;   //é«–é—œç¯€
         float kneeAng_x = 0, kneeAng_y = 0, kneeAng_z = 0;
         float ankle_x = 0, ankle_y = 0, ankle_z = 0;
         int subColor = 0;
         void draw() {
             glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-            glRotatef(hipJointAng_x, 1, 0, 0);          //²¾°ÊÃö¸`¨¤«× 180©ñ¤U
+            glRotatef(hipJointAng_x, 1, 0, 0);          //ç§»å‹•é—œç¯€è§’åº¦ 180æ”¾ä¸‹
             //glRotatef(-30, 0, 0, 1);            
-            //glRotatef(90, 1, 0, 0);             //©¹«e  ¹ïx¶bÂà±±¨îÁ|°_©ñ¤U
+            //glRotatef(90, 1, 0, 0);             //å¾€å‰  å°xè»¸è½‰æ§åˆ¶èˆ‰èµ·æ”¾ä¸‹
             change_color(subColor);
-            glutSolidSphere(0.25, 10, 10);        //¤j»L¤WªºÃö¸` 0.5ª½®|
+            glutSolidSphere(0.25, 10, 10);        //å¤§è…¿ä¸Šçš„é—œç¯€ 0.5ç›´å¾‘
 
-            //¤j»L
+            //å¤§è…¿
             glColor3f(167 / 255.0, 167 / 255.0, 167 / 255.0);
-            glTranslatef(0, 0.625, 0);           //¨«¨ì ½¥»\0.125 + ¶ê¤¤¤ß0.5(µe1ªº¶ê)
+            glTranslatef(0, 0.625, 0);           //èµ°åˆ° è†è“‹0.125 + åœ“ä¸­å¿ƒ0.5(ç•«1çš„åœ“)
 
             glPushMatrix();
-            glScalef(0.7, 1, 0.7);               //¤j»Lªø1
+            glScalef(0.7, 1, 0.7);               //å¤§è…¿é•·1
             glutSolidSphere(0.5, 10, 10);
             glPopMatrix();
 
-            glTranslatef(0, 0.5, 0);             //»L«eºİ¤¤¤ß  ©M½¥»\­«Å|0.25
+            glTranslatef(0, 0.5, 0);             //è…¿å‰ç«¯ä¸­å¿ƒ  å’Œè†è“‹é‡ç–Š0.25
 
-            glRotatef(kneeAng_x, 1, 0, 0);       //½¥»\¨¤«×
-            //½¥»\
+            glRotatef(kneeAng_x, 1, 0, 0);       //è†è“‹è§’åº¦
+            //è†è“‹
             change_color(subColor);
-            glutSolidSphere(0.25, 10, 10);       //ª½®|0.5ªº½¥»\
+            glutSolidSphere(0.25, 10, 10);       //ç›´å¾‘0.5çš„è†è“‹
 
-            glTranslatef(0, 0.5, 0);             //½¥»\«eºİ 0.25 + »L¤¤¶¡0.5(»Lªø1) - 0.25(­«Å|¦a¤è)
+            glTranslatef(0, 0.5, 0);             //è†è“‹å‰ç«¯ 0.25 + è…¿ä¸­é–“0.5(è…¿é•·1) - 0.25(é‡ç–Šåœ°æ–¹)
 
             glColor3f(167 / 255.0, 167 / 255.0, 167 / 255.0);
             glPushMatrix();
-            glScalef(0.5, 1, 0.5);               //¤p»Lªø1
+            glScalef(0.5, 1, 0.5);               //å°è…¿é•·1
             glutSolidSphere(0.5, 10, 10);
             glPopMatrix();
 
-            glTranslatef(0, 0.5, 0);             //¤p»L«eºİ¤¤¤ß 0.5 ©M»L­«Å|0.25
+            glTranslatef(0, 0.5, 0);             //å°è…¿å‰ç«¯ä¸­å¿ƒ 0.5 å’Œè…¿é‡ç–Š0.25
             glColor3f(0.5, 0.5, 0.5);
-            glutSolidSphere(0.5, 10, 10);        //¸} ª½®|1
+            glutSolidSphere(0.5, 10, 10);        //è…³ ç›´å¾‘1
         }
     };
     hand* right_h = new hand;
@@ -391,24 +397,24 @@ struct robot {
     };
     void draw_hat() {
         glPushMatrix();           //push1
-        glRotatef(270, 1, 0, 0);  //Âàª½ ©¹¤Wµe
+        glRotatef(270, 1, 0, 0);  //è½‰ç›´ å¾€ä¸Šç•«
         glRotatef(-10, 1, 0, 0);
-        //draw_cylinder(0,3,6); ¸È¤l®ÄªG
+        //draw_cylinder(0,3,6); è£™å­æ•ˆæœ
         //glRotatef(80, 1, 0, 0);
 
-        glColor3f(38 / 255.0, 38 / 255.0, 38 / 255.0);   //´Uªu
+        glColor3f(38 / 255.0, 38 / 255.0, 38 / 255.0);   //å¸½æ²¿
         glPushMatrix();           //push2
         draw_cylinder(3, 0, 1);
 
-        glColor3f(61 / 255.0, 61 / 255.0, 61 / 255.0);  //´U¤l
+        glColor3f(61 / 255.0, 61 / 255.0, 61 / 255.0);  //å¸½å­
         draw_cylinder(2, 0, 4);
 
-        //ªá¯¾
-        glColor3f(1, 1, 168 / 255.0);                    //¼e
+        //èŠ±ç´‹
+        glColor3f(1, 1, 168 / 255.0);                    //å¯¬
         glTranslatef(0, 0, 0.5);
         draw_cylinder(2, 1, 0.8);
 
-        change_color(subColor);          //²Ó
+        change_color(subColor);          //ç´°
         glTranslatef(0, 0, 0.6);
         draw_cylinder(1.5, 0.8, 0.6);
         glPopMatrix();                  //pop2
@@ -420,22 +426,22 @@ struct robot {
         left_f->subColor = subColor;
         right_f->subColor = subColor;
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-        //¨{¤l
+        //è‚šå­
         change_color(mainColor);
 
         glPushMatrix();                             //push1
         glScalef(2.5, 2.5, 2.5);
-        glTranslatef(x, y, z);                      //¾ã°¦ªº®y¼Ğ
+        glTranslatef(x, y, z);                      //æ•´éš»çš„åº§æ¨™
 
         glRotatef(angle_y, 0, 1, 0);
         glRotatef(angle_x, 1, 0, 0);
 
-        glTranslatef(0, 4.75, 0);                   //²¾¨ì¨{¤l
-        glutSolidSphere(2, 10, 10);                 //µe¨{¤l ª½®|4
+        glTranslatef(0, 4.75, 0);                   //ç§»åˆ°è‚šå­
+        glutSolidSphere(2, 10, 10);                 //ç•«è‚šå­ ç›´å¾‘4
 
         node tp = ball_cor(2, 90, 30);
         glPushMatrix();                             //push2
-        glTranslatef(tp.x, tp.y, tp.z);             //¨«¨ì¥kªÓ»H
+        glTranslatef(tp.x, tp.y, tp.z);             //èµ°åˆ°å³è‚©è†€
         right_h->draw();
 
         glPushMatrix();                             //push3
@@ -445,65 +451,65 @@ struct robot {
 
         glPopMatrix();                              //pop2
 
-        //¥ªªÓ»H
+        //å·¦è‚©è†€
         tp = ball_cor(2, 270, 330);
         glPushMatrix();                            //push2
-        glTranslatef(tp.x, tp.y, tp.z);       //¨«¨ì¥ªªÓ»H
+        glTranslatef(tp.x, tp.y, tp.z);       //èµ°åˆ°å·¦è‚©è†€
         left_h->draw();
         glPopMatrix();                             //pop2
 
-        glPushMatrix();                       //§¤¦bªk§ú¤W  push2
+        glPushMatrix();                       //ååœ¨æ³•æ–ä¸Š  push2
         glTranslatef(0, -2, 0);
         if (isOnWand) magic_wand_sit->draw();
         glPopMatrix();                         //pop2
 
-        //¥ª¤j»L¤W­±ªºÃö¸`  ®I¦b¨­Åé¸Ì
+        //å·¦å¤§è…¿ä¸Šé¢çš„é—œç¯€  åŸ‹åœ¨èº«é«”è£¡
         glPushMatrix();                       //push2
         glTranslatef(-0.4, -1.75, 0);
         left_f->draw();
         glPopMatrix();                        //pop2
 
-        //¥k¤j»L¤W­±ªºÃö¸`
+        //å³å¤§è…¿ä¸Šé¢çš„é—œç¯€
         glPushMatrix();                       //push2
         glTranslatef(0.4, -1.75, 0);
         right_f->draw();
         glPopMatrix();                        //pop2
 
-        //ÀY
+        //é ­
         change_color(mainColor);
-        glTranslatef(0, 3, 0);               //¦b¨«¨ìÀY  ©M¨­Åé­«Å|0.5
+        glTranslatef(0, 3, 0);               //åœ¨èµ°åˆ°é ­  å’Œèº«é«”é‡ç–Š0.5
         glPushMatrix();                      //push2
-        glutSolidSphere(1.5, 10, 10);        //ª½®|3
+        glutSolidSphere(1.5, 10, 10);        //ç›´å¾‘3
 
         if (isMagician)
-            glColor3f(128 / 255.0, 128 / 255.0, 1);  //ÂÅ
+            glColor3f(128 / 255.0, 128 / 255.0, 1);  //è—
         else
             glColor3f(0, 0, 0);
-        glPushMatrix();                          //²´·ú  push3
+        glPushMatrix();                          //çœ¼ç›  push3
         glTranslatef(0.6, 0, 1.3);
         glScalef(0.4, 0.8, 0.4);
         glutSolidSphere(0.5, 10, 10);
-        glColor3f(1, 1, 1);                      //²´¥Õ
+        glColor3f(1, 1, 1);                      //çœ¼ç™½
         glTranslatef(0, 0.15, 0.15);
         glutSolidSphere(0.33, 10, 10);
         glPopMatrix();                           //pop3
 
         if (isMagician)
-            glColor3f(1, 122 / 255.0, 189);      //¯»
+            glColor3f(1, 122 / 255.0, 189);      //ç²‰
         else
             glColor3f(0, 0, 0);
         glPushMatrix();                          //push3
         glTranslatef(-0.6, 0, 1.3);
         glScalef(0.4, 0.8, 0.4);
         glutSolidSphere(0.5, 10, 10);
-        glColor3f(1, 1, 1);                      //²´¥Õ
+        glColor3f(1, 1, 1);                      //çœ¼ç™½
         glTranslatef(0, 0.15, 0.15);
         glutSolidSphere(0.33, 10, 10);
         glPopMatrix();                           //pop3
 
         glColor3f(1, 0, 0);
         glPushMatrix();                           //push3
-        glTranslatef(0, -0.6, 1.5);              //¼L¤Ú
+        glTranslatef(0, -0.6, 1.5);              //å˜´å·´
         glLineWidth(1);
         glBegin(GL_LINES);
         glVertex3f(-0.2, 0, 0);
@@ -511,14 +517,14 @@ struct robot {
         glEnd();
         glPopMatrix();                          //pop3
 
-        glTranslatef(0, 0.5, 0);                //´U¤l§¤¼Ğ¨t
+        glTranslatef(0, 0.5, 0);                //å¸½å­åæ¨™ç³»
         if (isMagician) draw_hat();
 
-        glPopMatrix();                       //Â÷¶}ÀY pop2
+        glPopMatrix();                       //é›¢é–‹é ­ pop2
 
-        glPopMatrix();                       //Â÷¶}¨{¤l§¤¼Ğ¨t pop1
+        glPopMatrix();                       //é›¢é–‹è‚šå­åæ¨™ç³» pop1
     }
-    void stand() {                           //©w¸q¯¸µÛ(ªì©l¤Æ)
+    void stand() {                           //å®šç¾©ç«™è‘—(åˆå§‹åŒ–)
         y = 0;
         x = 0;
         y = 0;
@@ -536,12 +542,12 @@ struct robot {
     }
     bool flag = 0, flag2 = 0;
     void move() {
-        //(½¥»\,ÆbÃö¸`)
-        //¸}«á(0,180) ~ (35,200)     35 +7   20 +4
-        //¸}©¹«e(0,180) ~ (35,130)   35 +7   50 -10
-        //(ªÓ»H)
-        //¤â©¹«e(180) ~ (200)        20 +4   100 +20
-        //¤â©¹«á(180) ~ (170)        20 -4
+        //(è†è“‹,é«–é—œç¯€)
+        //è…³å¾Œ(0,180) ~ (35,200)     35 +7   20 +4
+        //è…³å¾€å‰(0,180) ~ (35,130)   35 +7   50 -10
+        //(è‚©è†€)
+        //æ‰‹å¾€å‰(180) ~ (200)        20 +4   100 +20
+        //æ‰‹å¾€å¾Œ(180) ~ (170)        20 -4
         //moveMode = walk
         int hipJointXLimit = 130;
         int hipJointFrontOffset = -10;
@@ -565,18 +571,18 @@ struct robot {
             hipJointXLimit = 160;
         }
         if (flag == 0) {
-            if (flag2 == 0) {  //¥k¸}©¹«e¡A¥ª¸}©¹«á             
-                right_f->hipJointAng_x += hipJointFrontOffset / 2.0;          //¥k¸}©¹«e¦ù
+            if (flag2 == 0) {  //å³è…³å¾€å‰ï¼Œå·¦è…³å¾€å¾Œ             
+                right_f->hipJointAng_x += hipJointFrontOffset / 2.0;          //å³è…³å¾€å‰ä¼¸
                 right_f->kneeAng_x += kneeFrontOffset / 2.0;
-                left_f->hipJointAng_x += hipJointBackOffset / 2.0;            //¥ª¸}©¹«á
+                left_f->hipJointAng_x += hipJointBackOffset / 2.0;            //å·¦è…³å¾€å¾Œ
                 left_f->kneeAng_x += kneeBackOffset / 2.0;
-                left_h->shoulderAng_x += shoulderOffset / 2.0;                //¥ª¤â©¹«e
-                right_h->shoulderAng_x -= shoulderOffset / 2.0;               //¥k¤â©¹«á
-                if (right_f->hipJointAng_x <= hipJointXLimit) {               //Ãä¬É±ø¥ó
+                left_h->shoulderAng_x += shoulderOffset / 2.0;                //å·¦æ‰‹å¾€å‰
+                right_h->shoulderAng_x -= shoulderOffset / 2.0;               //å³æ‰‹å¾€å¾Œ
+                if (right_f->hipJointAng_x <= hipJointXLimit) {               //é‚Šç•Œæ¢ä»¶
                     flag2 = 1;
                 }
             }
-            else { //¥k¸}©¹«á¨ì­ìÂI¡A¥ª¸}©¹«e¨ì­ìÂI
+            else { //å³è…³å¾€å¾Œåˆ°åŸé»ï¼Œå·¦è…³å¾€å‰åˆ°åŸé»
                 right_f->hipJointAng_x -= hipJointFrontOffset / 2.0;
                 right_f->kneeAng_x -= kneeFrontOffset / 2.0;
                 left_f->hipJointAng_x -= hipJointBackOffset / 2.0;
@@ -589,7 +595,7 @@ struct robot {
                 }
             }
         }
-        else {   //¥ª¸}©¹«e¡A¥k¸}©¹«á 
+        else {   //å·¦è…³å¾€å‰ï¼Œå³è…³å¾€å¾Œ 
             if (flag2 == 0) {
                 left_f->hipJointAng_x += hipJointFrontOffset / 2.0;
                 left_f->kneeAng_x += kneeFrontOffset / 2.0;
@@ -601,7 +607,7 @@ struct robot {
                     flag2 = 1;
                 }
             }
-            else { //¥ª¸}©¹«á¨ì­ìÂI¡A¥k¸}©¹«e¨ì­ìÂI
+            else { //å·¦è…³å¾€å¾Œåˆ°åŸé»ï¼Œå³è…³å¾€å‰åˆ°åŸé»
                 left_f->hipJointAng_x -= hipJointFrontOffset / 2.0;
                 left_f->kneeAng_x -= kneeFrontOffset / 2.0;
                 right_f->hipJointAng_x -= hipJointBackOffset / 2.0;
@@ -615,7 +621,7 @@ struct robot {
             }
         }
     }
-    void jump_ready() {               //¸õªº¹w³Æ°Ê§@
+    void jump_ready() {               //è·³çš„é å‚™å‹•ä½œ
         left_f->kneeAng_x = 45;
         right_f->kneeAng_x = 45;
 
@@ -631,7 +637,7 @@ struct robot {
         left_h->elbowAng_x = -15;
         right_h->elbowAng_x = -15;
         switch (jump_cmd) {
-        case 0:              //©¹¤W¸õ  Ãö¸`ÅÜ¥¿±` ¤â©¹«e
+        case 0:              //å¾€ä¸Šè·³  é—œç¯€è®Šæ­£å¸¸ æ‰‹å¾€å‰
             y += 0.5;
             left_f->kneeAng_x -= 45 / 4.0;
             right_f->kneeAng_x -= 45 / 4.0;
@@ -641,7 +647,7 @@ struct robot {
             right_h->shoulderAng_x -= 40 / 4.0;   //160
             if (y == 2) jump_cmd++;
             break;
-        case 1:              //¨ì¦aªO Ås¦±
+        case 1:              //åˆ°åœ°æ¿ å½æ›²
             y -= 1;
             left_f->kneeAng_x += 60 / 2.0;
             right_f->kneeAng_x += 60 / 2.0;
@@ -688,14 +694,14 @@ struct robot {
         }
         return 0;
     }
-    bool isOnWand = 0;             //¬O§_§¤¦bªk§ú¤W
-    bool jumpOnWand() {            //¸õ¤Wªk§ú
+    bool isOnWand = 0;             //æ˜¯å¦ååœ¨æ³•æ–ä¸Š
+    bool jumpOnWand() {            //è·³ä¸Šæ³•æ–
         carry_mw = 0;
         isOnWand = 1;
         left_h->elbowAng_x = -15;
         right_h->elbowAng_x = -15;
         switch (jump_cmd) {
-        case 0:              //©¹¤W¸õ  Ãö¸`ÅÜ¥¿±` ¤â©¹«e
+        case 0:              //å¾€ä¸Šè·³  é—œç¯€è®Šæ­£å¸¸ æ‰‹å¾€å‰
             y += 0.5;
             left_f->kneeAng_x -= 45 / 4.0;
             right_f->kneeAng_x -= 45 / 4.0;
@@ -717,12 +723,12 @@ struct robot {
         }
         return 0;
     }
-    bool jumpToFloor() {           //¸õ¨ì¦aªO
+    bool jumpToFloor() {           //è·³åˆ°åœ°æ¿
         //80 80 100 100 180 180
         left_h->elbowAng_x = -15;
         right_h->elbowAng_x = -15;
         switch (jump_cmd) {
-        case 0:                 //¨ì¦aªO Ås¦±
+        case 0:                 //åˆ°åœ°æ¿ å½æ›²
             y -= 1;
             left_f->kneeAng_x += 60 / 2.0;
             right_f->kneeAng_x += 60 / 2.0;
@@ -765,7 +771,7 @@ struct robot {
     }
 }myRobot, jakao, pupu;
 struct big_chair {
-    float x = 0, y = 0, z = 0;                    //¦Û¤vªº®y¼Ğ
+    float x = 0, y = 0, z = 0;                    //è‡ªå·±çš„åº§æ¨™
     float angle_z = 0.0;
     int flag = 0;
     void setPos(int x_, int y_, int z_) {
@@ -773,7 +779,7 @@ struct big_chair {
         y = y_;
         z = z_;
     }
-    void move() {                                 //·nÂ\
+    void move() {                                 //æ–æ“º
         if (flag == 0) {
             angle_z += 3;
             if (angle_z >= 20) flag = 1;
@@ -784,16 +790,16 @@ struct big_chair {
         }
     }
     void draw() {
-        //´È¤l°ª«×25 ¼e10 ªø26
+        //æ¤…å­é«˜åº¦25 å¯¬10 é•·26
         glColor3f(141 / 255.0, 84 / 255.0, 28 / 255.0);
-        glPushMatrix();              //2­Ó¬[¤l
+        glPushMatrix();              //2å€‹æ¶å­
         glTranslatef(0, 0, -20);
         glRotatef(90, 0, 1, 0);
         glRotatef(75, 1, 0, 0);
         draw_cylinder(0.5, 0.5, 30);
         glRotatef(30, 1, 0, 0);
         draw_cylinder(0.5, 0.5, 30);
-        glPopMatrix();              //pop¬[¤l
+        glPopMatrix();              //popæ¶å­
 
         glPushMatrix();
         glTranslatef(0, 0, 20);
@@ -802,23 +808,23 @@ struct big_chair {
         draw_cylinder(0.5, 0.5, 30);
         glRotatef(30, 1, 0, 0);
         draw_cylinder(0.5, 0.5, 30);
-        glPopMatrix();               //pop¬[¤l
+        glPopMatrix();               //popæ¶å­
 
         glPushMatrix();
-        glRotatef(angle_z, 0, 0, 1);       //±ÛÂà´È¤l
-        glTranslatef(0, 0, -20);        //¾î¤ì
+        glRotatef(angle_z, 0, 0, 1);       //æ—‹è½‰æ¤…å­
+        glTranslatef(0, 0, -20);        //æ©«æœ¨
         draw_cylinder(0.8, 0.8, 40);
 
 
         glColor3f(1, 1, 1);
-        glPushMatrix();             //½u½u
+        glPushMatrix();             //ç·šç·š
         glTranslatef(0, 0, 7);
         glRotatef(90, 0, 1, 0);
         glRotatef(90, 1, 0, 0);
         draw_cylinder(0.3, 0.3, 20);
         glPopMatrix();
 
-        glPushMatrix();             //½u½u
+        glPushMatrix();             //ç·šç·š
         glTranslatef(0, 0, 33);
         glRotatef(90, 0, 1, 0);
         glRotatef(90, 1, 0, 0);
@@ -828,13 +834,13 @@ struct big_chair {
         glColor3f(162 / 255.0, 92 / 255.0, 21 / 255.0);
         glTranslatef(0, -20, 7);
 
-        glPushMatrix();               //´È¤l
+        glPushMatrix();               //æ¤…å­
         glScalef(10, 2, 26);
         draw_cube();
         glPopMatrix();
 
         glColor3f(141 / 255.0, 84 / 255.0, 28 / 255.0);
-        glPushMatrix();               //´È­I
+        glPushMatrix();               //æ¤…èƒŒ
         glRotatef(110, 0, 0, 1);
         glScalef(10, 2, 26);
         draw_cube();
@@ -845,7 +851,7 @@ struct big_chair {
         jakao.right_h->shoulderAng_x -= 20;
 
         glPushMatrix();
-        glTranslatef(8, -4.5, 6);   //©¹«e§¤ ©¹¤U ©¹¥k
+        glTranslatef(8, -4.5, 6);   //å¾€å‰å å¾€ä¸‹ å¾€å³
         glRotatef(90, 0, 1, 0);
         jakao.draw();
         glPopMatrix();
@@ -855,20 +861,20 @@ struct big_chair {
         pupu.right_h->shoulderAng_x -= 20;
 
         glPushMatrix();
-        glTranslatef(8, -4.5, 19);   //©¹«e§¤ ©¹¤U ©¹¥k
+        glTranslatef(8, -4.5, 19);   //å¾€å‰å å¾€ä¸‹ å¾€å³
         glRotatef(90, 0, 1, 0);
         if (sitOnChair) pupu.draw();
         glPopMatrix();
 
-        glPopMatrix();          //pop¾î¤ì
+        glPopMatrix();          //popæ©«æœ¨
 
     }
 }myBig_chair;
 struct floor {
-    int light[6] = { 0 }; //¤W¤U¥ª¥k«e«á
-    void draw() {                  //µeÀğ¾À©M¦aªO
+    int light[6] = { 0 }; //ä¸Šä¸‹å·¦å³å‰å¾Œ
+    void draw() {                  //ç•«ç‰†å£å’Œåœ°æ¿
         glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-        //¤W
+        //ä¸Š
         if (light[0] % 2 == 0)
             change_color(ICE_COLOR);
         else {
@@ -876,22 +882,22 @@ struct floor {
         }
         glPushMatrix();
         glTranslatef(0, 60, 0);
-        draw_square(60, 60, 1);              //µe¤ÑªáªO
+        draw_square(60, 60, 1);              //ç•«å¤©èŠ±æ¿
         glPopMatrix();
 
-        //¤U
+        //ä¸‹
         change_color(ICE_COLOR);
         glPushMatrix();
-        draw_square(60, 60, 1);              //µe¦aªO
+        draw_square(60, 60, 1);              //ç•«åœ°æ¿
         glPopMatrix();
 
-        //¥ª
+        //å·¦
         if (light[2] % 2 == 0)
             change_color(ICE_COLOR);
         else
             glColor3f(1, 0, 0);
-        glPushMatrix();                   //«O¦s0,0
-        glRotatef(90, 0, 0, 1);           //©µz¶b°f®É°wÂà270«×
+        glPushMatrix();                   //ä¿å­˜0,0
+        glRotatef(90, 0, 0, 1);           //å»¶zè»¸é€†æ™‚é‡è½‰270åº¦
         draw_square(60, 60, 1);
         if (light[2] % 2 == 1) {
             glPushMatrix();
@@ -913,16 +919,16 @@ struct floor {
             }
             glPopMatrix();
         }
-        glPopMatrix();                    //¦^¨ì0,0
+        glPopMatrix();                    //å›åˆ°0,0
 
-        //¥k
+        //å³
         if (light[3] % 2 == 0)
             change_color(ICE_COLOR);
         else
             glColor3f(1, 0, 0);
         glPushMatrix();
-        glTranslatef(60, 0, 0);            //«O¦s0,0
-        glRotatef(90, 0, 0, 1);           //©µz¶b°f®É°wÂà270«×
+        glTranslatef(60, 0, 0);            //ä¿å­˜0,0
+        glRotatef(90, 0, 0, 1);           //å»¶zè»¸é€†æ™‚é‡è½‰270åº¦
         draw_square(60, 60, 1);
         if (light[3] % 2 == 1) {
             glPushMatrix();
@@ -947,14 +953,14 @@ struct floor {
         glPopMatrix();
         
 
-        //«e
+        //å‰
         if (light[4] % 2 == 0)
             change_color(ICE_COLOR);
         else
             glColor3f(1, 0, 0);
-        glPushMatrix();                   //«O¦s0,0
+        glPushMatrix();                   //ä¿å­˜0,0
         glTranslatef(0, 0, 60);
-        glRotatef(270, 1, 0, 0);          //©µx¶b°f®É°wÂà270«×
+        glRotatef(270, 1, 0, 0);          //å»¶xè»¸é€†æ™‚é‡è½‰270åº¦
         draw_square(60, 60, 1);
         if (light[4] % 2 == 1) {
             glPushMatrix();
@@ -978,13 +984,13 @@ struct floor {
         }
         glPopMatrix();
 
-        //«á
+        //å¾Œ
         if (light[5] % 2 == 0)
             change_color(ICE_COLOR);
         else
             glColor3f(1, 0, 0);
-        glPushMatrix();                   //«O¦s0,0
-        glRotatef(270, 1, 0, 0);          //©µx¶b°f®É°wÂà270«×
+        glPushMatrix();                   //ä¿å­˜0,0
+        glRotatef(270, 1, 0, 0);          //å»¶xè»¸é€†æ™‚é‡è½‰270åº¦
         draw_square(60, 60, 1);
         if (light[5] % 2 == 1) {
             glPushMatrix();
@@ -1006,10 +1012,10 @@ struct floor {
             }
             glPopMatrix();
         }
-        glPopMatrix();                    //¦^¨ì0,0
+        glPopMatrix();                    //å›åˆ°0,0
     }
 }myFloor;
-void change_color(int value) {  //³]©wÃC¦â
+void change_color(int value) {  //è¨­å®šé¡è‰²
     switch (value) {
     case ICE_COLOR:
         glColor3f(235 / 255.0, 1.0, 1.0);
@@ -1035,13 +1041,39 @@ void change_color(int value) {  //³]©wÃC¦â
     }
 }
 void init_camera() {
+    for (int i = 0; i < 3; i++) {
+        for (int j = 0; j < 3; j++) {
+            u[i][j] = 0;
+        }
+        u[i][i] = 1;
+    }
+
     eye[0] = Eye[0];
     eye[1] = Eye[1];
     eye[2] = Eye[2];
+    double z1, x1, y1, z2, x2, y2, tp1, tp2;
+    double zNear = 0, zFar = 0, aspect = 0, fovy = 0;
     zNear = 20;
     zFar = 60;
     aspect = width / (double)height;
     fovy = 45;
+
+    tp1 = zNear / cos((fovy / 2.0) * PI / 180.0); //æ–œé‚Š
+    y1 = tp1 * sin((fovy / 2.0) * PI / 180.0);    //å¯¬
+    x1 = y1 * aspect;
+    z1 = -zNear;
+
+    tp2 = zFar / cos((fovy / 2.0) * PI / 180.0); //æ–œé‚Š
+    y2 = tp2 * sin((fovy / 2.0) * PI / 180.0);    //å¯¬
+    x2 = y2 * aspect;
+    z2 = -zFar;
+
+    clippingWindow[cwl] = -1 *x1;
+    clippingWindow[cwr] = x1;
+    clippingWindow[cwb] = -1 * y1;
+    clippingWindow[cwt] = y1;
+    clippingWindow[cwn] = zNear;
+    clippingWindow[cwf] = zFar;
 }
 void myinit()
 {
@@ -1061,16 +1093,16 @@ void myinit()
     cv = cos(5.0 * PI / 180.0);
     sv = sin(5.0 * PI / 180.0);
 
-    //·Ó¬Û¾÷¦ì¸m³]¸m¡A§ë¼v¨¤«×³]¸m(ªì©l¤Æ)
+    //ç…§ç›¸æ©Ÿä½ç½®è¨­ç½®ï¼ŒæŠ•å½±è§’åº¦è¨­ç½®(åˆå§‹åŒ–)
     init_camera();
 
-    //©w¸q¾÷¾¹¤HÃC¦â
+    //å®šç¾©æ©Ÿå™¨äººé¡è‰²
     myRobot.setColor(ROBOT_BLUE_MAIN, ROBOT_BLUE_SUB);
     pupu.setColor(ROBOT_BLUE_MAIN, ROBOT_BLUE_SUB);
     jakao.setColor(ROBOT_PINK_MAIN, ROBOT_PINK_SUB);
-    pupu.isMagician = 1;   //§¤µÛªº¾÷¾¹¤H
+    pupu.isMagician = 1;   //åè‘—çš„æ©Ÿå™¨äºº
     pupu.carry_mw = 0;
-    //»ÙÃªª«®y¼Ğ¦¬¶°
+    //éšœç¤™ç‰©åº§æ¨™æ”¶é›†
     for (pp p : river) {
         for (int i = p.a1; i < p.a2; i++) {
             limit.push_back({ p.x + p.r * cos(i * 0.01745) ,p.z + p.r * sin(i * 0.01745) });
@@ -1101,14 +1133,14 @@ void draw_cube(int x) {
         glEnd();
     }
 }
-void draw_circle(double size, int wid) {    //¤j¤p ½u¼e«×
+void draw_circle(double size, int wid) {    //å¤§å° ç·šå¯¬åº¦
     glLineWidth(wid);
     glBegin(GL_POLYGON);
     for (int i = 0; i < 1440; ++i)
         glVertex3f(size * cos(i * 0.01745), 0, size * sin(i * 0.01745));
     glEnd();
 }
-void draw_square(int hei, int wid,int sz) {     //½ö¦b¦a¤Wªº¥¿¤è§Î ©w¸q: x¶b¦V¬°¼e¡Az¦V¬°°ª
+void draw_square(int hei, int wid,int sz) {     //èººåœ¨åœ°ä¸Šçš„æ­£æ–¹å½¢ å®šç¾©: xè»¸å‘ç‚ºå¯¬ï¼Œzå‘ç‚ºé«˜
     glLineWidth(sz);
     glPushMatrix();
     glScaled(wid, 0, hei);
@@ -1123,11 +1155,11 @@ void draw_square(int hei, int wid,int sz) {     //½ö¦b¦a¤Wªº¥¿¤è§Î ©w¸q: x¶b¦V¬°
 void draw_magic_wand() {
     myMagic_wand.draw();
 }
-void draw_home() {               //µ¹¤¤¤ßÂI
+void draw_home() {               //çµ¦ä¸­å¿ƒé»
     float offsetx = 35;
     float offsetz = 30;
     change_color(HOME_COLOR);
-    //¬W¤l 70 * 60
+    //æŸ±å­ 70 * 60
     glPushMatrix();
     glTranslatef(-offsetx, 0, -offsetz);
     glScalef(2.5, 40, 2.5);
@@ -1152,19 +1184,19 @@ void draw_home() {               //µ¹¤¤¤ßÂI
     draw_cube();
     glPopMatrix();
 
-    glPushMatrix();                               //¾î«Î³» 
+    glPushMatrix();                               //æ©«å±‹é ‚ 
     glTranslatef(-offsetx, 40, -offsetz);
     glScalef(offsetx * 2, 1, 1);
     draw_cube();
     glPopMatrix();
 
-    glPushMatrix();                               //¾î«Î³»
+    glPushMatrix();                               //æ©«å±‹é ‚
     glTranslatef(-offsetx, 40, offsetz);
     glScalef(offsetx * 2, 1, 1);
     draw_cube();
     glPopMatrix();
 
-    for (int i = -offsetx; i <= offsetx; i += 5) {   //ª½«Î³»
+    for (int i = -offsetx; i <= offsetx; i += 5) {   //ç›´å±‹é ‚
         glPushMatrix();
         glTranslatef(i, 40, -offsetz);
         glScalef(2, 1, 2 * offsetz);
@@ -1174,7 +1206,7 @@ void draw_home() {               //µ¹¤¤¤ßÂI
 }
 void draw_debug(){
     glPushMatrix();
-    glColor3f(1, 122 / 255.0, 189); //¯»
+    glColor3f(1, 122 / 255.0, 189); //ç²‰
 
     glPushMatrix();
     for (int i = 0; i < debugModeCmd; i++) {
@@ -1186,7 +1218,7 @@ void draw_debug(){
     }
     glPopMatrix();
 
-    glColor3f(128 / 255.0, 128 / 255.0, 1); //ÂÅ
+    glColor3f(128 / 255.0, 128 / 255.0, 1); //è—
     glPushMatrix();
     for (int i = 0; i < debugModeCmd; i++) {
         glPushMatrix();
@@ -1197,7 +1229,7 @@ void draw_debug(){
     }
     glPopMatrix();
 
-    glColor3f(1, 1, 168 / 255.0);  //¶À
+    glColor3f(1, 1, 168 / 255.0);  //é»ƒ
     glPushMatrix();
     for (int i = 0; i < debugModeCmd; i++) {
         glPushMatrix();
@@ -1211,15 +1243,15 @@ void draw_debug(){
     glPopMatrix();
 }
 void draw_magic_field() {
-    //Å]ªk°}
+    //é­”æ³•é™£
     glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-    glRotatef(90, 0, 1, 0);                          //±ÛÂà90«×(¹ïy¶b) -> §ïÅÜ¤ë«G¶}¤f
+    glRotatef(90, 0, 1, 0);                          //æ—‹è½‰90åº¦(å°yè»¸) -> æ”¹è®Šæœˆäº®é–‹å£
     draw_circle(30, 1);
     draw_circle(29, 1);
     draw_circle(27.8, 1); //1.2
     draw_circle(27.3, 1); //0.5
 
-    glLineWidth(1);                        //ª½½u
+    glLineWidth(1);                        //ç›´ç·š
     for (int i = 0; i < 360; i += 15) {
         glBegin(GL_LINES);
         glVertex3f(25.3 * cos(i * 0.01745), 0, 25.3 * sin(i * 0.01745));
@@ -1231,7 +1263,7 @@ void draw_magic_field() {
     draw_circle(24.8, 1);   //0.5
 
     glLineWidth(2);
-    for (int t = 0; t < 3; t++) {            //¬P¬P°}
+    for (int t = 0; t < 3; t++) {            //æ˜Ÿæ˜Ÿé™£
         glBegin(GL_POLYGON);
         for (int i = (t * 30); i < 360; i += 90) {
             glVertex3f(24.8 * cos(i * 0.01745), 0, 24.8 * sin(i * 0.01745));
@@ -1242,7 +1274,7 @@ void draw_magic_field() {
     draw_circle(17, 1);       //6
 
     draw_circle(14, 4);
-    for (float t = 0; t < 12; t += 0.5) {     //¤ë«G°}
+    for (float t = 0; t < 12; t += 0.5) {     //æœˆäº®é™£
         glLineWidth(4);
         glBegin(GL_POLYGON);
         for (int i = 0; i < 1440; ++i)
@@ -1250,7 +1282,7 @@ void draw_magic_field() {
         glEnd();
     }
 
-    for (int i = 0, j = 0; i < 360; i += 15, j++) { //¤Ó¶§°}
+    for (int i = 0, j = 0; i < 360; i += 15, j++) { //å¤ªé™½é™£
         if (i % 30 == 0) {
             glLineWidth(1);
             glBegin(GL_LINES);
@@ -1272,11 +1304,11 @@ void draw_magic_field() {
     draw_circle(7.7, 2);         //0.5
 }
 void draw_scene(int mode) {
-    if (mode == MAGICFIELD) {        //Å]ªk°} ¦ì¸m(30,30) Ãä¬É­­¨î(60,60) todo:¸I¬É«G¬õ
+    if (mode == MAGICFIELD) {        //é­”æ³•é™£ ä½ç½®(30,30) é‚Šç•Œé™åˆ¶(60,60) todo:ç¢°ç•Œäº®ç´…
         if (!myRobot.isMagician) change_color(ICE_COLOR);
         else glColor3f(235 / 255.0, 244 / 255.0, 255 / 255.0);
         glPushMatrix();
-        glTranslatef(30, 0, 30);       //ªk°}ªº lcs
+        glTranslatef(30, 0, 30);       //æ³•é™£çš„ lcs
         draw_magic_field();
         glPopMatrix();
         if (debugMode) {
@@ -1285,30 +1317,30 @@ void draw_scene(int mode) {
         }
 
         glPushMatrix();
-        glTranslatef(30, 7, 30);      //ªk¥Mªº lcs  ÄÆ¦bªÅ¤¤
+        glTranslatef(30, 7, 30);      //æ³•ä»—çš„ lcs  é£„åœ¨ç©ºä¸­
         myMagic_wand.setPos(30, 7, 30);
         if (myMagic_wand.show) draw_magic_wand();
         glPopMatrix();
     }
     else if (mode == GRASSLAND) {
-        glColor3f(1 / 255.0, 152 / 255.0, 89 / 255.0); //¯ó¦a
+        glColor3f(1 / 255.0, 152 / 255.0, 89 / 255.0); //è‰åœ°
         glPushMatrix();
         glTranslatef(0, -10.5, 0);
         glScalef(200, 10, 200);
         draw_cube();
         glPopMatrix();
 
-        glColor3f(204 / 255.0, 1, 204 / 255.0);     //¯ó«Ì
+        glColor3f(204 / 255.0, 1, 204 / 255.0);     //è‰å±
         draw_square(200, 200,1);
 
-        glPushMatrix();                             //Âà²¾ªk°}(17,12) 20*20
+        glPushMatrix();                             //è½‰ç§»æ³•é™£(17,12) 20*20
         glColor3f(188 / 255.0, 217 / 255.0, 246 / 255.0);
         glTranslatef(17, 0.3, 12);
         glScalef(1 / 3.0, 1 / 3.0, 1 / 3.0);
         draw_magic_field();
         glPopMatrix();
 
-        //glColor3f(0, 0, 0);         //®æ¤l½u(¶}µo¥Î)
+        //glColor3f(0, 0, 0);         //æ ¼å­ç·š(é–‹ç™¼ç”¨)
         //glPushMatrix();
         //for (int i = 0; i < 200; i += 10) {
         //    if(i%100 == 0) glLineWidth(3);
@@ -1341,7 +1373,7 @@ void draw_scene(int mode) {
             }
         }
 
-        //poolªºrock
+        //poolçš„rock
         for (int i = 10; i < 356; i += 2) {
             glPushMatrix();
             glTranslatef(30 + 30 * cos(i * 0.01745), 0.5, 160 + 30 * sin(i * 0.01745));
@@ -1367,7 +1399,7 @@ void draw_scene(int mode) {
             }
             glPopMatrix();
         }
-        //rock ¥~°¼
+        //rock å¤–å´
         for (int j = 0; j < rock.size(); j++) {
             pp p = rock[j];
             int l = p.a1, r = p.a2;
@@ -1405,7 +1437,7 @@ void draw_scene(int mode) {
                 glPopMatrix();
             }
         }
-        //rock ¤º°¼       
+        //rock å…§å´       
         for (int j = 0; j < rock.size(); j++) {
             pp p = rock[j];
             int l = p.a1, r = p.a2;
@@ -1449,7 +1481,7 @@ void draw_scene(int mode) {
         }
         //road
         //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-        for (int i = 115; i < 168; i += 6) {              //180±qÀY
+        for (int i = 115; i < 168; i += 6) {              //180å¾é ­
             glBegin(GL_POLYGON);
             glColor3f(133 / 255.0, 66 / 255.0, 0 / 255.0);
             glVertex3f(150 + 150 * cos(i * 0.01745), 0.4, 0 + 100 * sin(i * 0.01745));
@@ -1478,7 +1510,7 @@ void draw_scene(int mode) {
         //big chair
         myBig_chair.setPos(160, 0, 110);
         glPushMatrix();                        //40*15
-        glTranslatef(160, 25, 110);            //¤¤¤ß
+        glTranslatef(160, 25, 110);            //ä¸­å¿ƒ
         glRotatef(45, 0, 1, 0);
         glRotatef(180, 0, 1, 0);
         myBig_chair.draw();
@@ -1497,49 +1529,47 @@ void draw_cylinder(double up, double down, double height) {
         4);                       /* Divide it into 3 sections */
 }
 void draw_robot() {
-    if (sitOnChair) return;  //§¤¦b´È¤l¤W¤£­nµe
+    if (sitOnChair) return;  //ååœ¨æ¤…å­ä¸Šä¸è¦ç•«
     myRobot.draw();
 }
 void draw_camera() {
-    glPushMatrix();
+   // glPushMatrix();
 
     glPushMatrix();
+    glTranslatef(eye[0], eye[1], eye[2]);
     glScalef(3,3,3);
     glRotatef(180, 0, 1, 0);
     camera.draw();
     glPopMatrix();
 
-    double tp1, x1, y1, z1, tp2, x2, y2, z2;
-    tp1 = zNear / cos((fovy / 2.0) * PI / 180.0); //±×Ãä
-    y1 = tp1 * sin((fovy / 2.0) * PI / 180.0);    //¼e
-    x1 = y1 * aspect;
-    z1 = -zNear;
-
-    tp2 = zFar / cos((fovy / 2.0) * PI / 180.0); //±×Ãä
-    y2 = tp2 * sin((fovy / 2.0) * PI / 180.0);    //¼e
-    x2 = y2 * aspect;
-    z2 = -zFar;
+    glPushMatrix();
+    //glTranslatef(eye[0], eye[1], eye[2]);
     glColor4f(235 / 255.0, 1, 1, 0.5);
     glBegin(GL_TRIANGLES);
-    //¤º
+    //å…§
     glColor4f(1, 1, 1, 0.5);
+    //glVertex3f(eye[0], eye[1], eye[2]);
     glVertex3f(0, 0, 0);
-    glVertex3f(-x1, y1, z1);
-    glVertex3f(x1, y1, z1);
-
+    glVertex3f(clippingWindow[cwl], clippingWindow[cwt], clippingWindow[cwn]);
+    glVertex3f(clippingWindow[cwr], clippingWindow[cwt], clippingWindow[cwn]);
+                                                         
+    //glVertex3f(eye[0], eye[1], eye[2]);
     glVertex3f(0, 0, 0);
-    glVertex3f(-x1, y1, z1);
-    glVertex3f(-x1, -y1, z1);
-
+    glVertex3f(clippingWindow[cwl], clippingWindow[cwt], clippingWindow[cwn]);
+    glVertex3f(clippingWindow[cwl], clippingWindow[cwb], clippingWindow[cwn]);
+                                                         
+    //glVertex3f(eye[0], eye[1], eye[2]);
     glVertex3f(0, 0, 0);
-    glVertex3f(x1, y1, z1);
-    glVertex3f(x1, -y1, z1);
-
+    glVertex3f(clippingWindow[cwr], clippingWindow[cwt], clippingWindow[cwn]);
+    glVertex3f(clippingWindow[cwr], clippingWindow[cwb], clippingWindow[cwn]);
+                                                         
+    //glVertex3f(eye[0], eye[1], eye[2]);
     glVertex3f(0, 0, 0);
-    glVertex3f(-x1, -y1, z1);
-    glVertex3f(x1, -y1, z1);
+    glVertex3f(clippingWindow[cwl], clippingWindow[cwb], clippingWindow[cwn]);
+    glVertex3f(clippingWindow[cwr], clippingWindow[cwb], clippingWindow[cwn]);
     glEnd();
-    //¥~
+    //å¤–
+    /*
     glColor4f(235 / 255.0, 1, 1, 0.5);
     glBegin(GL_QUADS);
     glVertex3f(-x1, y1, z1);
@@ -1589,6 +1619,7 @@ void draw_camera() {
     glVertex3f(0, 0, 0);
     glVertex3f(x2, -y2, z2);
     glEnd();
+    */
     /*
     glPolygonMode(GL_FRONT_AND_BACK,GL_LINE);
     glBegin(GL_POLYGON);
@@ -1611,17 +1642,16 @@ void draw_camera() {
 void draw_view() {
     draw_scene(scene);
     glPushMatrix();
-    glTranslatef(pos[0], pos[1], pos[2]);      //¾÷¾¹¤H
+    glTranslatef(pos[0], pos[1], pos[2]);      //æ©Ÿå™¨äºº
     draw_robot();
     glPopMatrix();
 
     glPushMatrix();
-    glTranslatef(eye[0], eye[1], eye[2]);
-    glRotatef(eyeAngz, 0, 0, 1);
-    glRotatef(eyeAngy, 0, 1, 0);
-    glRotatef(eyeAngx, 1, 0, 0);
+    //glTranslatef(eye[0], eye[1], eye[2]);
+    //glRotatef(eyeAngz, 0, 0, 1);
+    //glRotatef(eyeAngy, 0, 1, 0);
+    //glRotatef(eyeAngx, 1, 0, 0);
     //glRotatef(180, 0, 1, 0);
-    
     draw_camera();
     glPopMatrix();
 }
@@ -1630,7 +1660,8 @@ void make_projection(int x)
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
     if (x == 3) {
-        gluPerspective(fovy, aspect, zNear, zFar); 
+        glFrustum(clippingWindow[0], clippingWindow[1], clippingWindow[2], clippingWindow[3],clippingWindow[4], clippingWindow[5]);
+        //gluPerspective(fovy, aspect, zNear, zFar); 
     }
     else {
         glOrtho(-40.0, 40.0, -40.0, 40.0, -100.0, 200);
@@ -1639,7 +1670,7 @@ void make_projection(int x)
 }
 void make_view(int x)
 {
-    //¬Û¾÷¦ì¸m    ¬Û¾÷¹ï·Çªº¦ì¸m   ¬Û¾÷¦V¤Wªº¨¤«×
+    //ç›¸æ©Ÿä½ç½®    ç›¸æ©Ÿå°æº–çš„ä½ç½®   ç›¸æ©Ÿå‘ä¸Šçš„è§’åº¦
     //gluLookAt(pos[0]-5, 30, pos[2] + 30, pos[0], 15, pos[2], 0.0, 1.0, 0.0);
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
@@ -1659,7 +1690,7 @@ void make_view(int x)
            applied upon eye coordinate system
            */
         //gluLookAt(30.0, 30.0, 80.0, 30.0, 0.0, 0.0, 0.0, 1.0, 0.0);
-        //u¬Oeyeªº®y¼Ğ¨t²Î
+        //uæ˜¯eyeçš„åº§æ¨™ç³»çµ±
         gluLookAt(eye[0], eye[1], eye[2], eye[0] - u[2][0], eye[1] - u[2][1], eye[2] - u[2][2], u[1][0], u[1][1], u[1][2]);
         //gluLookAt(eye[0], eye[1], eye[2], 0,0, 0, u[1][0], u[1][1], u[1][2]);
         break;
@@ -1705,7 +1736,7 @@ void display()
     case 4:
         make_projection(0);
 
-        glViewport(0, height / 2, width / 2, height / 2);  //¥ª¤U ¼e°ª
+        glViewport(0, height / 2, width / 2, height / 2);  //å·¦ä¸‹ å¯¬é«˜
         make_view(0);
         draw_view();
 
@@ -1730,14 +1761,14 @@ void display()
         break;
     }
 
-    //°Ê§@
-    //¬Û¾÷¦ì¸m    ¬Û¾÷¹ï·Çªº¦ì¸m   ¬Û¾÷¦V¤Wªº¨¤«×
+    //å‹•ä½œ
+    //ç›¸æ©Ÿä½ç½®    ç›¸æ©Ÿå°æº–çš„ä½ç½®   ç›¸æ©Ÿå‘ä¸Šçš„è§’åº¦
 
-    //¶}µo¥Î°Ñ¼Æ
+    //é–‹ç™¼ç”¨åƒæ•¸
     //if(see)
-    //    gluLookAt(35.0, 30.0, 80.0,       20.0, 0.0, 0.0,         0.0, 1.0, 0.0);         //°Ê§@
+    //    gluLookAt(35.0, 30.0, 80.0,       20.0, 0.0, 0.0,         0.0, 1.0, 0.0);         //å‹•ä½œ
     //else
-    //    gluLookAt(40.0, 70.0, 55.0,       25.0, 0.0, 25.0,        0.0, 1.0, 0.0);         //³õ´º
+    //    gluLookAt(40.0, 70.0, 55.0,       25.0, 0.0, 25.0,        0.0, 1.0, 0.0);         //å ´æ™¯
     //if (see)
     //gluLookAt(pos[0] - 5, 30, pos[2] + 30, pos[0], 15, pos[2], 0.0, 1.0, 0.0);
     //else
@@ -1766,16 +1797,16 @@ void my_reshape(int w, int h)
     //else 
     //   glOrtho(-100.0, 100.0, -100.0, 100.0, -100.0, 200);
     width = w; height = h;
-    aspect = width / (double)height;  //§ó·s¼e°ª¤ñ
+    //aspect = width / (double)height;  //æ›´æ–°å¯¬é«˜æ¯”
 }
 void timerFunc(int nTimerID) {
     switch (nTimerID) {
-    case RUNTIMER:                //°»´ú¶]
+    case RUNTIMER:                //åµæ¸¬è·‘
         preKey = -1;
         break;
-    case JUMPTIMER:               //¸õÅD
+    case JUMPTIMER:               //è·³èº
         if (!myRobot.jump()) {
-            isLock = LOCK;        //¸õ®É¤£¥i¥H«ö
+            isLock = LOCK;        //è·³æ™‚ä¸å¯ä»¥æŒ‰
             glutTimerFunc(100, timerFunc, JUMPTIMER);
         }
         else {
@@ -1784,7 +1815,7 @@ void timerFunc(int nTimerID) {
         }
         glutPostRedisplay();
         break;
-    case JUMPONWANDTIMER:           //¸õ¤Wªk§ú
+    case JUMPONWANDTIMER:           //è·³ä¸Šæ³•æ–
         if (!myRobot.jumpOnWand()) {
             isLock = LOCK;
             glutTimerFunc(100, timerFunc, JUMPONWANDTIMER);
@@ -1794,7 +1825,7 @@ void timerFunc(int nTimerID) {
         }
         glutPostRedisplay();
         break;
-    case JUMPTOFLOORTIMER:          //¸õ¦^¦a­±
+    case JUMPTOFLOORTIMER:          //è·³å›åœ°é¢
         if (!myRobot.jumpToFloor()) {
             isLock = LOCK;
             glutTimerFunc(100, timerFunc, JUMPTOFLOORTIMER);
@@ -1805,7 +1836,7 @@ void timerFunc(int nTimerID) {
         }
         glutPostRedisplay();
         break;
-    case CHAIR_MOVE:                //·n´ÈÂ\Â\Â\
+    case CHAIR_MOVE:                //æ–æ¤…æ“ºæ“ºæ“º
         myBig_chair.move();
         if (scene == GRASSLAND) {
             glutTimerFunc(100, timerFunc, CHAIR_MOVE);
@@ -1856,8 +1887,8 @@ void timerFunc(int nTimerID) {
         break;
     }
 }
-bool detectCollision(int x, int y, int z) { //°»´ú¸I¼²
-    //§PÂ_¸I¨ì»ÙÃªª«
+bool detectCollision(int x, int y, int z) { //åµæ¸¬ç¢°æ’
+    //åˆ¤æ–·ç¢°åˆ°éšœç¤™ç‰©
     for (int i = -7; myMagic_wand.show && i < 7; i++) {
         if (getDis(x, z, myMagic_wand.x, myMagic_wand.z + i) < 3.5) return 1;  //magic wand
     }
@@ -1869,24 +1900,24 @@ bool detectCollision(int x, int y, int z) { //°»´ú¸I¼²
             if (getDis(x, z, 30, 160) < 30) return 1;                  //pool
         }
         for (auto i : pillar) {
-            if (getDis(x, z, i.first, i.second) < 1.25 + 2 * 2.5) return 1;     //pillar ¬W¤l    
+            if (getDis(x, z, i.first, i.second) < 1.25 + 2 * 2.5) return 1;     //pillar æŸ±å­    
         }
         if (getDis(x, z, myBig_chair.x, myBig_chair.z) < 18 + 2 * 2.5) return 1;  //chair
     }
 
-    //§PÂ_Ãä¬É
+    //åˆ¤æ–·é‚Šç•Œ
     if (scene == MAGICFIELD) {
         if (debugMode) {
-            if (x < 0) { //¥ª
+            if (x < 0) { //å·¦
                 if(!myFloor.light[2]) glutTimerFunc(100, timerFunc, OUT_LINE_LEFT);
             }
-            else if (x > 60) { //¥k
+            else if (x > 60) { //å³
                 if (!myFloor.light[3])glutTimerFunc(100, timerFunc, OUT_LINE_RIGHT);
             }
-            else if (z < 0) { //«á
+            else if (z < 0) { //å¾Œ
                 if (!myFloor.light[5])glutTimerFunc(100, timerFunc, OUT_LINE_BACK);
             }
-            else if (z > 60) { //«e
+            else if (z > 60) { //å‰
                 if(!myFloor.light[4]) glutTimerFunc(100, timerFunc, OUT_LINE_FRONT);
             }
         }
@@ -1897,21 +1928,21 @@ bool detectCollision(int x, int y, int z) { //°»´ú¸I¼²
     }
     return 0;
 }
-void my_move_order(unsigned char key) {        //¸ò²¾°Ê¬ÛÃöªº§PÂ_
-    if (sitOnChair) return; //¦pªG§¤¦b´È¤l¤W´N¤£¯à°Ê
+void my_move_order(unsigned char key) {        //è·Ÿç§»å‹•ç›¸é—œçš„åˆ¤æ–·
+    if (sitOnChair) return; //å¦‚æœååœ¨æ¤…å­ä¸Šå°±ä¸èƒ½å‹•
     float tpPos[3] = { pos[0], pos[1], pos[2] };
     float offset = 0;
     if (myRobot.moveMode == WALK && preKey == key && (key == 'W' || key == 'w' || key == 'A' || key == 'a' || key == 'S' || key == 's' || key == 'D' || key == 'd'))
-        myRobot.moveMode = RUN;                       //0.3¬í¤º³sÄò«ö ´NÅÜ¦¨¶]¶]
-    if (myRobot.moveMode == RUN) offset = 2;          //¶]¨B¤@¦¸¨«2
-    else if (myRobot.moveMode == WALK) offset = 0.5;  //¨«¸ô¤@¦¸0.5
-    else if (myRobot.moveMode == FLY) offset = 3;     //­¸¦æ¤@¦¸5
+        myRobot.moveMode = RUN;                       //0.3ç§’å…§é€£çºŒæŒ‰ å°±è®Šæˆè·‘è·‘
+    if (myRobot.moveMode == RUN) offset = 2;          //è·‘æ­¥ä¸€æ¬¡èµ°2
+    else if (myRobot.moveMode == WALK) offset = 0.5;  //èµ°è·¯ä¸€æ¬¡0.5
+    else if (myRobot.moveMode == FLY) offset = 3;     //é£›è¡Œä¸€æ¬¡5
 
     if (key == 'S' || key == 's') {
-        if (myRobot.isOnWand) {        //­¸¦æ¼Ò¦¡
+        if (myRobot.isOnWand) {        //é£›è¡Œæ¨¡å¼
             myRobot.angle_y = 90;
         }
-        else {                         //¤@¯ë¨«¸ô¼Ò¦¡
+        else {                         //ä¸€èˆ¬èµ°è·¯æ¨¡å¼
             myRobot.angle_y = 0;
             myRobot.move();
         }
@@ -1947,12 +1978,12 @@ void my_move_order(unsigned char key) {        //¸ò²¾°Ê¬ÛÃöªº§PÂ_
         }
         tpPos[0] += offset;
     }
-    else if (key == 'r' || key == 'R') {            //Âà°é°é
+    else if (key == 'r' || key == 'R') {            //è½‰åœˆåœˆ
         myRobot.angle_y += 5;
         angley++;
         if (!myRobot.isOnWand) {
             myRobot.moveMode = TURN;
-            myRobot.move();    //¦b¦aªO¤~­n°Ê¸}
+            myRobot.move();    //åœ¨åœ°æ¿æ‰è¦å‹•è…³
         }
     }
     if (detectCollision(tpPos[0], tpPos[1], tpPos[2])) return;
@@ -1968,8 +1999,8 @@ bool change_view_order(unsigned char key) {
         return 1;
     }
     if (key == 'x' || key == 'X') {
-        if (scene != MAGICFIELD) return 1;   //¥u¦³¦bÅ]ªk°}¦³³o­Ó¼Ò¦¡
-        if (debugModeCmd != 0 && debugModeCmd != 12) return 1;  //«e­±°Êµe¨S¶]§¹ ¤£­n¤@­È¨ê·s
+        if (scene != MAGICFIELD) return 1;   //åªæœ‰åœ¨é­”æ³•é™£æœ‰é€™å€‹æ¨¡å¼
+        if (debugModeCmd != 0 && debugModeCmd != 12) return 1;  //å‰é¢å‹•ç•«æ²’è·‘å®Œ ä¸è¦ä¸€å€¼åˆ·æ–°
         debugMode ^= 1;
         debugModeCmd = 0;
         if (debugMode) {
@@ -1979,36 +2010,54 @@ bool change_view_order(unsigned char key) {
     }
     float  x[3], y[3], z[3];
     int i;
-    if (key == 19) {       //¤U ctrl + w
+    if (key == 19) {       //ä¸‹ ctrl + w
         //eyeDy += -0.5;    
-        for (int i = 0; i < 3; i++) eye[i] -= 0.5 * u[1][i];
-        
-        glPushMatrix();
-        glLoadIdentity();
-        glTranslatef(0,-0.5,0);
-        glGetFloatv(GL_MODELVIEW_MATRIX,mtx);
-        glPopMatrix();
-        
+        for (i = 0; i < 3; i++) eye[i] -= 0.5 * u[1][i];
+        for (i = 0; i < 6; i+=2) {
+            clippingWindow[i] -= 0.5 * u[1][i/2];
+            clippingWindow[i+1] -= 0.5 * u[1][i/2];
+        }
     }
-    else if (key == 23) {   //¤W ctrl + s
+    else if (key == 23) {   //ä¸Š ctrl + s
         //eyeDy += 0.5;     
-        for (int i = 0; i < 3; i++) eye[i] += 0.5 * u[1][i];
+        for (i = 0; i < 3; i++) eye[i] += 0.5 * u[1][i];
+        for (i = 0; i < 6; i += 2) {
+            clippingWindow[i] += 0.5 * u[1][i / 2];
+            clippingWindow[i + 1] += 0.5 * u[1][i / 2];
+        }
     }
-    else if (key == 4) {   //¥k ctrl + d
+    else if (key == 4) {   //å³ ctrl + d
         //eyeDx += -0.5;     
-        for (int i = 0; i < 3; i++) eye[i] += 0.5 * u[0][i];
+        for (i = 0; i < 3; i++) eye[i] += 0.5 * u[0][i];
+        for (i = 0; i < 6; i += 2) {
+            clippingWindow[i] += 0.5 * u[0][i / 2];
+            clippingWindow[i + 1] += 0.5 * u[0][i / 2];
+        }
     }
-    else if (key == 1) {   //¥ª ctrl + a
+    else if (key == 1) {   //å·¦ ctrl + a
         //eyeDx += 0.5;      
-        for (int i = 0; i < 3; i++) eye[i] -= 0.5 * u[0][i];
+        for (i = 0; i < 3; i++) eye[i] -= 0.5 * u[0][i];
+        for (i = 0; i < 6; i += 2) {
+            clippingWindow[i] -= 0.5 * u[0][i / 2];
+            clippingWindow[i + 1] -= 0.5 * u[0][i / 2];
+        }
     }
     if (key == 17) {
-        //eyeDz += 0.5;    //©¹«e ctrl + q
+        //eyeDz += 0.5;    //å¾€å‰ ctrl + q
         for (i = 0; i < 3; i++) eye[i] -= 0.5 * u[2][i];
+        for (i = 0; i < 6; i += 2) {
+            clippingWindow[i] -= 0.5 * u[2][i / 2];
+            clippingWindow[i + 1] -= 0.5 * u[2][i / 2];
+        }
     }
     else if (key == 5) {
-        //eyeDz += -0.5;   //©¹«á ctrl + e
+        //eyeDz += -0.5;   //å¾€å¾Œ ctrl + e
         for (i = 0; i < 3; i++) eye[i] += 0.5 * u[2][i];
+        for (i = 0; i < 6; i += 2) {
+            clippingWindow[i] += 0.5 * u[2][i / 2];
+            clippingWindow[i + 1] += 0.5 * u[2][i / 2];
+        }
+        cout << clippingWindow[4] << " ";
     }
     else if (key == 24) {             //ctrl + x pitching 
         eyeAngx += 5.0;
@@ -2030,6 +2079,7 @@ bool change_view_order(unsigned char key) {
             u[1][i] = y[i];
             u[2][i] = z[i];
         }
+        //y[0] = cv * clippingWindow[cwn] - sv * clippingWindow[cwb];
     }
     else if (key == 25) {            // heading ctrl + y
         eyeAngy += 5.0;
@@ -2077,21 +2127,21 @@ void keybaord_fun(unsigned char key, int x, int y) {
     if(change_view_order(key)) return;
     if (isLock == LOCK) return;
     my_move_order(key);
-    if ((key == 'p' || key == 'P')) {                     //¤¬°ÊªF¦è
+    if ((key == 'p' || key == 'P')) {                     //äº’å‹•æ±è¥¿
         if (myMagic_wand.show) {
             for (int i = -7; i < 7; i++) {
-                if (getDis(pos[0], pos[2], myMagic_wand.x, myMagic_wand.z + i) < 3.5 + 5) {           //®³ªk§ú
+                if (getDis(pos[0], pos[2], myMagic_wand.x, myMagic_wand.z + i) < 3.5 + 5) {           //æ‹¿æ³•æ–
                     myMagic_wand.show = 0;
                     myRobot.carry_mw = 1;
                     myRobot.isMagician = 1;
                 }
             }
         }
-        if (scene == GRASSLAND && getDis(pos[0], pos[2], myBig_chair.x, myBig_chair.z) < 18 + 2 * 2.5 + 2) {   //§¤¤W´È¤l
+        if (scene == GRASSLAND && getDis(pos[0], pos[2], myBig_chair.x, myBig_chair.z) < 18 + 2 * 2.5 + 2) {   //åä¸Šæ¤…å­
             sitOnChair = !sitOnChair;
         }
     }
-    if (key == ' ') {                   //¸õ
+    if (key == ' ') {                   //è·³
         if (myRobot.isMagician) {
             if (myRobot.isOnWand) {
                 glutTimerFunc(100, timerFunc, JUMPTOFLOORTIMER);
@@ -2108,19 +2158,19 @@ void keybaord_fun(unsigned char key, int x, int y) {
             glutTimerFunc(100, timerFunc, JUMPTIMER);
         }
     }
-    else if ((int)key == 13) {          //enter ¶i¤J¯ó¦a(°_©lÂI17 12)
+    else if ((int)key == 13) {          //enter é€²å…¥è‰åœ°(èµ·å§‹é»17 12)
         if (scene == MAGICFIELD && myRobot.isMagician && getDis(pos[0], pos[2], 30, 30) < 30) {
             pos[0] = 17;
             pos[2] = 12;
             scene = GRASSLAND;
             glutTimerFunc(100, timerFunc, CHAIR_MOVE);
-        }                               //enter ¶i¤JÅ]ªk°}(°_©lÂI30 30)
+        }                               //enter é€²å…¥é­”æ³•é™£(èµ·å§‹é»30 30)
         else if (scene == GRASSLAND && getDis(pos[0], pos[2], 17, 12) <= 10) {
             pos[0] = pos[2] = 30;
             scene = MAGICFIELD;
         }
     }
-    //¶}µo¥Î ¤£¤ä´©!!
+    //é–‹ç™¼ç”¨ ä¸æ”¯æ´!!
     //if (key == 'u') glutTimerFunc(100, timerFunc, CHAIR_MOVE);
     //if (key == 'o' || key == 'O') {
     //    cout << ++myRobot.magic_wand_carry->angle_x << "\n";
