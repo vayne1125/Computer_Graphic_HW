@@ -71,9 +71,9 @@ float   u[3][3] = { {1.0,0.0,0.0}, {0.0,1.0,0.0}, {0.0,0.0,1.0} };
 float   eye[3];
 float   cv, sv; /* cos(5.0) and sin(5.0) */
 int viewStyle = 0;    //viw change: 
-                      //magic - 0x/1y/2z/3perspective/4all
-                      //grass - 0x/1y/2z/3perspective
-
+                      //magic - 0x/1y/2z/3perspective/4all/5my
+                      //grass - 0per/1my
+bool camera_show = 0;
 double clippingWindow[6] = { 0 };   //window大小
 
 /*----------------------------------------------------------*/
@@ -1569,16 +1569,17 @@ void draw_view() {
     draw_robot();
     glPopMatrix();
 
-    glPushMatrix();
-    glTranslatef(eye[0], eye[1], eye[2]);
-    draw_camera();
-    glPopMatrix();
-    draw_view_volume();
+    if (camera_show) {
+        glPushMatrix();
+        glTranslatef(eye[0], eye[1], eye[2]);
+        draw_camera();
+        glPopMatrix();
+        draw_view_volume();
+    }
 }
 void draw_view_volume() {
-    glColor4f(235 / 255.0, 1, 1, 0.5);
     //------------------------------------內三角錐----------------------------------------------
-    //glColor4f(1, 1, 1, 0.5);
+    glColor4f(1, 1, 1, 0.5);
     double wwn = fabs(clippingWindow[_r] - clippingWindow[_l]) / 2, hhn = fabs(clippingWindow[_t] - clippingWindow[_b]) / 2, ddn = -clippingWindow[_n], ddf = -clippingWindow[_f];
     double wwf = fabs(wwn * ddf / ddn), hhf = fabs(hhn * ddf / ddn);
     glBegin(GL_TRIANGLES);
@@ -2128,8 +2129,33 @@ bool change_view_order(unsigned char key) {
             u[1][i] = y[i];
         }
     }
-    else if (key == 18) {
+    else if (key == 'q') { //ctrl + shift
         init_camera();
+    }
+    else if (key == 6) { //zoom in ctrl + f
+        if (fabs(clippingWindow[_l] - clippingWindow[_r]) > 4 || fabs(clippingWindow[_l] - clippingWindow[_r]) > 4 *width / height) {
+            clippingWindow[_l] += 2;
+            clippingWindow[_r] -= 2;
+            clippingWindow[_b] += 2 * width / height;
+            clippingWindow[_t] -= 2 * width / height;
+        }    
+    }
+    else if (key == 7) { //zoom out ctrl + g
+        if (fabs(clippingWindow[_l] - clippingWindow[_r]) < 35 || fabs(clippingWindow[_l] - clippingWindow[_r]) < 35 * width / height) {
+            clippingWindow[_l] -= 2;
+            clippingWindow[_r] += 2;
+            clippingWindow[_b] -= 2 * width / height;
+            clippingWindow[_t] += 2 * width / height;
+        }
+    }
+    else if (key == 3) { //遠景多 ctrl + c
+        if(clippingWindow[_f] < 140) clippingWindow[_f] += 2;
+    }
+    else if (key == 22) { //遠景少 ctrl + v
+        if (clippingWindow[_f] > 40) clippingWindow[_f] -= 2;
+    }
+    else if (key == 16) {  //ctrl + p
+        camera_show ^= 1;
     }else return 0;
     display();
 }
