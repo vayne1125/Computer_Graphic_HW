@@ -55,20 +55,26 @@ float  pos[3] = { 0.0, 0.0, 0.0 };                              //位置
 float  anglex = 0.0, angley = 0.0;
 
 /*-----Translation and rotations of eye coordinate system---*/
+#define _l 0
+#define _r 1
+#define _b 2
+#define _t 3
+#define _n 4
+#define _f 5
+
 float   eyeDx = 0.0, eyeDy = 0.0, eyeDz = 0.0;
 float   eyeAngx = 0.0, eyeAngy = 0.0, eyeAngz = 0.0;
 double  Eye[3] = { 30.0, 10.0, 80.0 }, Focus[3] = { 0.0, 0.0, 0.0 },
 Vup[3] = { 0.0, 1.0, 0.0 };
-
+double mtx[16] = { 0 };
 float   u[3][3] = { {1.0,0.0,0.0}, {0.0,1.0,0.0}, {0.0,0.0,1.0} };
 float   eye[3];
 float   cv, sv; /* cos(5.0) and sin(5.0) */
 int viewStyle = 0;    //viw change: 
                       //magic - 0x/1y/2z/3perspective/4all
                       //grass - 0x/1y/2z/3perspective
-//近景 遠景 w/h 眼睛張開的角度(40~70)
-double zNear = 0, zFar = 0, aspect = 0, fovy = 0; 
-float mtx[16] = {1,0,0,30,0,1,0,10,0,0,1,80,0,0,0,1};
+
+double clippingWindow[6] = { 0 };   //window大小
 
 /*----------------------------------------------------------*/
 
@@ -88,6 +94,7 @@ void draw_cylinder(double up, double down, double height);
 void change_color(int value);
 void draw_circle(double size, int wid);
 void draw_square(int hei, int wid,int sz);
+void draw_view_volume();
 float getDis(float x1, float y1, float x2, float y2) {           //算距離
     return sqrt((x1 - x2) * (x1 - x2) + (y1 - y2) * (y1 - y2));
 }
@@ -1035,13 +1042,42 @@ void change_color(int value) {  //設定顏色
     }
 }
 void init_camera() {
+    for (int i = 0; i < 3; i++) {
+        for (int j = 0; j < 3; j++) {
+            u[i][j] = 0;
+        }
+        u[i][i] = 1;
+    }
     eye[0] = Eye[0];
     eye[1] = Eye[1];
     eye[2] = Eye[2];
-    zNear = 20;
+
+    eyeAngx = 0;
+    eyeAngy = 0;
+    eyeAngz = 0;
+    //近景 遠景 w/h 眼睛張開的角度(40~70)
+    //定義lrbtnf
+    double zNear = 0, zFar = 0, aspect = 0, fovy = 0;
+    zNear = 20;                      
     zFar = 60;
     aspect = width / (double)height;
     fovy = 45;
+
+    double z1, x1, y1, z2, x2, y2;
+    z1 = zNear / cos((fovy / 2.0) * PI / 180.0); //斜邊
+    y1 = z1 * sin((fovy / 2.0) * PI / 180.0);    //寬
+    x1 = y1 * aspect;
+
+    z2 = zFar / cos((fovy / 2.0) * PI / 180.0); //斜邊
+    y2 = z2 * sin((fovy / 2.0) * PI / 180.0);    //寬
+    x2 = y2 * aspect;
+
+    clippingWindow[_l] = -x1;    //l
+    clippingWindow[_r] = x1;     //r
+    clippingWindow[_b] = -y1;    //b
+    clippingWindow[_t] = y1;     //t
+    clippingWindow[_n] = zNear;  //n
+    clippingWindow[_f] = zFar;   //f
 }
 void myinit()
 {
@@ -1501,111 +1537,29 @@ void draw_robot() {
     myRobot.draw();
 }
 void draw_camera() {
-    glPushMatrix();
+    mtx[0] = u[0][0];
+    mtx[1] = u[0][1];
+    mtx[2] = u[0][2];
+    mtx[3] = 0.0;
+    mtx[4] = u[1][0];
+    mtx[5] = u[1][1];
+    mtx[6] = u[1][2];
+    mtx[7] = 0.0;
+    mtx[8] = u[2][0];
+    mtx[9] = u[2][1];
+    mtx[10] = u[2][2];
+    mtx[11] = 0.0;
+    mtx[12] = 0.0;
+    mtx[13] = 0.0;
+    mtx[14] = 0.0;
+    mtx[15] = 1.0;
+    //glMultMatrixd(mtx);
 
     glPushMatrix();
-    glScalef(3,3,3);
+    glMultMatrixd(mtx);
     glRotatef(180, 0, 1, 0);
+    glScalef(3,3,3);
     camera.draw();
-    glPopMatrix();
-
-    double tp1, x1, y1, z1, tp2, x2, y2, z2;
-    tp1 = zNear / cos((fovy / 2.0) * PI / 180.0); //斜邊
-    y1 = tp1 * sin((fovy / 2.0) * PI / 180.0);    //寬
-    x1 = y1 * aspect;
-    z1 = -zNear;
-
-    tp2 = zFar / cos((fovy / 2.0) * PI / 180.0); //斜邊
-    y2 = tp2 * sin((fovy / 2.0) * PI / 180.0);    //寬
-    x2 = y2 * aspect;
-    z2 = -zFar;
-    glColor4f(235 / 255.0, 1, 1, 0.5);
-    glBegin(GL_TRIANGLES);
-    //內
-    glColor4f(1, 1, 1, 0.5);
-    glVertex3f(0, 0, 0);
-    glVertex3f(-x1, y1, z1);
-    glVertex3f(x1, y1, z1);
-
-    glVertex3f(0, 0, 0);
-    glVertex3f(-x1, y1, z1);
-    glVertex3f(-x1, -y1, z1);
-
-    glVertex3f(0, 0, 0);
-    glVertex3f(x1, y1, z1);
-    glVertex3f(x1, -y1, z1);
-
-    glVertex3f(0, 0, 0);
-    glVertex3f(-x1, -y1, z1);
-    glVertex3f(x1, -y1, z1);
-    glEnd();
-    //外
-    glColor4f(235 / 255.0, 1, 1, 0.5);
-    glBegin(GL_QUADS);
-    glVertex3f(-x1, y1, z1);
-    glVertex3f(x1, y1, z1);
-    glVertex3f(x2, y2, z2);
-    glVertex3f(-x2 , y2 , z2);
-
-    glVertex3f(-x1, y1, z1);
-    glVertex3f(-x1, -y1, z1);
-    glVertex3f(-x2, -y2, z2);
-    glVertex3f(-x2, y2, z2);
-
-    glVertex3f(x1, y1, z1);
-    glVertex3f(x1, -y1, z1);
-    glVertex3f(x2 , -y2, z2);
-    glVertex3f(x2, y2, z2);
-
-    glVertex3f(-x1, -y1, z1);
-    glVertex3f(x1, -y1, z1);
-    glVertex3f(x2, -y2, z2);
-    glVertex3f(-x2 , -y2, z2);
-    glEnd();
-
-    glLineWidth(3);
-    glBegin(GL_LINES);
-    glVertex3f(0, 0, 0);
-    glVertex3f(-x2, y2, z2);
-
-    glVertex3f(0, 0, 0);
-    glVertex3f(x2, y2, z2);
-
-    glVertex3f(0, 0, 0);
-    glVertex3f(-x2, y2, z2);
-
-    glVertex3f(0, 0, 0);
-    glVertex3f(-x2, -y2, z2);
-
-    glVertex3f(0, 0, 0);
-    glVertex3f(x2, y2, z2);
-
-    glVertex3f(0, 0, 0);
-    glVertex3f(x2, -y2, z2);
-
-    glVertex3f(0, 0, 0);
-    glVertex3f(-x2, -y2, z2);
-
-    glVertex3f(0, 0, 0);
-    glVertex3f(x2, -y2, z2);
-    glEnd();
-    /*
-    glPolygonMode(GL_FRONT_AND_BACK,GL_LINE);
-    glBegin(GL_POLYGON);
-    glVertex3f(x1 , y1 , z1-0.1);
-    glVertex3f(x1 , -y1, z1-0.1);
-    glVertex3f(-x1, -y1, z1-0.1);
-    glVertex3f(-x1, y1 , z1-0.1);
-    glEnd();*/
-    /*
-    glColor4f(1, 0, 1, 0.5);
-    glBegin(GL_POLYGON);
-    glVertex3f(x2 , y2 , zFar);
-    glVertex3f(x2 , -y2, zFar);
-    glVertex3f(-x2, -y2, zFar);
-    glVertex3f(-x2, y2 , zFar);
-    glEnd();
-    */
     glPopMatrix();
 }
 void draw_view() {
@@ -1617,20 +1571,149 @@ void draw_view() {
 
     glPushMatrix();
     glTranslatef(eye[0], eye[1], eye[2]);
-    glRotatef(eyeAngz, 0, 0, 1);
-    glRotatef(eyeAngy, 0, 1, 0);
-    glRotatef(eyeAngx, 1, 0, 0);
-    //glRotatef(180, 0, 1, 0);
-    
     draw_camera();
     glPopMatrix();
+    draw_view_volume();
+}
+void draw_view_volume() {
+    glColor4f(235 / 255.0, 1, 1, 0.5);
+    //------------------------------------內三角錐----------------------------------------------
+    //glColor4f(1, 1, 1, 0.5);
+    double wwn = fabs(clippingWindow[_r] - clippingWindow[_l]) / 2, hhn = fabs(clippingWindow[_t] - clippingWindow[_b]) / 2, ddn = -clippingWindow[_n], ddf = -clippingWindow[_f];
+    double wwf = fabs(wwn * ddf / ddn), hhf = fabs(hhn * ddf / ddn);
+    glBegin(GL_TRIANGLES);
+    glVertex3f(eye[0], eye[1], eye[2]);
+    //ltn
+    glVertex3f(eye[0] - wwn * u[0][0] + hhn * u[1][0] + ddn * u[2][0], eye[1] - wwn * u[0][1] + hhn * u[1][1] + ddn * u[2][1], eye[2] - wwn * u[0][2] + hhn * u[1][2] + ddn * u[2][2]); //ltn
+    //rtn
+    glVertex3f(eye[0] + wwn * u[0][0] + hhn * u[1][0] + ddn * u[2][0], eye[1] + wwn * u[0][1] + hhn * u[1][1] + ddn * u[2][1], eye[2] + wwn * u[0][2] + hhn * u[1][2] + ddn * u[2][2]); //rtn
+
+    glVertex3f(eye[0], eye[1], eye[2]);
+    //lbn
+    glVertex3f(eye[0] - wwn * u[0][0] - hhn * u[1][0] + ddn * u[2][0], eye[1] - wwn * u[0][1] - hhn * u[1][1] + ddn * u[2][1], eye[2] - wwn * u[0][2] - hhn * u[1][2] + ddn * u[2][2]);
+    //ltn
+    glVertex3f(eye[0] - wwn * u[0][0] + hhn * u[1][0] + ddn * u[2][0], eye[1] - wwn * u[0][1] + hhn * u[1][1] + ddn * u[2][1], eye[2] - wwn * u[0][2] + hhn * u[1][2] + ddn * u[2][2]);
+
+    glVertex3f(eye[0], eye[1], eye[2]);
+    //rtn
+    glVertex3f(eye[0] + wwn * u[0][0] + hhn * u[1][0] + ddn * u[2][0], eye[1] + wwn * u[0][1] + hhn * u[1][1] + ddn * u[2][1], eye[2] + wwn * u[0][2] + hhn * u[1][2] + ddn * u[2][2]);
+    //rbn
+    glVertex3f(eye[0] + wwn * u[0][0] - hhn * u[1][0] + ddn * u[2][0], eye[1] + wwn * u[0][1] - hhn * u[1][1] + ddn * u[2][1], eye[2] + wwn * u[0][2] - hhn * u[1][2] + ddn * u[2][2]);
+
+    glVertex3f(eye[0], eye[1], eye[2]);
+    //rbn
+    glVertex3f(eye[0] + wwn * u[0][0] - hhn * u[1][0] + ddn * u[2][0], eye[1] + wwn * u[0][1] - hhn * u[1][1] + ddn * u[2][1], eye[2] + wwn * u[0][2] - hhn * u[1][2] + ddn * u[2][2]);
+    //lbn
+    glVertex3f(eye[0] - wwn * u[0][0] - hhn * u[1][0] + ddn * u[2][0], eye[1] - wwn * u[0][1] - hhn * u[1][1] + ddn * u[2][1], eye[2] - wwn * u[0][2] - hhn * u[1][2] + ddn * u[2][2]);
+    glEnd();
+
+    //------------------------------------外三角錐----------------------------------------------
+    glColor4f(235 / 255.0, 1, 1, 0.5);
+    glBegin(GL_QUADS);
+    //ltn
+    glVertex3f(eye[0] - wwn * u[0][0] + hhn * u[1][0] + ddn * u[2][0], eye[1] - wwn * u[0][1] + hhn * u[1][1] + ddn * u[2][1], eye[2] - wwn * u[0][2] + hhn * u[1][2] + ddn * u[2][2]); //ltn
+    //rtn
+    glVertex3f(eye[0] + wwn * u[0][0] + hhn * u[1][0] + ddn * u[2][0], eye[1] + wwn * u[0][1] + hhn * u[1][1] + ddn * u[2][1], eye[2] + wwn * u[0][2] + hhn * u[1][2] + ddn * u[2][2]); //rtn
+    //rtf
+    glVertex3f(eye[0] + wwf * u[0][0] + hhf * u[1][0] + ddf * u[2][0], eye[1] + wwf * u[0][1] + hhf * u[1][1] + ddf * u[2][1], eye[2] + wwf * u[0][2] + hhf * u[1][2] + ddf * u[2][2]); //rtf
+    //ltf
+    glVertex3f(eye[0] - wwf * u[0][0] + hhf * u[1][0] + ddf * u[2][0], eye[1] - wwf * u[0][1] + hhf * u[1][1] + ddf * u[2][1], eye[2] - wwf * u[0][2] + hhf * u[1][2] + ddf * u[2][2]); //ltn
+
+    //lbn
+    glVertex3f(eye[0] - wwn * u[0][0] - hhn * u[1][0] + ddn * u[2][0], eye[1] - wwn * u[0][1] - hhn * u[1][1] + ddn * u[2][1], eye[2] - wwn * u[0][2] - hhn * u[1][2] + ddn * u[2][2]);
+    //ltn
+    glVertex3f(eye[0] - wwn * u[0][0] + hhn * u[1][0] + ddn * u[2][0], eye[1] - wwn * u[0][1] + hhn * u[1][1] + ddn * u[2][1], eye[2] - wwn * u[0][2] + hhn * u[1][2] + ddn * u[2][2]);
+    //ltf
+    glVertex3f(eye[0] - wwf * u[0][0] + hhf * u[1][0] + ddf * u[2][0], eye[1] - wwf * u[0][1] + hhf * u[1][1] + ddf * u[2][1], eye[2] - wwf * u[0][2] + hhf * u[1][2] + ddf * u[2][2]);
+    //lbf
+    glVertex3f(eye[0] - wwf * u[0][0] - hhf * u[1][0] + ddf * u[2][0], eye[1] - wwf * u[0][1] - hhf * u[1][1] + ddf * u[2][1], eye[2] - wwf * u[0][2] - hhf * u[1][2] + ddf * u[2][2]);
+
+    //rtn
+    glVertex3f(eye[0] + wwn * u[0][0] + hhn * u[1][0] + ddn * u[2][0], eye[1] + wwn * u[0][1] + hhn * u[1][1] + ddn * u[2][1], eye[2] + wwn * u[0][2] + hhn * u[1][2] + ddn * u[2][2]);
+    //rbn
+    glVertex3f(eye[0] + wwn * u[0][0] - hhn * u[1][0] + ddn * u[2][0], eye[1] + wwn * u[0][1] - hhn * u[1][1] + ddn * u[2][1], eye[2] + wwn * u[0][2] - hhn * u[1][2] + ddn * u[2][2]);
+    //rbf
+    glVertex3f(eye[0] + wwf * u[0][0] - hhf * u[1][0] + ddf * u[2][0], eye[1] + wwf * u[0][1] - hhf * u[1][1] + ddf * u[2][1], eye[2] + wwf * u[0][2] - hhf * u[1][2] + ddf * u[2][2]);
+    //rtf
+    glVertex3f(eye[0] + wwf * u[0][0] + hhf * u[1][0] + ddf * u[2][0], eye[1] + wwf * u[0][1] + hhf * u[1][1] + ddf * u[2][1], eye[2] + wwf * u[0][2] + hhf * u[1][2] + ddf * u[2][2]);
+
+    //rbn
+    glVertex3f(eye[0] + wwn * u[0][0] - hhn * u[1][0] + ddn * u[2][0], eye[1] + wwn * u[0][1] - hhn * u[1][1] + ddn * u[2][1], eye[2] + wwn * u[0][2] - hhn * u[1][2] + ddn * u[2][2]);
+    //lbn
+    glVertex3f(eye[0] - wwn * u[0][0] - hhn * u[1][0] + ddn * u[2][0], eye[1] - wwn * u[0][1] - hhn * u[1][1] + ddn * u[2][1], eye[2] - wwn * u[0][2] - hhn * u[1][2] + ddn * u[2][2]);
+    //lbf
+    glVertex3f(eye[0] - wwf * u[0][0] - hhf * u[1][0] + ddf * u[2][0], eye[1] - wwf * u[0][1] - hhf * u[1][1] + ddf * u[2][1], eye[2] - wwf * u[0][2] - hhf * u[1][2] + ddf * u[2][2]);
+    //rbf
+    glVertex3f(eye[0] + wwf * u[0][0] - hhf * u[1][0] + ddf * u[2][0], eye[1] + wwf * u[0][1] - hhf * u[1][1] + ddf * u[2][1], eye[2] + wwf * u[0][2] - hhf * u[1][2] + ddf * u[2][2]);
+    glEnd();
+
+    //------------------------------------外線線----------------------------------------------
+    glLineWidth(3);
+    glBegin(GL_LINES);
+    glVertex3f(eye[0], eye[1], eye[2]);
+    //rbf
+    glVertex3f(eye[0] + wwf * u[0][0] - hhf * u[1][0] + ddf * u[2][0], eye[1] + wwf * u[0][1] - hhf * u[1][1] + ddf * u[2][1], eye[2] + wwf * u[0][2] - hhf * u[1][2] + ddf * u[2][2]);
+
+    glVertex3f(eye[0], eye[1], eye[2]);
+    //lbf
+    glVertex3f(eye[0] - wwf * u[0][0] - hhf * u[1][0] + ddf * u[2][0], eye[1] - wwf * u[0][1] - hhf * u[1][1] + ddf * u[2][1], eye[2] - wwf * u[0][2] - hhf * u[1][2] + ddf * u[2][2]);
+
+    glVertex3f(eye[0], eye[1], eye[2]);
+    //rbf
+    glVertex3f(eye[0] + wwf * u[0][0] - hhf * u[1][0] + ddf * u[2][0], eye[1] + wwf * u[0][1] - hhf * u[1][1] + ddf * u[2][1], eye[2] + wwf * u[0][2] - hhf * u[1][2] + ddf * u[2][2]);
+
+    glVertex3f(eye[0], eye[1], eye[2]);
+    //rtf
+    glVertex3f(eye[0] + wwf * u[0][0] + hhf * u[1][0] + ddf * u[2][0], eye[1] + wwf * u[0][1] + hhf * u[1][1] + ddf * u[2][1], eye[2] + wwf * u[0][2] + hhf * u[1][2] + ddf * u[2][2]);
+
+    glVertex3f(eye[0], eye[1], eye[2]);
+    //ltf
+    glVertex3f(eye[0] - wwf * u[0][0] + hhf * u[1][0] + ddf * u[2][0], eye[1] - wwf * u[0][1] + hhf * u[1][1] + ddf * u[2][1], eye[2] - wwf * u[0][2] + hhf * u[1][2] + ddf * u[2][2]);
+
+    glVertex3f(eye[0], eye[1], eye[2]);
+    //lbf
+    glVertex3f(eye[0] - wwf * u[0][0] - hhf * u[1][0] + ddf * u[2][0], eye[1] - wwf * u[0][1] - hhf * u[1][1] + ddf * u[2][1], eye[2] - wwf * u[0][2] - hhf * u[1][2] + ddf * u[2][2]);
+
+    glVertex3f(eye[0], eye[1], eye[2]);
+    //rtf
+    glVertex3f(eye[0] + wwf * u[0][0] + hhf * u[1][0] + ddf * u[2][0], eye[1] + wwf * u[0][1] + hhf * u[1][1] + ddf * u[2][1], eye[2] + wwf * u[0][2] + hhf * u[1][2] + ddf * u[2][2]); //rtf
+
+    glVertex3f(eye[0], eye[1], eye[2]);
+    //ltf
+    glVertex3f(eye[0] - wwf * u[0][0] + hhf * u[1][0] + ddf * u[2][0], eye[1] - wwf * u[0][1] + hhf * u[1][1] + ddf * u[2][1], eye[2] - wwf * u[0][2] + hhf * u[1][2] + ddf * u[2][2]); //ltn
+    glEnd();
+
+    //------------------------------------內四方型----------------------------------------------
+    glLineWidth(3);
+    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    glBegin(GL_POLYGON);
+    //rbn
+    glVertex3f(eye[0] + wwn * u[0][0] - hhn * u[1][0] + ddn * u[2][0], eye[1] + wwn * u[0][1] - hhn * u[1][1] + ddn * u[2][1], eye[2] + wwn * u[0][2] - hhn * u[1][2] + ddn * u[2][2]);
+    //lbn
+    glVertex3f(eye[0] - wwn * u[0][0] - hhn * u[1][0] + ddn * u[2][0], eye[1] - wwn * u[0][1] - hhn * u[1][1] + ddn * u[2][1], eye[2] - wwn * u[0][2] - hhn * u[1][2] + ddn * u[2][2]);
+    //ltn
+    glVertex3f(eye[0] - wwn * u[0][0] + hhn * u[1][0] + ddn * u[2][0], eye[1] - wwn * u[0][1] + hhn * u[1][1] + ddn * u[2][1], eye[2] - wwn * u[0][2] + hhn * u[1][2] + ddn * u[2][2]); //ltn
+    //rtn
+    glVertex3f(eye[0] + wwn * u[0][0] + hhn * u[1][0] + ddn * u[2][0], eye[1] + wwn * u[0][1] + hhn * u[1][1] + ddn * u[2][1], eye[2] + wwn * u[0][2] + hhn * u[1][2] + ddn * u[2][2]); //rtn
+    glEnd();
+
+    /*
+    glColor4f(1, 0, 1, 0.5);
+    glBegin(GL_POLYGON);
+    glVertex3f(x2 , y2 , zFar);
+    glVertex3f(x2 , -y2, zFar);
+    glVertex3f(-x2, -y2, zFar);
+    glVertex3f(-x2, y2 , zFar);
+    glEnd();
+    */
 }
 void make_projection(int x)
 {
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
     if (x == 3) {
-        gluPerspective(fovy, aspect, zNear, zFar); 
+        //gluPerspective(fovy, aspect, zNear, zFar); 
+        glFrustum(clippingWindow[_l], clippingWindow[_r], clippingWindow[_b], clippingWindow[_t], clippingWindow[_n], clippingWindow[_f]);
     }
     else {
         glOrtho(-40.0, 40.0, -40.0, 40.0, -100.0, 200);
@@ -1659,7 +1742,7 @@ void make_view(int x)
            applied upon eye coordinate system
            */
         //gluLookAt(30.0, 30.0, 80.0, 30.0, 0.0, 0.0, 0.0, 1.0, 0.0);
-        //u是eye的座標系統
+        //u是eye轉移矩陣(transformation matx)
         gluLookAt(eye[0], eye[1], eye[2], eye[0] - u[2][0], eye[1] - u[2][1], eye[2] - u[2][2], u[1][0], u[1][1], u[1][2]);
         //gluLookAt(eye[0], eye[1], eye[2], 0,0, 0, u[1][0], u[1][1], u[1][2]);
         break;
@@ -1676,8 +1759,15 @@ void display()
     /*----Define the current eye position and the eye-coordinate system---*/
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
-
-    switch (viewStyle) {
+    int vs = 0;
+    if (scene == GRASSLAND) {   //草原只有2種視野
+        if (viewStyle & 1) vs = 5;
+        else vs = 3;
+    }
+    else {
+        vs = viewStyle;
+    }
+    switch (vs) {
     case 0:
         glViewport(0, 0, width, height);
         make_projection(0);
@@ -1696,7 +1786,7 @@ void display()
         make_view(2);
         draw_view();
         break;
-    case 3:
+    case 3:                                      //透視投影
         glViewport(0, 0, width, height);
         make_projection(3);
         make_view(3);
@@ -1745,9 +1835,6 @@ void display()
 
     //draw_view();
 
-
-
-
     glutSwapBuffers();
     return;
 }
@@ -1766,7 +1853,6 @@ void my_reshape(int w, int h)
     //else 
     //   glOrtho(-100.0, 100.0, -100.0, 100.0, -100.0, 200);
     width = w; height = h;
-    aspect = width / (double)height;  //更新寬高比
 }
 void timerFunc(int nTimerID) {
     switch (nTimerID) {
@@ -1980,34 +2066,21 @@ bool change_view_order(unsigned char key) {
     float  x[3], y[3], z[3];
     int i;
     if (key == 19) {       //下 ctrl + w
-        //eyeDy += -0.5;    
-        for (int i = 0; i < 3; i++) eye[i] -= 0.5 * u[1][i];
-        
-        glPushMatrix();
-        glLoadIdentity();
-        glTranslatef(0,-0.5,0);
-        glGetFloatv(GL_MODELVIEW_MATRIX,mtx);
-        glPopMatrix();
-        
+        for (int i = 0; i < 3; i++) eye[i] -= 0.5 * u[1][i];  
     }
-    else if (key == 23) {   //上 ctrl + s
-        //eyeDy += 0.5;     
+    else if (key == 23) {   //上 ctrl + s    
         for (int i = 0; i < 3; i++) eye[i] += 0.5 * u[1][i];
     }
-    else if (key == 4) {   //右 ctrl + d
-        //eyeDx += -0.5;     
+    else if (key == 4) {   //右 ctrl + d     
         for (int i = 0; i < 3; i++) eye[i] += 0.5 * u[0][i];
     }
-    else if (key == 1) {   //左 ctrl + a
-        //eyeDx += 0.5;      
+    else if (key == 1) {   //左 ctrl + a   
         for (int i = 0; i < 3; i++) eye[i] -= 0.5 * u[0][i];
     }
-    if (key == 17) {
-        //eyeDz += 0.5;    //往前 ctrl + q
+    if (key == 17) {  //往前 ctrl + q
         for (i = 0; i < 3; i++) eye[i] -= 0.5 * u[2][i];
     }
-    else if (key == 5) {
-        //eyeDz += -0.5;   //往後 ctrl + e
+    else if (key == 5) { //往後 ctrl + e
         for (i = 0; i < 3; i++) eye[i] += 0.5 * u[2][i];
     }
     else if (key == 24) {             //ctrl + x pitching 
