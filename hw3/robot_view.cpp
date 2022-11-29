@@ -73,9 +73,9 @@ float   cv, sv; /* cos(5.0) and sin(5.0) */
 int viewStyle = 0;    //viw change: 
                       //magic - 0x/1y/2z/3perspective/4all/5my
                       //grass - 0per/1my
-bool camera_show = 0;
-double clippingWindow[6] = { 0 };   //window
-
+bool camera_show = 0, view_volume_show = 0;
+double clippingWindowPerspective[6] = { 0 };   //硓甮щ紇 window
+double clippingWindowOrtho[6] = { 0 };         //キ︽щ紇 window
 /*----------------------------------------------------------*/
 
 
@@ -1072,12 +1072,20 @@ void init_camera() {
     y2 = z2 * sin((fovy / 2.0) * PI / 180.0);    //糴
     x2 = y2 * aspect;
 
-    clippingWindow[_l] = -x1;    //l
-    clippingWindow[_r] = x1;     //r
-    clippingWindow[_b] = -y1;    //b
-    clippingWindow[_t] = y1;     //t
-    clippingWindow[_n] = zNear;  //n
-    clippingWindow[_f] = zFar;   //f
+    clippingWindowPerspective[_l] = -x1;    //l
+    clippingWindowPerspective[_r] = x1;     //r
+    clippingWindowPerspective[_b] = -y1;    //b
+    clippingWindowPerspective[_t] = y1;     //t
+    clippingWindowPerspective[_n] = zNear;  //n
+    clippingWindowPerspective[_f] = zFar;   //f
+
+    //-40.0, 40.0, -40.0, 40.0, -100.0, 200
+    clippingWindowOrtho[_l] = -40;    //l
+    clippingWindowOrtho[_r] = 40;     //r
+    clippingWindowOrtho[_b] = -40;    //b
+    clippingWindowOrtho[_t] = 40;     //t
+    clippingWindowOrtho[_n] = -100;   //n
+    clippingWindowOrtho[_f] = 200;    //f
 }
 void myinit()
 {
@@ -1574,13 +1582,13 @@ void draw_view() {
         glTranslatef(eye[0], eye[1], eye[2]);
         draw_camera();
         glPopMatrix();
-        draw_view_volume();
+        if(view_volume_show)draw_view_volume();
     }
 }
 void draw_view_volume() {
     //------------------------------------ずà繞----------------------------------------------
     glColor4f(1, 1, 1, 0.5);
-    double wwn = fabs(clippingWindow[_r] - clippingWindow[_l]) / 2, hhn = fabs(clippingWindow[_t] - clippingWindow[_b]) / 2, ddn = -clippingWindow[_n], ddf = -clippingWindow[_f];
+    double wwn = fabs(clippingWindowPerspective[_r] - clippingWindowPerspective[_l]) / 2, hhn = fabs(clippingWindowPerspective[_t] - clippingWindowPerspective[_b]) / 2, ddn = -clippingWindowPerspective[_n], ddf = -clippingWindowPerspective[_f];
     double wwf = fabs(wwn * ddf / ddn), hhf = fabs(hhn * ddf / ddn);
     glBegin(GL_TRIANGLES);
     glVertex3f(eye[0], eye[1], eye[2]);
@@ -1714,10 +1722,10 @@ void make_projection(int x)
     glLoadIdentity();
     if (x == 3) {
         //gluPerspective(fovy, aspect, zNear, zFar); 
-        glFrustum(clippingWindow[_l], clippingWindow[_r], clippingWindow[_b], clippingWindow[_t], clippingWindow[_n], clippingWindow[_f]);
+        glFrustum(clippingWindowPerspective[_l], clippingWindowPerspective[_r], clippingWindowPerspective[_b], clippingWindowPerspective[_t], clippingWindowPerspective[_n], clippingWindowPerspective[_f]);
     }
     else {
-        glOrtho(-40.0, 40.0, -40.0, 40.0, -100.0, 200);
+        glOrtho(clippingWindowOrtho[_l], clippingWindowOrtho[_r], clippingWindowOrtho[_b], clippingWindowOrtho[_t], clippingWindowOrtho[_n], clippingWindowOrtho[_f]);
     }
     glMatrixMode(GL_MODELVIEW);
 }
@@ -2129,39 +2137,56 @@ bool change_view_order(unsigned char key) {
             u[1][i] = y[i];
         }
     }
-    else if (key == 'q') { //ctrl + shift
+    else if (key == 127) { //ctrl + backspace
         init_camera();
     }
-    else if (key == 6) { //zoom in ctrl + f
-        if (fabs(clippingWindow[_l] - clippingWindow[_r]) > 4 || fabs(clippingWindow[_l] - clippingWindow[_r]) > 4 *width / height) {
-            clippingWindow[_l] += 2;
-            clippingWindow[_r] -= 2;
-            clippingWindow[_b] += 2 * width / height;
-            clippingWindow[_t] -= 2 * width / height;
-        }    
-    }
-    else if (key == 7) { //zoom out ctrl + g
-        if (fabs(clippingWindow[_l] - clippingWindow[_r]) < 35 || fabs(clippingWindow[_l] - clippingWindow[_r]) < 35 * width / height) {
-            clippingWindow[_l] -= 2;
-            clippingWindow[_r] += 2;
-            clippingWindow[_b] -= 2 * width / height;
-            clippingWindow[_t] += 2 * width / height;
+    else if (key == 3) { //zoom in ctrl + c
+        if (fabs(clippingWindowPerspective[_l] - clippingWindowPerspective[_r]) > 4 || fabs(clippingWindowPerspective[_l] - clippingWindowPerspective[_r]) > 4 *width / height) {
+            clippingWindowPerspective[_l] += 2;
+            clippingWindowPerspective[_r] -= 2;
+            clippingWindowPerspective[_b] += 2 * width / height;
+            clippingWindowPerspective[_t] -= 2 * width / height;
+        }   
+        if (fabs(clippingWindowOrtho[_l] - clippingWindowOrtho[_r]) > 4 || fabs(clippingWindowOrtho[_l] - clippingWindowOrtho[_r]) > 4 * width / height) {
+            clippingWindowOrtho[_l] += 2;
+            clippingWindowOrtho[_r] -= 2;
+            clippingWindowOrtho[_b] += 2 * width / height;
+            clippingWindowOrtho[_t] -= 2 * width / height;
         }
     }
-    else if (key == 3) { //环春 ctrl + c
-        if(clippingWindow[_f] < 140) clippingWindow[_f] += 2;
+    else if (key == 22) { //zoom out ctrl + v
+        if (fabs(clippingWindowPerspective[_l] - clippingWindowPerspective[_r]) < 35 || fabs(clippingWindowPerspective[_l] - clippingWindowPerspective[_r]) < 35 * width / height) {
+            clippingWindowPerspective[_l] -= 2;
+            clippingWindowPerspective[_r] += 2;
+            clippingWindowPerspective[_b] -= 2 * width / height;
+            clippingWindowPerspective[_t] += 2 * width / height;
+        }
+        if (fabs(clippingWindowOrtho[_l] - clippingWindowOrtho[_r]) < 120 || fabs(clippingWindowOrtho[_l] - clippingWindowOrtho[_r]) < 120 * width / height) {
+            clippingWindowOrtho[_l] -= 2;
+            clippingWindowOrtho[_r] += 2;
+            clippingWindowOrtho[_b] -= 2 * width / height;
+            clippingWindowOrtho[_t] += 2 * width / height;
+        }
     }
-    else if (key == 22) { //环春ぶ ctrl + v
-        if (clippingWindow[_f] > 40) clippingWindow[_f] -= 2;
+    else if (key == 2) { //环春 ctrl + b
+        if(clippingWindowPerspective[_f] < 140) clippingWindowPerspective[_f] += 2;
+    }
+    else if (key == 14) { //环春ぶ ctrl + n
+        if (clippingWindowPerspective[_f] > 40) clippingWindowPerspective[_f] -= 2;
     }
     else if (key == 16) {  //ctrl + p
         camera_show ^= 1;
-    }else return 0;
+        if (camera_show) view_volume_show = 1;
+    }
+    else if (key == 15) { //ctrl + o
+        if(camera_show) view_volume_show ^= 1;
+    }
+     else return 0;
     display();
 }
 void special_func(int key, int x, int y) {
-    //cout <<"special: " << key << "\n";
-    if(change_view_order(key)) return;
+    cout <<"special: " << key << "\n";
+    if (change_view_order(key)) return;
 }
 void keyboardUp_func(unsigned char key, int x, int y) {
     if (isLock == LOCK) return;
@@ -2278,7 +2303,7 @@ void motion_func(int  x, int y) {};
 void passive_motion_func(int x, int y) {};
 void mouse_func(int button, int state, int x, int y) {};
 void idle_func(void) {};
-void main(int argc, char** argv)
+int main(int argc, char** argv)
 {
     /*-----Initialize the GLUT environment-------*/
     glutInit(&argc, argv);
@@ -2286,7 +2311,7 @@ void main(int argc, char** argv)
     /*-----Depth buffer is used, be careful !!!----*/
     glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH);
 
-    glutInitWindowSize(700, 700);
+    glutInitWindowSize(600,600);
     glutCreateWindow("RobotView");
 
     myinit();      /*---Initialize other state varibales----*/
