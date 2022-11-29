@@ -15,3 +15,18 @@ Use Visual Stdio 2022 and OpenGL [(set environment)](https://juejin.cn/post/7030
  <img src="/readmeImg/paint.png" alt="paint" title="paint" width="500"> 
  
 - project 2: Robot :0
+
+ <img src="/readmeImg/robot-1.png" alt="robot-1" title="robot" height="200"> <img src="/readmeImg/robot-2.png" alt="robot-1" title="robot" height="200"> 
+ 
+ My robot's name is magic snow robot! <br>
+ She is good at useing magic! <br>
+ And...pink robot is my boyfriend❤ <br>
+
+- project 3: Viewing and Projection 
+
+This project base on project 2 just adding the camera to see scene with different angle or position.
+
+
+ <img src="/readmeImg/view-1.png" alt="view-1" title="view" height="200"> <img src="/readmeImg/view-2.png" alt="view-2" title="view" height="200"> 
+ 
+ <img src="/readmeImg/view-4.png" alt="view-4" title="view" height="200"> <img src="/readmeImg/view-3.png" alt="view-3" title="view" height="200"> 

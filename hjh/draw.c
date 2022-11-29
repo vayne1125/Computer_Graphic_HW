@@ -2167,7 +2167,7 @@ void init_func()
 /*---------------------------------------------------------------
  * Main procedure sets up the window environment.
  */
-void main(int argc, char **argv)
+int main(int argc, char **argv)
 {
 
 	glutInit(&argc, argv);    /*---Make connection with server---*/
