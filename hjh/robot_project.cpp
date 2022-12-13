@@ -3,7 +3,11 @@
  *   Author: S. K. Ueng
  *   National Taiwan Ocean Univ. Comp. Sci. Dept.
  */
-#include<bits/stdc++.h>
+#include <stdio.h>
+#include <math.h>
+#include <iostream>
+#include <GL/glut.h>
+#include <vector>
 #include <GL/glut.h>
 using namespace std;
 
