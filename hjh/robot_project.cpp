@@ -61,12 +61,18 @@ float  color[6][3] = {	{0.5,0.5,0.5}, {0.7,0.7,0.7}, {0.7,0.5,0.5},
 						{0.5,0.5,0.5}, {0.5,0.7,0.5}, {0.5,0.5,0.7} };
 float  blend_color[4];
 
+float  cube_normal[][3] = { {0.0, -1.0, 0.0}, {0.0, 1.0, 0.0}, {0.0, 0.0, -1.0},
+							{1.0, 0.0, 0.0}, {0.0, 0.0, 1.0}, {-1.0, 0.0, 0.0} };
  /* window shape */
-int		width = 512, height = 512; 
+int		width = 512, height = 512;
+
+/* view_scope */
 float	zoom = 60.0, ratio = (double)width / (double)height, znear = 10.0, zfar = 30.0;
 float	pra_zoom = 30.0, pra_znear = 0.0, pra_zfar = 100.0;
+
 //define a base position in the z-x plane
 float  self_pos[3] = {0.0, 0.0, 0.0};
+
 //declare the rotational self_ang.
 float  self_ang = 0.0;
 
@@ -92,10 +98,50 @@ float   cv, sv; /* cos(5.0) and sin(5.0) */
  */
 int style = 0;
 
+/*----Define material properties for cube -----*/
+float  mat_ambient[] = { 0.1, 0.3, 0.1, 1.0 };
+float  mat_diffuse[] = { 0.1, 0.9, 0.1, 1.0 };
+float  mat_specular[] = { 0.4, 0.4, 0.4, 1.0 };
+float  mat_shininess = 64.0;
+
+
+/*----Define normals of wall&floor ----*/
+float  house_normal[][3] = { {1.0, 0.0, 0.0}, {0.0, 0.0, 1.0}, {0.0, 1.0, 0.0} };
+
+float  house_specular[][3] = { {0, 0, 0}, {0, 0, 0}, {0, 0, 0} };
+float  house_ambient[][3] = { {0, 0, 0}, {0, 0, 0}, {0, 0, 0} };
+float  house_diffuse[][3] = { {0, 0, 0}, {0, 0, 0}, {0, 0, 0} };
+float  flr_diffuse[] = { 0.60, 0.60, 0.60, 1.0 };
+float  flr_ambient[] = { 0.3, 0.3, 0.3, 1.0 };
+
+struct PointLit {
+	/*----Define light source properties -------*/
+	float  pos[4] = { 2.5, 9.5, 2.5, 1.0 };
+	float  dif[4] = { 0.8, 0.4, 0.4, 1.0 };
+	float  spe[4] = { 0.7, 0.7, 0.7, 1.0 };
+	float  color[4] = {1, 1, 1, 0};
+	void init() {
+		glLightfv(GL_LIGHT0, GL_DIFFUSE, dif);
+		glLightfv(GL_LIGHT0, GL_SPECULAR, spe);
+	}
+	void draw() {
+		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+		glColor3f(color[0] / 255, color[0] / 255, color[0] / 255);
+		glPushMatrix();
+		if (sphere == NULL) sphere = gluNewQuadric();
+		gluSphere(sphere, 2,	 /* radius = 2 */
+						  12,	 /* composing of 12 slices*/
+						  12);	 /* composing of 12 stacks */
+		glPopMatrix();
+	}
+}	pointlit;
+
 struct Camera {
 	float scope[2][8][3], ratio = (double)width / (double)height;
 	float camera_color[6][3];
 	double mtx[16];
+	/*----Define normals of camera ----*/
+	bool drawmoniter;
 	void init() {
 		scope[0][0][0] = 0.0; scope[0][0][1] = 0.0; scope[0][0][2] = 0.0;
 		scope[0][4][0] = 0.0; scope[0][4][1] = 0.1; scope[0][4][2] = 0.0;
@@ -121,6 +167,7 @@ struct Camera {
 		mtx[4] = u[1][0]; mtx[5] = u[1][1]; mtx[6] = u[1][2]; mtx[7] = 0.0;
 		mtx[8] = u[2][0]; mtx[9] = u[2][1]; mtx[10] = u[2][2]; mtx[11] = 0.0;
 		mtx[12] = 0.0; mtx[13] = 0.0; mtx[14] = 0.0; mtx[15] = 1.0;
+		drawmoniter = true;
 	}
 	void change_color(float r,float g, float b) {
 		for (int i = 0; i < 6; ++i) {
@@ -316,10 +363,12 @@ struct Camera {
 		wing_l.draw();//畫左翅
 		glPopMatrix();
 
-		glPushMatrix();//畫視角
-		glRotatef(180.0, 0.0, 1.0, 0.0);
-		moniter();
-		glPopMatrix();
+		if (drawmoniter) {
+			glPushMatrix();//畫視角
+			glRotatef(180.0, 0.0, 1.0, 0.0);
+			moniter();
+			glPopMatrix();
+		}
 		glPopMatrix();
 	}
 	
@@ -1538,12 +1587,17 @@ void  myinit()
 {
 	robot.init();
 	camera.init();
+	pointlit.init(); //pointlit
 	glClearColor(23 / 255.0, 17 / 255.0, 30 / 255.0, 1.0);      /*set the background color BLACK */
                    /*Clear the Depth & Color Buffers */
 
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	
-	glEnable(GL_DEPTH_TEST);
+	glShadeModel(GL_SMOOTH);
+	glEnable(GL_DEPTH_TEST);  /*Enable depth buffer for shading computing */
+	glEnable(GL_NORMALIZE);   /*Enable mornalization  */
+
+	glEnable(GL_LIGHTING);    /*Enable lighting effects */
 
 	/*---Create quadratic objects---*/
 	if (sphere == NULL) {
@@ -1569,6 +1623,12 @@ void  myinit()
 	eye[0] = Eye[0];
 	eye[1] = Eye[1];
 	eye[2] = Eye[2];
+
+	/*-----Enable face culling -----*/
+	glCullFace(GL_BACK);
+	glEnable(GL_CULL_FACE);
+
+	glEnable(GL_COLOR_MATERIAL);
 }
 
 /*--------------------------------------------------------
@@ -1894,7 +1954,19 @@ void draw_camera()
  */
 void draw_scene() {
 	/*-------Draw the floor & bg----*/
+	/*glMaterialfv(GL_FRONT, GL_DIFFUSE, flr_diffuse);  //diffuse color
+	glMaterialfv(GL_FRONT, GL_SPECULAR, flr_specular);
+	glMaterialfv(GL_FRONT, GL_AMBIENT, flr_ambient);
+	glNormal3fv(house_normal[0]);                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     
 	draw_bg();
+	glColorMaterial(GL_FRONT, GL_SPECULAR); 
+	glColor3fv(flr_specular);
+	glMaterialf(GL_FRONT, GL_SHININESS, shi);
+	glColorMaterial(GL_FRONT, GL_AMBIENT_AND_DIFFUSE);
+	glMaterialfv(GL_FRONT, GL_DIFFUSE, flr_diffuse);  //diffuse color
+	glMaterialfv(GL_FRONT, GL_SPECULAR, flr_specular);
+	glMaterialfv(GL_FRONT, GL_AMBIENT, flr_ambient);
+	glNormal3fv(house_normal[1]);*/
 	draw_floor();
 
 	/*
@@ -1910,27 +1982,6 @@ void draw_scene() {
 	glRotatef(self_ang, 0, 1, 0);
 	draw_robot();
 	glPopMatrix();
-	/*
-	//-------Draw another cube---
-	glPushMatrix();
-	glTranslatef(0.0, 0.0, 3.0);
-	glTranslatef(0.5, 0.50, 2.0);
-	glRotatef(self_ang, 0.0, 1.0, 0.0);
-	glTranslatef(-0.5, -0.50, -2.0);
-	glScalef(1.0, 1.0, 4.0);
-	draw_cube();
-	glPopMatrix();
-
-	//-------Draw the third cube ---
-	glPushMatrix();
-	glTranslatef(3.0, 0.0, 0.0);
-	glScalef(4.0, 1.0, 1.0);
-	glTranslatef(0.5, 0.5, 0.5);
-	glRotatef(self_ang, 1.0, 0.0, 0.0);
-	glTranslatef(-0.5, -0.5, -0.5);
-	draw_cube();
-	glPopMatrix();
-	*/
 }
 
 /*-------------------------------------------------------
@@ -1942,6 +1993,19 @@ void display()
 
   /*Clear previous frame and the depth buffer */
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+  glDisable(GL_LIGHTING);
+
+  glPushMatrix();
+  glLoadIdentity();
+  /*----position light0 (fix) in eye coord sys ---*/
+  glLightfv(GL_LIGHT0, GL_POSITION, pointlit.pos);  /*fixed position in eye space---*/
+  /*---draw the light source ---*/
+  glTranslatef(pointlit.pos[0], pointlit.pos[1], pointlit.pos[2]);
+  glDisable(GL_CULL_FACE);
+  pointlit.draw();
+  glPopMatrix();
+  glEnable(GL_CULL_FACE);
+  glEnable(GL_LIGHT0);
 
   switch (style) {
   case 0:
@@ -1980,6 +2044,8 @@ void display()
   }
 
   /*-------Swap the back buffer to the front --------*/
+
+
    glutSwapBuffers();
   return;
 
@@ -2564,6 +2630,9 @@ void my_act(unsigned char key, int x, int y){
 			pra_zfar += 2.0;
 		}
 	}
+
+	//drew eyes views
+	else if (key == '!') camera.drawmoniter = !camera.drawmoniter;
 
 	//robot translate
 	else if ((key == 'D' || key == 'd') && !robot.act.action) {
