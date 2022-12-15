@@ -76,10 +76,6 @@ float  self_pos[3] = {0.0, 0.0, 0.0};
 //declare the rotational self_ang.
 float  self_ang = 0.0;
 
-//Quodri objects for drawing the world coordinate system.
-/*-----Define GLU quadric objects, a sphere and a cylinder----*/
-GLUquadricObj  *sphere=NULL, *cylind=NULL, *disk = NULL;
-
 int    polygonMode=GLOOMY, project_type = PARALLEL;
 
 /*-----Translation and rotations of eye coordinate system---*/
@@ -107,31 +103,114 @@ float  mat_shininess = 64.0;
 
 /*----Define normals of wall&floor ----*/
 float  house_normal[][3] = { {1.0, 0.0, 0.0}, {0.0, 0.0, 1.0}, {0.0, 1.0, 0.0} };
+float  house_specular[][4] = { {0, 0, 0, 1}, {0, 0, 0, 1}, {0, 0, 0, 1} };
+float  house_ambient[][4] = { {0, 0, 0, 1}, {0.3, 0.3, 0.3, 1.0}, {0, 0, 0, 1} };
+float  house_diffuse[][4] = { {0, 0, 0}, {0.60, 0.60, 0.60, 1.0}, {0, 0, 0} };
 
-float  house_specular[][3] = { {0, 0, 0}, {0, 0, 0}, {0, 0, 0} };
-float  house_ambient[][3] = { {0, 0, 0}, {0, 0, 0}, {0, 0, 0} };
-float  house_diffuse[][3] = { {0, 0, 0}, {0, 0, 0}, {0, 0, 0} };
-float  flr_diffuse[] = { 0.60, 0.60, 0.60, 1.0 };
-float  flr_ambient[] = { 0.3, 0.3, 0.3, 1.0 };
+struct Polyhedron {	//多面體
+	//Quodri objects for drawing the world coordinate system.
+	/*-----Define GLU quadric objects, a sphere and a cylinder----*/
+	GLUquadricObj *sphere = NULL, *cylind = NULL, *disk = NULL;
+
+	/*--------------------------------------------------------
+		bright with matrial
+	*/
+	void color_Mat(	float *spe,		//反射別人的顏色
+					float *dif,		//我在別人眼中的顏色
+					float *amb,		//我造成的環境光
+					float *emi,		//自體發光的顏色
+					float *shi){	//0(粗糙)-128(光滑)							
+		glColorMaterial(GL_FRONT, GL_SPECULAR);
+		glColor4fv(spe);
+		glColorMaterial(GL_FRONT, GL_AMBIENT);
+		glColor4fv(amb);
+		glColorMaterial(GL_FRONT, GL_DIFFUSE);
+		glColor4fv(dif);
+		glColorMaterial(GL_FRONT, GL_EMISSION);
+		glColor4fv(emi);
+		glMaterialf(GL_FRONT, GL_SHININESS, *shi);
+		glEnable(GL_COLOR_MATERIAL);
+	}
+	/*--------------------------------------------------------
+		Draw a cylinder
+	*/
+	void draw_cylind(float top, float bottom, float height){
+		gluCylinder(cylind, top, bottom,	/* radius of top and bottom circle */
+							height,			/* height of the cylinder */
+							12,				/* use 12-side polygon approximating circle*/
+							4);				/* Divide it into 3 sections */
+	}
+	/*------------------------------------------------------------------
+		Procedure to draw an arrow .
+	*/
+	void draw_arrow(float bottom, float height) {
+		gluCylinder(cylind, 0.0, bottom,	/* radius of top and bottom circle */
+							1.0,            /* height of the cylinder */
+							12,             /* use 12-side polygon approximating circle*/
+							4);             /* Divide it into 3 sections */
+	}
+	/*--------------------------------------------------------
+		Draw a sphere
+	*/
+	void draw_sphere(float r) {
+		gluSphere(sphere, r,	/* radius */
+						  12,	/* composing of 12 slices*/
+						  12);	/* composing of 12 stacks */
+	}
+	/*--------------------------------------------------------
+		Procedure to draw the cube. The geometrical data of the cube are defined above.
+	*/
+	void draw_cube(){
+		glPolygonMode(GL_FRONT, GL_FILL);
+		for (int i = 0; i < 6; i++) {     /* draw the six faces one by one */
+			glColor3fv(color[i]);  /* Set the current color */
+			glBegin(GL_POLYGON);  /* Draw the face */
+			glVertex3fv(points[face[i][0]]);
+			glVertex3fv(points[face[i][1]]);
+			glVertex3fv(points[face[i][2]]);
+			glVertex3fv(points[face[i][3]]);
+			glEnd();
+		}
+	}
+
+	void init() {
+		sphere = gluNewQuadric();
+		gluQuadricDrawStyle(sphere, GLU_FILL);
+		gluQuadricNormals(sphere, GLU_SMOOTH);
+		cylind = gluNewQuadric();
+		gluQuadricDrawStyle(cylind, GLU_FILL);
+		gluQuadricNormals(cylind, GLU_SMOOTH);
+		disk = gluNewQuadric();
+		gluQuadricDrawStyle(disk, GLU_FILL);
+		gluQuadricNormals(disk, GLU_SMOOTH);
+	}
+} polyhedron;
+
 
 struct PointLit {
 	/*----Define light source properties -------*/
-	float  pos[4] = { 2.5, 9.5, 2.5, 1.0 };
-	float  dif[4] = { 0.8, 0.4, 0.4, 1.0 };
-	float  spe[4] = { 0.7, 0.7, 0.7, 1.0 };
-	float  color[4] = {1, 1, 1, 0};
+	/*--------------------------------------------------------
+		float spe_r, float spe_g, float spe_b, float spe_a,	//反射別人的顏色
+		float dif_r, float dif_g, float dif_b, float dif_a,	//我在別人眼中的顏色
+		float amb_r, float amb_g, float amb_b, float amb_a,	//我造成的環境光
+		float emi_r, float emi_g, float emi_b, float emi_a,	//自體發光的顏色
+		float shine											//0(粗糙)-128(光滑)
+	*/
+	float	pos[4] = { 2.5, 9.5, 2.5, 1.0 };
+	float	spe[4] = { 0.70, 0.70, 0.70, 0.60 };
+	float	dif[4] = { 0.55, 0.55, 0.55, 0.40 };
+	float	amb[4] = { 0.00, 0.00, 0.00, 0.70 };
+	float	emi[4] = { 1.00, 1.00, 1.00, 0.80 };
+	float	shi = 32.0;
 	void init() {
 		glLightfv(GL_LIGHT0, GL_DIFFUSE, dif);
 		glLightfv(GL_LIGHT0, GL_SPECULAR, spe);
 	}
 	void draw() {
 		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-		glColor3f(color[0] / 255, color[0] / 255, color[0] / 255);
+		polyhedron.color_Mat(spe, dif, amb, emi, &shi);
 		glPushMatrix();
-		if (sphere == NULL) sphere = gluNewQuadric();
-		gluSphere(sphere, 2,	 /* radius = 2 */
-						  12,	 /* composing of 12 slices*/
-						  12);	 /* composing of 12 stacks */
+		polyhedron.draw_sphere(2);
 		glPopMatrix();
 	}
 }	pointlit;
@@ -169,14 +248,14 @@ struct Camera {
 		mtx[12] = 0.0; mtx[13] = 0.0; mtx[14] = 0.0; mtx[15] = 1.0;
 		drawmoniter = true;
 	}
-	void change_color(float r,float g, float b) {
+	void change_color(float r, float g, float b) {
 		for (int i = 0; i < 6; ++i) {
 			camera_color[i][0] = r / 255.0;
 			camera_color[i][1] = g / 255.0;
 			camera_color[i][2] = b / 255.0;
 		}
 	}
-	void cube(float r, float g, float b, float dx,float dy, float dz, float sx, float sy, float sz)
+	void cube(float r, float g, float b, float dx, float dy, float dz, float sx, float sy, float sz)
 	{
 		change_color(r, g, b);
 		glTranslatef(dx, dy, dz);//右,上,前
@@ -223,25 +302,18 @@ struct Camera {
 		}
 		glPopMatrix();
 	}
-	struct Wing{
-		void feather(float ang,float r, float len) {
+	struct Wing {
+		void feather(float ang, float r, float len) {
 			glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 			glColor3f(1.0, 1.0, 1.0);
 			glPushMatrix();//畫翅頭
 			glScalef(0.8, 1, 1);
 			glRotatef(ang, 1, 0, 0);//後上右
-			if (cylind == NULL) cylind = gluNewQuadric();
-			gluCylinder(cylind, 0.1, r, /* radius of top and bottom circle */
-								len,      /* height of the cylinder */
-								12,       /* use 12-side polygon approximating circle*/
-								4);       /* Divide it into 3 sections */
+			polyhedron.draw_cylind(0.1, r, len);
 			glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 			glPushMatrix();//畫翅尾
 			glTranslatef(0, 0, len);
-			if (sphere == NULL) sphere = gluNewQuadric();
-			gluSphere(sphere,	r,   /* radius=0.5 */
-								12,            /* composing of 12 slices*/
-								12);           /* composing of 12 stacks */
+			polyhedron.draw_sphere(r);
 			glPopMatrix();
 			glPopMatrix();
 		}
@@ -255,42 +327,20 @@ struct Camera {
 		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);//畫鏡頭
 		glColor3f(103.0 / 255.0, 90.0 / 255.0, 90.0 / 255.0);
 		glPushMatrix();
-		if (cylind == NULL) cylind = gluNewQuadric();
-		gluCylinder(cylind, 1.5, 1.5, /* radius of top and bottom circle */
-							5.0,      /* height of the cylinder */
-							12,       /* use 12-side polygon approximating circle*/
-							4);       /* Divide it into 3 sections */
-		
-		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);//畫亮點	
-		glColor3f(103.0 / 255.0, 90.0 / 255.0, 90.0 / 255.0);
-		glPushMatrix();			
-		glTranslatef(0.35, 0.35, -0.15);//右,上,前
-		if (cylind == NULL) cylind = gluNewQuadric();
-		gluCylinder(cylind, 0.25, 0.25, /* radius of top and bottom circle */
-							5.0,      /* height of the cylinder */
-							12,       /* use 12-side polygon approximating circle*/
-							4);       /* Divide it into 3 sections */
+		polyhedron.draw_cylind(1.5, 1.5, 5.0);
 		glPopMatrix();
 
 		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);//畫裝飾(圓)
 		glColor3f(243.0 / 255.0, 241.0 / 255.0, 120.0 / 255.0);
 		glPushMatrix();
 		glTranslatef(0.0, 0.0, 0.5);//右,上,前
-		if (cylind == NULL) cylind = gluNewQuadric();
-		gluCylinder(cylind, 1.6, 1.6, /* radius of top and bottom circle */
-							5.0,      /* height of the cylinder */
-							12,       /* use 12-side polygon approximating circle*/
-							4);       /* Divide it into 3 sections */
+		polyhedron.draw_cylind(1.6, 1.6, 5.0);
 		glPopMatrix();
 		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);//畫裝飾(圓)
 		glColor3f(243.0 / 255.0, 241.0 / 255.0, 120.0 / 255.0);
 		glPushMatrix();
 		glTranslatef(1.7, -2.5, 0.5);//右,上,前
-		if (cylind == NULL) cylind = gluNewQuadric();
-		gluCylinder(cylind, 0.5, 0.5, /* radius of top and bottom circle */
-							5.0,      /* height of the cylinder */
-							12,       /* use 12-side polygon approximating circle*/
-							4);       /* Divide it into 3 sections */
+		polyhedron.draw_cylind(0.5, 0.5, 5.0);
 		glPopMatrix();
 		glPushMatrix(); //畫裝飾物(方)
 		cube(99.0, 133.0, 109.0, -2.0, 2.5, 0.5, 4, 1, 5); // 淺綠
@@ -371,8 +421,7 @@ struct Camera {
 		}
 		glPopMatrix();
 	}
-	
-}	 camera;
+} camera;
 
 struct Handlebar {
 	struct Pos{
@@ -388,22 +437,13 @@ struct Handlebar {
 		glPushMatrix();
 		glTranslatef(self_pos.dx, self_pos.dz, self_pos.dy);//右,前,上
 		glRotatef(rot.ang, rot.rx, rot.ry, rot.rz);
-		if (sphere == NULL)
-			sphere = gluNewQuadric();
-		gluSphere(sphere,	1.0,   /* radius=0.5 */
-							12,            /* composing of 12 slices*/
-							12);           /* composing of 12 stacks */
-		
+		polyhedron.draw_sphere(1.0);
 		//底桿
 		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 		glColor3f(206 / 255.0, 209 / 225.0, 219 / 255.0);
 		glPushMatrix();
 		glTranslatef(0, 0, -15);//右,上,前
-		if (cylind == NULL) cylind = gluNewQuadric();
-		gluCylinder(cylind, 1.0, 1.0, /* radius of top and bottom circle */
-							30,      /* height of the cylinder */
-							12,       /* use 12-side polygon approximating circle*/
-							4);       /* Divide it into 3 sections */
+		polyhedron.draw_cylind(1.0, 1.0, 30);
 		
 		//下支架(前)
 		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
@@ -411,28 +451,16 @@ struct Handlebar {
 		glPushMatrix();
 		glTranslatef(5, 0, 30);//右,上,前
 		glRotatef(-90, 0, 1, 0);//前,上,左
-		if (cylind == NULL) cylind = gluNewQuadric();
-		gluCylinder(cylind, 1.0, 1.0, /* radius of top and bottom circle */
-							10,      /* height of the cylinder */
-							12,       /* use 12-side polygon approximating circle*/
-							4);       /* Divide it into 3 sections */
+		polyhedron.draw_cylind(1.0, 1.0, 10);
 		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 		glColor3f(206 / 255.0, 209 / 225.0, 219 / 255.0);
 		glTranslatef(0, 1, 0);//前,上,左
 		glRotatef(90, 1, 0, 0);//前,左,下
-		if (cylind == NULL) cylind = gluNewQuadric();
-		gluCylinder(cylind, 1.0, 1.0, /* radius of top and bottom circle */
-							6,      /* height of the cylinder */
-							12,       /* use 12-side polygon approximating circle*/
-							4);       /* Divide it into 3 sections */
+		polyhedron.draw_cylind(1.0, 1.0, 6);
 		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 		glColor3f(206 / 255.0, 209 / 225.0, 219 / 255.0);
 		glTranslatef(0, 10, 0);//前,左,下
-		if (cylind == NULL) cylind = gluNewQuadric();
-		gluCylinder(cylind, 1.0, 1.0, /* radius of top and bottom circle */
-							6,      /* height of the cylinder */
-							12,       /* use 12-side polygon approximating circle*/
-							4);       /* Divide it into 3 sections */
+		polyhedron.draw_cylind(1.0, 1.0, 6);
 		glPopMatrix();
 
 		//下支架(後)
@@ -441,28 +469,16 @@ struct Handlebar {
 		glPushMatrix();
 		glTranslatef(5, 0, 0);//右,上,前
 		glRotatef(-90, 0, 1, 0);//前,上,左
-		if (cylind == NULL) cylind = gluNewQuadric();
-		gluCylinder(cylind, 1.0, 1.0, /* radius of top and bottom circle */
-							10,      /* height of the cylinder */
-							12,       /* use 12-side polygon approximating circle*/
-							4);       /* Divide it into 3 sections */
+		polyhedron.draw_cylind(1.0, 1.0, 10);
 		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 		glColor3f(206 / 255.0, 209 / 225.0, 219 / 255.0);
 		glTranslatef(0, 1, 0);//前,上,左
 		glRotatef(90, 1, 0, 0);//前,左,下
-		if (cylind == NULL) cylind = gluNewQuadric();
-		gluCylinder(cylind, 1.0, 1.0, /* radius of top and bottom circle */
-							6,      /* height of the cylinder */
-							12,       /* use 12-side polygon approximating circle*/
-							4);       /* Divide it into 3 sections */
+		polyhedron.draw_cylind(1.0, 1.0, 6);
 		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 		glColor3f(206 / 255.0, 209 / 225.0, 219 / 255.0);
 		glTranslatef(0, 10, 0);//前,左,下
-		if (cylind == NULL) cylind = gluNewQuadric();
-		gluCylinder(cylind, 1.0, 1.0, /* radius of top and bottom circle */
-							6,      /* height of the cylinder */
-							12,       /* use 12-side polygon approximating circle*/
-							4);       /* Divide it into 3 sections */
+		polyhedron.draw_cylind(1.0, 1.0, 6);
 		glPopMatrix();
 		
 		//頂桿
@@ -470,27 +486,15 @@ struct Handlebar {
 		glColor3f(206 / 255.0, 209 / 225.0, 219 / 255.0);
 		glPushMatrix();
 		glTranslatef(0, 13, 0);//右,上,前
-		if (cylind == NULL) cylind = gluNewQuadric();
-		gluCylinder(cylind, 1.0, 1.0, /* radius of top and bottom circle */
-							30,      /* height of the cylinder */
-							12,       /* use 12-side polygon approximating circle*/
-							4);       /* Divide it into 3 sections */
+		polyhedron.draw_cylind(1.0, 1.0, 30);
 		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 		glColor3f(206 / 255.0, 209 / 225.0, 219 / 255.0);
 		glRotatef(90, 1, 0, 0);//r,f,d
-		if (cylind == NULL) cylind = gluNewQuadric();
-		gluCylinder(cylind, 1.0, 1.0, /* radius of top and bottom circle */
-							14,      /* height of the cylinder */
-							12,       /* use 12-side polygon approximating circle*/
-							4);       /* Divide it into 3 sections */
+		polyhedron.draw_cylind(1.0, 1.0, 14);
 		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 		glColor3f(206 / 255.0, 209 / 225.0, 219 / 255.0);
 		glTranslatef(0, 30, 0);//r,f,d
-		if (cylind == NULL) cylind = gluNewQuadric();
-		gluCylinder(cylind, 1.0, 1.0, /* radius of top and bottom circle */
-							14,      /* height of the cylinder */
-							12,       /* use 12-side polygon approximating circle*/
-							4);       /* Divide it into 3 sections */
+		polyhedron.draw_cylind(1.0, 1.0, 14);
 		glPopMatrix();
 
 		//中桿
@@ -498,18 +502,14 @@ struct Handlebar {
 		glColor3f(206 / 255.0, 209 / 225.0, 219 / 255.0);
 		glPushMatrix();
 		glTranslatef(0, 10, 0);//右,上,前
-		if (cylind == NULL) cylind = gluNewQuadric();
-		gluCylinder(cylind, 1.0, 1.0, /* radius of top and bottom circle */
-							30,      /* height of the cylinder */
-							12,       /* use 12-side polygon approximating circle*/
-							4);       /* Divide it into 3 sections */
+		polyhedron.draw_cylind(1.0, 1.0, 30);
 		glPopMatrix();
 
 		glPopMatrix();
 		glPopMatrix();
 
 	}
-}	handlebar;
+} handlebar;
 
 struct Robot{
 	struct Act{
@@ -522,7 +522,6 @@ struct Robot{
 		struct Mov {
 			double dx = 0, dy = 0, dz = 0, dh = 0;
 		}mov;
-
 		void draw(double r,
 			double px, double py, double pz,
 			double ang, double rx, double ry, double rz,
@@ -535,11 +534,7 @@ struct Robot{
 			glTranslatef(px, py, pz);
 			glRotatef(swp.ang, swp.rx, swp.ry, swp.rz);//swap
 			glRotatef(ang, rx, ry, rz);//用以控制枝幹方向
-			if (sphere == NULL)
-				sphere = gluNewQuadric();
-			gluSphere(sphere, r,   /* radius=0.5 */
-				12,            /* composing of 12 slices*/
-				12);           /* composing of 12 stacks */
+			polyhedron.draw_sphere(r);
 		}
 	}	chest, belly, waist,
 		hip_r, hip_l, knee_l, knee_r, ankle_l, ankle_r,
@@ -550,17 +545,12 @@ struct Robot{
 			double tr = 4.0, br = 5.0, h = 3.5;
 		}	cyl;
 		void draw(int cr, int cg, int cb) {
-
 			glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 			glColor3f(cr / 255.0, cg / 225.0, cb / 255.0);
 			glScalef(1, 1, 1);
 			glTranslatef(0, 0, 2.5);
 			glRotatef(0, 0, 0, 0);
-			if (cylind == NULL) cylind = gluNewQuadric();
-			gluCylinder(cylind, cyl.tr, cyl.br, /* radius of top and bottom circle */
-								cyl.h,      /* height of the cylinder */
-								12,       /* use 12-side polygon approximating circle*/
-								4);       /* Divide it into 3 sections */
+			polyhedron.draw_cylind(cyl.tr, cyl.br, cyl.h);
 		}
 	}	skirt;
 
@@ -578,11 +568,7 @@ struct Robot{
 			glScalef(sx, sy, sz);
 			glTranslatef(px, py, pz);
 			glRotatef(0, 0, 0, 0);
-			if (cylind == NULL) cylind = gluNewQuadric();
-			gluCylinder(cylind, tr, br, /* radius of top and bottom circle */
-				h,      /* height of the cylinder */
-				12,       /* use 12-side polygon approximating circle*/
-				4);       /* Divide it into 3 sections */
+			polyhedron.draw_cylind(tr, br, h);
 		}
 	}	trunk, shoes;
 
@@ -1411,17 +1397,14 @@ struct Robot{
 	void draw() {
 		//肚子
 		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+		//color_Mat()
 		glColor3f(174 / 255.0, 203 / 225.0, 213 / 255.0);
 		glPushMatrix();
 		glScalef(1, 1, 0.75);
 		glTranslatef(belly.mov.dx, belly.mov.dy, belly.mov.dz);//右,前,上
 		glRotatef(belly.swp.ang, belly.swp.rx, belly.swp.ry, belly.swp.rz);
 		glRotatef(belly.rot.ang, belly.rot.rx, belly.rot.ry, belly.rot.rz);
-		if (cylind == NULL) cylind = gluNewQuadric();
-		gluCylinder(cylind, 3.0, 4.0, /* radius of top and bottom circle */
-							3.5,      /* height of the cylinder */
-							12,       /* use 12-side polygon approximating circle*/
-							4);       /* Divide it into 3 sections */
+		polyhedron.draw_cylind(3.0, 4.0, 3.5);
 		
 		//腿_右
 		hip_r.draw(1.8, hip_r.mov.dx, hip_r.mov.dy, hip_r.mov.dz, hip_r.rot.ang, hip_r.rot.rx, hip_r.rot.ry, hip_r.rot.rz, 237, 225, 211);
@@ -1459,11 +1442,7 @@ struct Robot{
 		glTranslatef(chest.mov.dx, chest.mov.dy, chest.mov.dz);//右,下,前
 		glRotatef(chest.swp.ang, chest.swp.rx, chest.swp.ry, chest.swp.rz);
 		glRotatef(chest.rot.ang, chest.rot.rx, chest.rot.ry, chest.rot.rz);
-		if (cylind == NULL) cylind = gluNewQuadric();
-		gluCylinder(cylind, 3.0, 3.5, /* radius of top and bottom circle */
-							1.5,      /* height of the cylinder */
-							12,       /* use 12-side polygon approximating circle*/
-							4);       /* Divide it into 3 sections */
+		polyhedron.draw_cylind(3.0, 3.5, 1.5);
 		trunk.draw(3.0, 3.5, 6.0, 0.0, 0.0, 6, 1, 1, 0.75, 174, 203, 213);
 		trunk.draw(3.5, 2.5, 1.5, 0, 0, 7.5, 1, 1, 0.75, 255, 242, 228);
 
@@ -1518,54 +1497,33 @@ struct Robot{
 		glColor3f(237 / 255.0, 242 / 225.0, 228 / 255.0);
 		glScalef(0.8, 1, 1);
 		glTranslatef(0, 0, 6);
-		if (sphere == NULL)
-			sphere = gluNewQuadric();
-		gluSphere(sphere,	5,   /* radius=0.5 */
-							12,            /* composing of 12 slices*/
-							12);           /* composing of 12 stacks */
+		polyhedron.draw_sphere(5);
 		//包包頭
 		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 		glColor3f(255 / 255.0, 190 / 225.0, 150 / 255.0);
 		glScalef(1, 1, 1);
 		glTranslatef(0, 0.5, 0.3);
-		if (sphere == NULL)
-			sphere = gluNewQuadric();
-		gluSphere(sphere,	5.2,   /* radius=0.5 */
-							12,            /* composing of 12 slices*/
-							12);           /* composing of 12 stacks */
+		polyhedron.draw_sphere(5.2);
 		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 		glColor3f(255 / 255.0, 190 / 225.0, 150 / 255.0);
 		glScalef(1, 1, 1);
 		glTranslatef(0, 4.15, 3.25);
-		if (sphere == NULL)
-			sphere = gluNewQuadric();
-		gluSphere(sphere,	1.8,   /* radius=0.5 */
-							12,            /* composing of 12 slices*/
-							12);           /* composing of 12 stacks */
+		polyhedron.draw_sphere(1.8);
 		//雙眼
 		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 		glColor3f(0 / 255.0, 0 / 225.0, 0 / 255.0);
 		glScalef(1, 1, 1);
 		glTranslatef(1.75, -9.0, -3.5);
-		if (sphere == NULL)
-			sphere = gluNewQuadric();
-		gluSphere(sphere,	0.75,   /* radius=0.5 */
-							12,            /* composing of 12 slices*/
-							12);           /* composing of 12 stacks */
+		polyhedron.draw_sphere(0.75);
 		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 		glColor3f(0 / 255.0, 0 / 225.0, 0 / 255.0);
 		glScalef(1, 1, 1);
 		glTranslatef(-3.5, 0, 0);
-		if (sphere == NULL)
-			sphere = gluNewQuadric();
-		gluSphere(sphere,	0.75,   /* radius=0.5 */
-							12,            /* composing of 12 slices*/
-							12);           /* composing of 12 stacks */
-		
+		polyhedron.draw_sphere(0.75);
 		glPopMatrix(); //回肚子
 		glPopMatrix(); //return
 	}
-}	robot;
+} robot;
 
 /*------------------------------------------
  * Procedure to compute norm of vector v[]
@@ -1599,22 +1557,7 @@ void  myinit()
 
 	glEnable(GL_LIGHTING);    /*Enable lighting effects */
 
-	/*---Create quadratic objects---*/
-	if (sphere == NULL) {
-		sphere = gluNewQuadric();
-		gluQuadricDrawStyle(sphere, GLU_FILL);
-		gluQuadricNormals(sphere, GLU_SMOOTH);
-	}
-	if (cylind == NULL) {
-		cylind = gluNewQuadric();
-		gluQuadricDrawStyle(cylind, GLU_FILL);
-		gluQuadricNormals(cylind, GLU_SMOOTH);
-	}
-	if (disk == NULL) {
-		disk = gluNewQuadric();
-		gluQuadricDrawStyle(disk, GLU_FILL);
-		gluQuadricNormals(disk, GLU_SMOOTH);
-	}
+	polyhedron.init();
 
 	/*---- Compute cos(5.0) and sin(5.0) ----*/
 	cv = cos(Rad(5.0));
@@ -1629,27 +1572,6 @@ void  myinit()
 	glEnable(GL_CULL_FACE);
 
 	glEnable(GL_COLOR_MATERIAL);
-}
-
-/*--------------------------------------------------------
- * Procedure to draw the cube. The geometrical data of the cube
- * are defined above.
- */
-void draw_cube()
-{
-
-
-	glPolygonMode(GL_FRONT, GL_FILL);
-	for (int i = 0; i < 6; i++) {     /* draw the six faces one by one */
-		glColor3fv(color[i]);  /* Set the current color */
-
-		glBegin(GL_POLYGON);  /* Draw the face */
-		glVertex3fv(points[face[i][0]]);
-		glVertex3fv(points[face[i][1]]);
-		glVertex3fv(points[face[i][2]]);
-		glVertex3fv(points[face[i][3]]);
-		glEnd();
-	}
 }
 
 void draw_robot() { robot.draw(); }
@@ -1803,89 +1725,10 @@ void draw_bg() {
 
 }
 
-/*------------------------------------------------------------------
- * Procedure to draw a cylinder.
- */
-void draw_cylinder(void)
-{
-   if(cylind==NULL){
-    cylind = gluNewQuadric();
-   }
-   /*--- Draw a cylinder ---*/
-
-    gluCylinder(cylind, 0.3, 0.3, /* radius of top and bottom circle */
-						4.0,              /* height of the cylinder */
-						12,               /* use 12-side polygon approximating circle*/
-	                    4);               /* Divide it into 3 sections */
-
-}
-
-/*------------------------------------------------------------------
- * Procedure to draw an arrow .
- */
-void draw_arrow(void)
-{
-   if(cylind==NULL){
-    cylind = gluNewQuadric();
-   }
-   /*--- Draw a cylinder ---*/
-
-    gluCylinder(cylind, 0.6, 0.0, /* radius of top and bottom circle */
-						1.0,              /* height of the cylinder */
-						12,               /* use 12-side polygon approximating circle*/
-	                    4);               /* Divide it into 3 sections */
-
-}
-
-/*-------------------------------------------------------
- * Procedure to draw three axes and the orign
- */
-void draw_axes()
-{
-
-	/*----Draw a white sphere to represent the original-----*/
-	glColor3f(0.9, 0.9, 0.9);
-
-	gluSphere(sphere, 2.0,   /* radius=2.0 */
-		12,            /* composing of 12 slices*/
-		12);           /* composing of 8 stacks */
-
-  /*----Draw three axes in colors, yellow, meginta, and cyan--*/
-  /* Draw Z axis  */
-	glColor3f(0.0, 0.95, 0.95);
-	gluCylinder(cylind, 0.5, 0.5, /* radius of top and bottom circle */
-		10.0,              /* height of the cylinder */
-		12,               /* use 12-side polygon approximating circle*/
-		3);               /* Divide it into 3 sections */
-
-/* Draw Y axis */
-	glPushMatrix();
-	glRotatef(-90.0, 1.0, 0.0, 0.0);  /*Rotate about x by -90', z becomes y */
-	glColor3f(0.95, 0.0, 0.95);
-	gluCylinder(cylind, 0.5, 0.5, /* radius of top and bottom circle */
-		10.0,             /* height of the cylinder */
-		12,               /* use 12-side polygon approximating circle*/
-		3);               /* Divide it into 3 sections */
-	glPopMatrix();
-
-	/* Draw X axis */
-	glColor3f(0.95, 0.95, 0.0);
-	glPushMatrix();
-	glRotatef(90.0, 0.0, 1.0, 0.0);  /*Rotate about y  by 90', x becomes z */
-	gluCylinder(cylind, 0.5, 0.5,   /* radius of top and bottom circle */
-		10.0,             /* height of the cylinder */
-		12,               /* use 12-side polygon approximating circle*/
-		3);               /* Divide it into 3 sections */
-	glPopMatrix();
-	/*-- Restore the original modelview matrix --*/
-	glPopMatrix();
-}
-
 /*------------------------------------------------------
  * Procedure to make projection matrix
  */
-void make_projection(int x)
-{
+void make_projection(int x){
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
 	if (x == 4) {
@@ -1907,8 +1750,7 @@ void make_projection(int x)
 /*-------------------------------------------------------
  * Make viewing matrix
  */
-void make_view(int x)
-{
+void make_view(int x){
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
 
@@ -1940,8 +1782,7 @@ void make_view(int x)
  * Procedure to draw view volume, eye position, focus ,...
  * for perspective projection
  */
-void draw_camera()
-{
+void draw_camera(){
 	glPushMatrix();
 	glTranslatef(eye[0], eye[1], eye[2]);
 	glMultMatrixd(camera.mtx);
@@ -2489,7 +2330,7 @@ void timerFunc(int Cs) {
  * Keyboard callback func. When a 'q' key is pressed,
  * the program is aborted.
  */
-bool view = true, eye_trans = true, eye_clock = true, camera_zoom = true;
+bool view = true, eye_mode = false, camera_zoom = true;
 void my_act(unsigned char key, int x, int y){
 	float  X[3], Y[3], Z[3];
 
@@ -2497,223 +2338,211 @@ void my_act(unsigned char key, int x, int y){
 	if (key == 'Q' || key == 'q') exit(0);
 
 	//direction
-	if (key == 't'|| key == 'T') eye_trans = !eye_trans; //eye_trans
-	else if (key == 'c' || key == 'C') eye_clock = !eye_clock; // eye_rot
-	else if (key == 'p' || key == 'P') { //robot
-		robot.act.idiomatic = (robot.act.idiomatic + 1) & 1;
-		robot.act.fir = -2 + (robot.act.idiomatic & 1);
-	} 
+	if (key == 't' || key == 'T') eye_mode = !eye_mode;//0:1 = t:r
 	else if (key == 'b' || key == 'B') camera_zoom = !camera_zoom; // which zoom
 
-	//eye translate
-	else if ((!style || style == 4) && key == 'x') {//translate at x
-		double cmpeye[3];
-		bool caneye = true;
-		for (int i = 0; i < 3; i++) {
-			cmpeye[i] = eye[i] + (eye_trans ? -0.5 : 0.5) * u[0][i];
-			if (cmpeye[i] <= 6.0 || cmpeye[i] >= 44.0) caneye = false;
+	//drew eyes views
+	else if (key == '!') camera.drawmoniter = !camera.drawmoniter;
+	
+	//eye_mode 0 : 1 => translate : rotate
+	if ((!style || style == 1) && (key == 'x' || key == 'X')) {
+		if (!eye_mode) {//translate at x
+			double cmpeye[3];
+			bool caneye = true;
+			for (int i = 0; i < 3; i++) {
+				cmpeye[i] = eye[i] + (key == 'X' ? -0.5 : 0.5) * u[0][i];
+				if (cmpeye[i] <= 6.0 || cmpeye[i] >= 44.0) caneye = false;
+			}
+			if (caneye) {
+				eyeDx = eyeDx + (key == 'X' ? 0.5 : -0.5);
+				for (int i = 0; i < 3; i++) eye[i] = cmpeye[i];
+			}
 		}
-		if (caneye) {
-			eyeDx = eyeDx + (eye_trans ? 0.5 : -0.5);
-			for (int i = 0; i < 3; i++) eye[i] = cmpeye[i];
+		else {//rotate at x
+			eyeAngx += (key == 'X' ? 5.0 : -5.0);
+			if (eyeAngx > 360.0) eyeAngx -= 360.0;
+			else if (eyeAngx < 0.0) eyeAngx += 360.0;
+			for (int i = 0; i < 3; ++i) {
+				Y[i] = u[1][i] * cv + (key == 'X' ? -1 : 1) * u[2][i] * sv;
+				Z[i] = u[2][i] * cv + (key == 'X' ? 1 : -1) * u[1][i] * sv;
+			}
+			for (int i = 0; i < 3; i++) {
+				u[1][i] = Y[i];
+				u[2][i] = Z[i];
+			}
+			camera.init();
 		}
 	}
-	else if ((!style || style == 4) && key == 'y') {//translate at y
-		double cmpeye[3];
-		bool caneye = true;
-		for (int i = 0; i < 3; i++) {
-			cmpeye[i] = eye[i] + (eye_trans ? -0.5 : 0.5) * u[1][i];
-			if (cmpeye[i] <= 6.0 || cmpeye[i] >= 44.0) caneye = false;
+	else if ((!style || style == 2) && (key == 'y' || key == 'Y')) {
+		if (!eye_mode) {//translate at y
+			double cmpeye[3];
+			bool caneye = true;
+			for (int i = 0; i < 3; i++) {
+				cmpeye[i] = eye[i] + (key == 'Y' ? -0.5 : 0.5) * u[1][i];
+				if (cmpeye[i] <= 6.0 || cmpeye[i] >= 44.0) caneye = false;
+			}
+			if (caneye) {
+				eyeDy = eyeDy + (key == 'Y' ? 0.5 : -0.5);
+				for (int i = 0; i < 3; i++) eye[i] = cmpeye[i];
+			}
 		}
-		if (caneye) {
-			eyeDy = eyeDy + (eye_trans ? 0.5 : -0.5);
-			for (int i = 0; i < 3; i++) eye[i] = cmpeye[i];
+		else {//rotate at y
+			eyeAngy += (key == 'Y' ? 5.0 : -5.0);
+			if (eyeAngy > 360.0) eyeAngy -= 360.0;
+			else if (eyeAngy < 0.0) eyeAngy += 360.0;
+			for (int i = 0; i < 3; i++) {
+				X[i] = cv * u[0][i] + (key == 'Y' ? -1 : 1) * sv * u[2][i];
+				Z[i] = cv * u[2][i] + (key == 'Y' ? 1 : -1) * sv * u[0][i];
+			}
+			for (int i = 0; i < 3; i++) {
+				u[0][i] = X[i];
+				u[2][i] = Z[i];
+			}
+			camera.init();
 		}
 	}
-	else if ((!style || style == 4) && key == 'z') {//translate at z
-		double cmpeye[3];
-		bool caneye = true;
-		for (int i = 0; i < 3; i++) {
-			cmpeye[i] = eye[i] + (eye_trans ? -0.5 : 0.5) * u[2][i];
-			if (cmpeye[i] <= 6.0 || cmpeye[i] >= 44.0) caneye = false;
+	else if ((!style || style == 3) && (key == 'z' || key == 'Z')) {
+		if (!eye_mode) {//translate at z
+			double cmpeye[3];
+			bool caneye = true;
+			for (int i = 0; i < 3; i++) {
+				cmpeye[i] = eye[i] + (key == 'Z' ? -0.5 : 0.5) * u[2][i];
+				if (cmpeye[i] <= 6.0 || cmpeye[i] >= 44.0) caneye = false;
+			}
+			if (caneye) {
+				eyeDz = eyeDz + (key == 'Z' ? 0.5 : -0.5);
+				for (int i = 0; i < 3; i++) eye[i] = cmpeye[i];
+			}
 		}
-		if (caneye) {
-			eyeDz = eyeDz + (eye_trans ? 0.5 : -0.5);
-			for (int i = 0; i < 3; i++) eye[i] = cmpeye[i];
+		else {//rotate at z
+			eyeAngz += (key == 'Z' ? 5.0 : -5.0);
+			if (eyeAngz > 360.0) eyeAngz -= 360.0;
+			if (eyeAngz < 0.0) eyeAngz += 360.0;
+			for (int i = 0; i < 3; i++) {
+				X[i] = cv * u[0][i] + (key == 'Z' ? -1 : 1) * sv * u[1][i];
+				Y[i] = cv * u[1][i] + (key == 'Z' ? 1 : -1) * sv * u[0][i];
+			}
+			for (int i = 0; i < 3; i++) {
+				u[0][i] = X[i];
+				u[1][i] = Y[i];
+			}
+			camera.init();
 		}
 	}
 
-	//eye rotate
-	else if ((!style || style == 4) && key == 'X') {//rotoate at x
-		eyeAngx += (eye_clock ? 5.0 : -5.0);
-		if (eyeAngx > 360.0) eyeAngx -= 360.0;
-		else if (eyeAngx < 0.0) eyeAngx += 360.0;
-		for (int i = 0; i < 3; ++i) {
-			Y[i] = u[1][i] * cv + (eye_clock ? -1 : 1) * u[2][i] * sv;
-			Z[i] = u[2][i] * cv + (eye_clock ? 1 : -1) * u[1][i] * sv;
-		}
-		for (int i = 0; i < 3; i++) {
-			u[1][i] = Y[i];
-			u[2][i] = Z[i];
-		}
-		camera.init();
-	}
-	else if ((!style || style == 4) && key == 'Y') {//rotoate at y
-		eyeAngy += (eye_clock ? 5.0 : -5.0);
-		if (eyeAngy > 360.0) eyeAngy -= 360.0;
-		else if (eyeAngy < 0.0) eyeAngy += 360.0;
-		for (int i = 0; i < 3; i++) {
-			X[i] = cv * u[0][i] + (eye_clock ? -1 : 1) * sv * u[2][i];
-			Z[i] = cv * u[2][i] + (eye_clock ? 1 : -1) * sv * u[0][i];
-		}
-		for (int i = 0; i < 3; i++) {
-			u[0][i] = X[i];
-			u[2][i] = Z[i];
-		}
-		camera.init();
-	}
-	else if ((!style || style == 4) && key == 'Z') {//rotoate at z
-		eyeAngz += (eye_clock ? 5.0 : -5.0);
-		if (eyeAngz > 360.0) eyeAngz -= 360.0;
-		if (eyeAngz < 0.0) eyeAngz += 360.0;
-		for (int i = 0; i < 3; i++) {
-			X[i] = cv * u[0][i] + (eye_clock ? -1 : 1) * sv * u[1][i];
-			Y[i] = cv * u[1][i] + (eye_clock ? 1 : -1) * sv * u[0][i];
-		}
-		for (int i = 0; i < 3; i++) {
-			u[0][i] = X[i];
-			u[1][i] = Y[i];
-		}
-		camera.init();
-	}
-
-	else if (key == 'v') {
-		if ((!style||style == 4) && camera_zoom && zoom - 5.0 >= 40.0) {
-			zoom -= 5.0; camera.init();
-		}
-		else if ((!style && style != 4) && !camera_zoom && pra_zoom - 5.0 >= 5.0)
-			pra_zoom -= 5.0;
-	}
-	else if (key == 'V') {
+	//eye zoom
+	else if (key == 'v') {//zoom_ang_add
 		if ((!style || style == 4) && camera_zoom && zoom + 5.0 <= 90.0) {
 			zoom += 5.0; camera.init();
 		}
 		else if ((!style && style != 4) && !camera_zoom && pra_zoom + 5.0 <= 40.0)
 			pra_zoom += 5.0;
 	}
-	else if (key == 'n') {
-		if ((!style || style == 4) && camera_zoom && znear - 2.0 >= zfar - 60.0) {
-			znear -= 2.0; camera.init();
+	else if (key == 'V') {//zoom_ang_sub
+		if ((!style || style == 4) && camera_zoom && zoom - 5.0 >= 40.0) {
+			zoom -= 5.0; camera.init();
 		}
-		else if ((!style && style != 4) && !camera_zoom && pra_znear - 2.0 >= zfar - 100.0)
-			pra_znear -= 2.0;
+		else if ((!style && style != 4) && !camera_zoom && pra_zoom - 5.0 >= 5.0)
+			pra_zoom -= 5.0;
 	}
-	else if (key == 'N') {
+	else if (key == 'n') {
 		if ((!style || style == 4) && camera_zoom && znear + 2.0 <= zfar - 15.0) {
 			znear += 2.0; camera.init();
 		}
 		else if ((!style && style != 4) && !camera_zoom && pra_znear + 2.0 >= zfar - 15.0)
 			pra_znear += 2.0;
 	}
-	else if (key == 'f') {
+	else if (key == 'N') {
+		if ((!style || style == 4) && camera_zoom && znear - 2.0 >= zfar - 60.0) {
+			znear -= 2.0; camera.init();
+		}
+		else if ((!style && style != 4) && !camera_zoom && pra_znear - 2.0 >= zfar - 100.0)
+			pra_znear -= 2.0;
+	}
+	else if (key == 'f') {//zoom_far_add
+		if ((!style || style == 4) && camera_zoom && zfar + 2.0 <= 60.0) {
+			zfar += 2.0; camera.init();
+		}
+		else if ((!style && style != 4) && !camera_zoom && pra_zfar + 2.0 <= 100.0)
+			pra_zfar += 2.0;
+	}
+	else if (key == 'F') {//zoom_far_sub
 		if ((!style || style == 4) && camera_zoom && zfar - 2.0 >= znear + 15.0) {
 			zfar -= 2.0; camera.init();
 		}
 		else if ((!style && style != 4) && !camera_zoom && pra_zfar - 2.0 >= znear + 15.0)
 			pra_zfar -= 2.0;
 	}
-	else if (key == 'F') {
-		if ((!style || style == 4) && camera_zoom && zfar + 2.0 <= 60.0) {
-			zfar += 2.0; camera.init();
-		}
-		else if ((!style && style != 4) && !camera_zoom && pra_zfar + 2.0 <= 100.0) {
-			pra_zfar += 2.0;
-		}
-	}
-
-	//drew eyes views
-	else if (key == '!') camera.drawmoniter = !camera.drawmoniter;
-
+	
 	//robot translate
-	else if ((key == 'D' || key == 'd') && !robot.act.action) {
-		robot.act.action = RWLK;
+	else if (key == 'p' || key == 'P') {//parall dir
+		//if(prekey == ' ') //旁飛燕
+		robot.act.fir = (key == 'p' ? -2 : -1);//right:left
+		robot.act.action = (key == 'p' ?RWLK : LWLK);
 		glutTimerFunc(150, timerFunc, robot.act.action);
-		//旁飛燕
-		//else if(prekey == ' ' && (key == 'w' || key == 'W'))
 	}
-	else if ((key == 'A' || key == 'a') && !robot.act.action) {
-		robot.act.action = LWLK;
+	else if (key == 'h' || key == 'w') {//forward dir
+		//if(prekey == ' ') //前飛燕
+		robot.act.action = (key == 'h'? RUN : WALK);
 		glutTimerFunc(150, timerFunc, robot.act.action);
-	  //旁飛燕
-	  //else if(prekey == ' ' && (key == 'w' || key == 'W'))
 	}
-	else if (key == 'W' || key == 'w') {
-		if (key == 'W' && !robot.act.action) {
-			robot.act.action = RUN;
-			glutTimerFunc(150, timerFunc, robot.act.action);
-		}
-		else if (key == 'w' && !robot.act.action) {
-			robot.act.action = WALK;
-			glutTimerFunc(150, timerFunc, robot.act.action);
-		}
-		//前飛燕
-		//else if(prekey == ' ' && (key == 'w' || key == 'W'))
-	}
-	else if (key == 'S' || key == 's') {
+	//else if (key == 'H' || key == 'W')//backward 踢臀跑&小碎步
+	else if (key == 'H' || key == 'W') {//無姿勢後退
+		//if(prekey == ' ') //後飛燕
 		double dy = cosl(Rad(self_ang + 180)) * 5.0;
 		double dx = sinl(Rad(self_ang + 180)) * 5.0;
 		if (self_pos[0] + dx < 0.0 || self_pos[0] + dx > 38.0) return;
 		if (self_pos[2] + dy < 0.0 || self_pos[2] + dy > 38.0) return;
-		if (cross({ self_pos[0] * 1.5 + 7,self_pos[2] * 1.5 + 7 }, { self_pos[0] + dx * 1.5 + 7, self_pos[2] + dy * 1.5 + 7}, {25, 15}, {25, 35})) return;
+		/*	把桿被我收起來了
+		if (cross({self_pos[0] * 1.5 + 7,self_pos[2] * 1.5 + 7}, {self_pos[0] + dx * 1.5 + 7, self_pos[2] + dy * 1.5 + 7}, {25, 15}, {25, 35})) return;
 		if (cross({ self_pos[0] * 1.5 + 7,self_pos[2] * 1.5 + 7 }, { self_pos[0] + dx * 1.5 + 7, self_pos[2] + dy * 1.5 + 7 }, { 20, 15 }, { 30, 15 })) return;
 		if (cross({ self_pos[0] * 1.5 + 7,self_pos[2] * 1.5 + 7 }, { self_pos[0] + dx * 1.5 + 7, self_pos[2] + dy * 1.5 + 7 }, { 20, 35 }, { 30, 35 })) return;
-	  self_pos[0] = min(max(self_pos[0] + dx, 0.0), 38.0);
-	  self_pos[2] = min(max(self_pos[2] + dy, 0.0), 38.0);
-
-	  //後飛燕
-	  //else if(prekey == ' ' && (key == 'w' || key == 'W'))
-  }
-
-	//robot rotate
-	else if ((key == 'r' || key == 'R') && !robot.act.action) {
+		*/
+		self_pos[0] = min(max(self_pos[0] + dx, 0.0), 38.0);
+		self_pos[2] = min(max(self_pos[2] + dy, 0.0), 38.0);
+	}
+	else if (key == 'r' || key == 'R') {//slow rot
+		robot.act.idiomatic = (key == 'r' ? 0 : 1);//right:left
 		robot.act.action = TURN;
 		glutTimerFunc(150, timerFunc, robot.act.action);
 	}
-	else if ((key == 'o' || key == 'O') && !robot.act.action) {
+	else if (key == 'o' || key == 'O') {//quick rot
+		robot.act.idiomatic = (key == 'o' ? 0 : 1);//right:left
 		robot.act.action = ROT; cnt = 0;
 		glutTimerFunc(200, timerFunc, robot.act.action);
 	}
-	else if (key == ' ' && robot.act.action <= 0) {
-		if (prekey == 'W') {
-			prekey = '\n';
-			robot.act.action = LEAP_JUMP;
-			glutTimerFunc(100, timerFunc, robot.act.action);
-		}
-		else if (prekey == 'w') {
-			prekey = '\n';
-			robot.act.action = LIFT_JUMP; check2 = false;
-			glutTimerFunc(100, timerFunc, robot.act.action);
-		}
-		else if (prekey == 'r') {
-			prekey = '\n';
-			robot.act.action = TUN_JUMP; check2 = false;
-			glutTimerFunc(100, timerFunc, robot.act.action);
-		}
-		else if (prekey == 'd') {
-			robot.act.action = RWALK_JUMP;
-			glutTimerFunc(150, timerFunc, robot.act.action);
-		}
-		else if (prekey == 'a') {
-			robot.act.action = LWALK_JUMP;
-			glutTimerFunc(150, timerFunc, robot.act.action);
-		}
-		else if (prekey == 's') {
-			robot.act.action = BWALK_JUMP;
-			glutTimerFunc(150, timerFunc, robot.act.action);
-		}
-		else if (prekey == '\n') {
+	else if (key == ' ') {
+		if (prekey == '\n') {
+			//prekey = ' ';
 			robot.act.action = JMP;
 			glutTimerFunc(150, timerFunc, robot.act.action);
+		}
+		else {
+			if (prekey == 'h') {
+				robot.act.action = LEAP_JUMP;
+				glutTimerFunc(100, timerFunc, robot.act.action);
+			}
+			else if (prekey == 'w') {
+				robot.act.action = LIFT_JUMP; check2 = false;
+				glutTimerFunc(100, timerFunc, robot.act.action);
+			}
+			else if (prekey == 'W') {
+				robot.act.action = BWALK_JUMP;
+				glutTimerFunc(150, timerFunc, robot.act.action);
+			}
+			else if (prekey == 'r') {
+				robot.act.action = TUN_JUMP; check2 = false;
+				glutTimerFunc(100, timerFunc, robot.act.action);
+			}
+			else if (prekey == 'p') {
+				robot.act.action = RWALK_JUMP;
+				glutTimerFunc(150, timerFunc, robot.act.action);
+			}
+			else if (prekey == 'P') {
+				robot.act.action = LWALK_JUMP;
+				glutTimerFunc(150, timerFunc, robot.act.action);
+			}
+			prekey == '\n';
 		}
 	}
 
@@ -2726,35 +2555,39 @@ void my_act(unsigned char key, int x, int y){
 	display();
 }
 
+/*--------------------------------------------------
+ * Keyboard callback func. When a 'q' key is end pressed,
+ * the program is aborted.
+ */
 void my_end(unsigned char key, int x, int y) {
-	if (key == 'W') {
-		prekey = 'W'; check = true;
+	if (key == 'h') {
+		prekey = 'h'; check = true;
 		robot.act.action = LEAP;
 		glutTimerFunc(300, timerFunc, robot.act.action);
 	}
-	if (key == 'w') {
+	else if (key == 'w') {
 		prekey = 'w'; check = true;
 		robot.act.action = LIFT;
 		glutTimerFunc(300, timerFunc, robot.act.action);
 	}
-	if (key == 'r' || key == 'R') {
+	else if (key == 'r' || key == 'R') {
 		prekey = 'r'; check = true;
 		robot.act.action = TUN;
 		glutTimerFunc(300, timerFunc, robot.act.action);
 	}
-	if (key == 'o' || key == 'O') robot.act.action = RIS;
-	if (key == 'a' || key == 'A') {
-		prekey = 'a'; check = true;
+	else if (key == 'o' || key == 'O') robot.act.action = RIS;
+	else if (key == 'P') {
+		prekey = 'P'; check = true;
 		robot.act.action = LWALK;
 		glutTimerFunc(300, timerFunc, robot.act.action);
 	}
-	if (key == 'd' || key == 'D') {
-		prekey = 'd'; check = true;
+	else if (key == 'p') {
+		prekey = 'p'; check = true;
 		robot.act.action = RWALK;
 		glutTimerFunc(300, timerFunc, robot.act.action);
 	}
-	if (key == 's' || key == 'S') {
-		prekey = 's'; check = true;
+	else if (key == 'W' || key == 'H') {
+		prekey = 'W'; check = true;
 		robot.act.action = BWALK;
 		glutTimerFunc(300, timerFunc, robot.act.action);
 	}
