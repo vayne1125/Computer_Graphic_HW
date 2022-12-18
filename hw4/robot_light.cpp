@@ -3,6 +3,8 @@
 #include <iostream>
 #include <GL/glut.h>
 #include <vector>
+#include <cstdlib> /* 亂數相關函數 */
+#include <ctime>   /* 時間相關函數 */
 #define   PI   3.1415927
 //定義顏色
 #define ICE_COLOR       100
@@ -12,6 +14,15 @@
 #define ROBOT_PINK_MAIN 105
 #define ROBOT_PINK_SUB  106
 #define HOME_COLOR      107
+
+//定義材質
+#define GOLD            150
+#define SILVER          151
+#define PERL            152
+#define CYAN_RUBBER     153
+#define RED_PLASTIC     154
+#define COPPER          155
+#define BLACK_PLACTIC   156
 
 //移動方式
 #define WALK 0
@@ -31,12 +42,11 @@
 #define OUT_LINE_LEFT    58           //debug mode 碰到邊界 左
 #define OUT_LINE_RIGHT   59           //debug mode 碰到邊界 右
 
-
 //鎖按鍵 todo:還有小bug q
 #define LOCK true
 #define UNLOCK false
 
-//場景模式選擇 todo:打獵場(未來展望哈哈...)
+//場景模式選擇 
 #define MAGICFIELD 0
 #define GRASSLAND 1
 
@@ -80,34 +90,43 @@ double clippingWindowOrtho[6] = { 0 };         //平行投影 window大小
 /*----------------------------------------------------------*/
 
 /*-----光參數-----*/
+bool isLighting = 1;
 /*----Define normals of faces ----*/
 float  normal[][4] = { {0.0, -1.0, 0.0}, {0.0, 1.0, 0.0}, {0.0, 0.0, -1.0},
               {1.0, 0.0, 0.0}, {0.0, 0.0, 1.0}, {-1.0, 0.0, 0.0} };
 
-/*----Define material properties for cube -----*/
-float  mat_ambient[] = { 0.1, 0.3, 0.1, 1.0 };
-float  mat_diffuse[] = { 0.1, 0.9, 0.1, 1.0 };
-float  mat_specular[] = { 0.4, 0.4, 0.4, 1.0 };
-float  mat_shininess = 64.0;
-float  flr_diffuse[] = { 0.60, 0.60, 0.60, 1.0 };
-float  flr_ambient[] = { 0.3, 0.3, 0.3, 1.0 };
-float  flr_specular[] = { 0.0, 0.0, 0.0, 1.0 };
-
 /*----Define light source properties -------*/
-float  litdir_init[] = {100,0,100,0};
-float  litdir_position[] = { 100.0, 0.0, 100.0, 0.0 }; 
-float  litdir_direction[] = { 0,0,0,0 };
-float  litdir_diffuse[] = { 1, 1, 1, 1.0 };
-float  litdir_specular[] = { 1, 1, 1, 1.0 };
+float  litdir_init[] = {30,0,30,0};  //原本/照的位置
+float  litdir_position[] = { 80.0, 0.0, 30.0, 0.0 }; 
+float  litdir_direction[] = { 50,0,0,0 };              //pos - init
+float  litdir_diffuse[] = { 1,1,1,1 };
+float  litdir_specular[] = { 1,1,1,1 };
+float  litdirColor[] = { 1,69 / 255.0,0};
 float  litdirAng = 0;
+float  litdirR = 50;
+float  litdirIntensity = 0.7;
+bool   isLitdirOpen = 1;
+bool   isLitdirColorOpen = 0;
 
-float  lit1_position[] = { -0.5, 1.0, -2.0, 1.0 };
-float  litpos_direction[] = { -1.0, -1.0, 1.0, 0.0 };
-float  lit1_diffuse[] = { 0.7, 0.7, 0.0, 1.0 };
-float  litdir_cutoff = 60.0;
-float  litdir_exponent = 8.0;
+float  litpos_position[] = { 30,70,30,1.0 };
+float  litpos_diffuse[] = { 0.7, 0.7, 0.7, 1.0 };
+float  litpos_specular[] = { 0.7, 0.7, 0.7, 1.0 };
+float  litposColor[] = { 25 / 255.0,25 / 255.0,112 / 255.0 };
+float  litposIntensity = 0.7;
+bool   isLitposOpen = 0;
+bool   isLitposColorOpen = 0;
 
-float  global_ambient[] = { 0.3, 0.3, 0.3, 1.0 };
+float  litspot_position[] = { 0,0,0,1.0 };
+float  litspot_direction[] = { 0,0,3,0 };      //0,0,0 -> 0,-1,1
+float  litspot_diffuse[] = { 1, 1, 1, 1.0 };
+float  litspot_specular[] = { 1, 1, 1, 1.0 };
+float  litspotIntensity = 0.7;
+float  litspotCutoffAng = 45;
+bool   isLitspotOpen = 0;
+float  litspotAng = 0;
+
+//float  global_ambient[] = { 0, 0, 0, 1.0 };
+float  global_ambient[] = { 0.2, 0.2, 0.2, 1.0 };
 /*----------------------------------------------------------*/
 
 //Define GLU quadric objects, a sphere and a cylinder
@@ -123,9 +142,11 @@ void draw_magic_field();
 void draw_cube();
 void draw_cylinder(double up, double down, double height);
 void change_color(int value);
+void change_color_material(int value);
 void draw_circle(double size, int wid);
 void draw_square(int hei, int wid,int sz);
 void draw_view_volume();
+void draw_tree();
 float getDis(float x1, float y1, float x2, float y2) {           //算距離
     return sqrt((x1 - x2) * (x1 - x2) + (y1 - y2) * (y1 - y2));
 }
@@ -163,6 +184,20 @@ void setMaterial(float spr, float spg, float spb, float emir, float emig, float 
     glMaterialf(GL_FRONT, GL_SHININESS, shi);
     glColorMaterial(GL_FRONT, GL_AMBIENT_AND_DIFFUSE);
 }
+void setMaterial(float spr, float spg, float spb, float emir, float emig, float emib, float ambr,float ambg,float ambb,float difr,float difg,float difb,float shi) {
+    glColorMaterial(GL_FRONT, GL_SPECULAR); glColor3f(spr, spg, spb);
+    glColorMaterial(GL_FRONT, GL_EMISSION); glColor3f(emir, emig, emib);
+    glMaterialf(GL_FRONT, GL_SHININESS, shi);
+    glColorMaterial(GL_FRONT, GL_AMBIENT); glColor3f(ambr, ambg, ambb);
+    glColorMaterial(GL_FRONT, GL_DIFFUSE); glColor3f(difr, difg, difb);
+}
+void setMaterial(float spr, float spg, float spb,float spa, float emir, float emig, float emib, float emia, float ambr, float ambg, float ambb, float amba, float difr, float difg, float difb, float difa,float shi) {
+    glColorMaterial(GL_FRONT, GL_SPECULAR); glColor4f(spr, spg, spb,spa);
+    glColorMaterial(GL_FRONT, GL_EMISSION); glColor4f(emir, emig, emib,emia);
+    glMaterialf(GL_FRONT, GL_SHININESS, shi);
+    glColorMaterial(GL_FRONT, GL_AMBIENT); glColor4f(ambr, ambg, ambb,amba);
+    glColorMaterial(GL_FRONT, GL_DIFFUSE); glColor4f(difr, difg, difb,difa);
+}
 node ball_cor(double r, int A, int B) {          //極座標轉換
     node rt;
     rt.x = r * sin(A * 0.01745) * cos(B * 0.01745);
@@ -173,7 +208,7 @@ node ball_cor(double r, int A, int B) {          //極座標轉換
 struct elf {
     void draw() {
         glPushMatrix();
-        setMaterial(0.2, 0.2, 0.2, 0, 0, 0, 128);
+        setMaterial(0.4, 0.4, 0.4, 0, 0, 0, 120);
         change_color(ROBOT_BLUE_MAIN);
         glPushMatrix();                 //頭
         glutSolidSphere(1, 50, 50);
@@ -472,11 +507,13 @@ struct robot {
 
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
         //肚子
-        
-        setMaterial(0.2,0.2,0.2, 0, 0, 0, 128);
-        change_color(mainColor);
-        
-        glPushMatrix();                             
+
+        //setMaterial(0.4, 0.4, 0.4, 0, 0, 0, 120);
+
+        if (isLighting)setMaterial(0, 0, 0, 0.0f, 0.0f, 0.0f, 194 / 255.0, 223 / 255.0, 1.0, 1, 1, 1, 12.8f);
+        else change_color(mainColor);
+
+        glPushMatrix();
         glScalef(2.5, 2.5, 2.5);
         glTranslatef(x, y, z);                      //整隻的座標
 
@@ -486,8 +523,9 @@ struct robot {
         glTranslatef(0, 4.75, 0);                   //移到肚子
         glutSolidSphere(2, 50, 50);                 //畫肚子 直徑4
 
+        setMaterial(0.4, 0.4, 0.4, 0, 0, 0, 120);
         node tp = ball_cor(2, 90, 30);
-        glPushMatrix();                             
+        glPushMatrix();
         glTranslatef(tp.x, tp.y, tp.z);             //走到右肩膀
         right_h->draw();
 
@@ -495,41 +533,44 @@ struct robot {
         glTranslatef(0, 0.3, 0);
         if (carry_mw && isMagician) magic_wand_carry->draw();
         glPopMatrix();                              //pop3
-        
+
         glPopMatrix();                              //pop2
 
         //法杖有改材質 要重新調
-        setMaterial(0.2, 0.2, 0.2, 0, 0, 0, 128);
+        setMaterial(0.4, 0.4, 0.4, 0, 0, 0, 120);
         //左肩膀
         tp = ball_cor(2, 270, 330);
-        glPushMatrix();                           
+        glPushMatrix();
         glTranslatef(tp.x, tp.y, tp.z);       //走到左肩膀
         left_h->draw();
-        glPopMatrix();                          
+        glPopMatrix();
 
         glPushMatrix();                       //坐在法杖上 
         glTranslatef(0, -2, 0);
         if (isOnWand) magic_wand_sit->draw();
-        glPopMatrix();                  
+        glPopMatrix();
 
         //法杖有改材質 要重新調
-        setMaterial(0.2, 0.2, 0.2, 0, 0, 0, 128);
+        setMaterial(0.4, 0.4, 0.4, 0, 0, 0, 120);
         //左大腿上面的關節  埋在身體裡
-        glPushMatrix();                       
+        glPushMatrix();
         glTranslatef(-0.4, -1.75, 0);
         left_f->draw();
-        glPopMatrix();                        //pop2
+        glPopMatrix();
 
         //右大腿上面的關節
-        glPushMatrix();                       //push2
+        glPushMatrix();
         glTranslatef(0.4, -1.75, 0);
         right_f->draw();
-        glPopMatrix();                        //pop2
+        glPopMatrix();
 
         //頭
-        change_color(mainColor);
+        if (isLighting)setMaterial(0, 0, 0, 0.0f, 0.0f, 0.0f, 194 / 255.0, 223 / 255.0, 1.0, 1, 1, 1, 12.8f);
+        else change_color(mainColor);
+
+        //change_color(mainColor);
         glTranslatef(0, 3, 0);               //在走到頭  和身體重疊0.5
-        glPushMatrix();                      //push2
+        glPushMatrix();
         glutSolidSphere(1.5, 50, 50);        //直徑3
 
         //眼睛
@@ -547,8 +588,10 @@ struct robot {
         glutSolidSphere(0.33, 10, 10);
         glPopMatrix();                           //pop3
 
+        setMaterial(0, 0, 0, 0, 0, 0, 0);
         if (isMagician)
-            glColor3f(1, 122 / 255.0, 189);      //粉
+            //glColor3f(128 / 255.0, 128 / 255.0, 1);
+            glColor3f(1, 122 / 255.0, 189 / 255.0);      //粉
         else
             glColor3f(0, 0, 0);
         glPushMatrix();                          //push3
@@ -590,8 +633,18 @@ struct robot {
         right_h->shoulderAng_x = 180;
         left_h->elbowAng_x = 0;
         right_h->elbowAng_x = 0;
+        left_h->elbowAng_y = 0;
+        right_h->elbowAng_y = 0;
+        left_h->elbowAng_z = 0;
+        right_h->elbowAng_z = 0;
         left_h->shoulderAng_z = -35;
         right_h->shoulderAng_z = 35;
+    }
+    void carryLight() {
+        stand();
+        right_h->shoulderAng_x = 60;
+        right_h->fingerAng_y = 350;
+        right_h->shoulderAng_x = 95;
     }
     bool flag = 0, flag2 = 0;
     void move() {
@@ -771,7 +824,7 @@ struct robot {
         }
         if (jump_cmd == 2) {
             jump_cmd = 0;
-            cout << y << " " << jump_cmd << " " << left_f->kneeAng_x << " " << left_f->hipJointAng_x << " " << left_h->shoulderAng_x << "\n";
+            //cout << y << " " << jump_cmd << " " << left_f->kneeAng_x << " " << left_f->hipJointAng_x << " " << left_h->shoulderAng_x << "\n";
             return 1;
         }
         return 0;
@@ -1069,6 +1122,31 @@ struct floor {
         glPopMatrix();                    //回到0,0
     }
 }myFloor;
+void change_color_material(int value) {
+    switch (value) {
+    case GOLD:
+        setMaterial(0.628281f, 0.555802f, 0.366065f,0,0,0, 0.24725f, 0.1995f, 0.0745f, 0.75164f, 0.60648f, 0.22648f, 51.2f);
+        break;
+    case SILVER:
+        setMaterial(0.508273f, 0.508273f, 0.508273f,0,0,0, 0.19225f, 0.19225f, 0.19225f, 0.50754f, 0.50754f, 0.50754f,51.2f);
+        break;
+    case PERL:
+        setMaterial(0.296648f, 0.296648f, 0.296648f, 0.922f,0,0,0,0, 0.25f, 0.20725f, 0.20725f, 0.922f, 1.0f, 0.829f, 0.829f, 0.922f,11.264f);
+        break;
+    case CYAN_RUBBER:
+        setMaterial(0.04f, 0.7f, 0.7f,0,0,0, 0.0f, 0.05f, 0.05f, 0.4f, 0.5f, 0.5f,10.0f);
+        break;
+    case RED_PLASTIC:
+        setMaterial(0.7f, 0.6f, 0.6f,0,0,0, 0.0f, 0.0f, 0.0f, 0.5f, 0.0f, 0.0f,32);
+        break;
+    case COPPER:
+        setMaterial(0.256777f, 0.137622f, 0.086014f,0,0,0, 0.19125f, 0.0735f, 0.0225f, 0.7038f, 0.27048f, 0.0828f,12.8f);
+        break;
+    case BLACK_PLACTIC:
+        setMaterial(0.50f, 0.50f, 0.50f,0,0,0, 0.0f, 0.0f, 0.0f, 0.01f, 0.01f, 0.01f,32.0f);
+        break;
+    }
+}
 void change_color(int value) {  //設定顏色
     switch (value) {
     case ICE_COLOR:
@@ -1154,6 +1232,7 @@ void myinit()
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
+    glEnable(GL_COLOR_MATERIAL);
     glEnable(GL_LIGHTING);    /*Enable lighting effects */
     glEnable(GL_LIGHT0);        /*Turn on light0 */
     //glEnable(GL_LIGHT1);      /*Turn on light1 */
@@ -1200,38 +1279,168 @@ void myinit()
         }
     }
 }
+void draw_SnowMan(int colorMaterial) {
+    
+    glPushMatrix();
+    change_color_material(colorMaterial);
+    glTranslatef(0, 2, 0);                   //移到肚子
+    glutSolidSphere(2, 30, 30);              //畫肚子 直徑4
+              
+    //扣子
+    change_color_material(PERL);
+    glPushMatrix();
+    glTranslatef(0,0,1.8);
+    glutSolidSphere(0.3, 10, 10);
+
+    glPushMatrix();
+    glTranslatef(0, 0.75, -0.15);
+    glutSolidSphere(0.3, 10, 10);
+    glPopMatrix();
+
+    glTranslatef(0, -0.75, -0.15);
+    glutSolidSphere(0.3, 10, 10);
+
+    glPopMatrix();
+
+    //右手
+    change_color_material(COPPER);
+    glPushMatrix();
+    glTranslatef(1,0,0);
+    glRotatef(-33,0,0,1);
+
+    glPushMatrix();
+    glRotatef(270,1,0,0);
+    draw_cylinder(0.15,0.15,3);
+    glPopMatrix();
+
+    glTranslatef(0, 1.5, 0);
+
+    glPushMatrix();
+    glRotatef(20, 0, 0, 1);
+    glRotatef(270, 1, 0, 0);
+    draw_cylinder(0.15, 0.15, 1.5);
+    glPopMatrix();
+
+    glPopMatrix();
+
+    //左手
+    glPushMatrix();
+    glTranslatef(-1, 0, 0);
+    glRotatef(33, 0, 0, 1);
+
+    glPushMatrix();
+    glRotatef(270, 1, 0, 0);
+    draw_cylinder(0.15, 0.15, 3);
+    glPopMatrix();
+
+    glTranslatef(0, 1.5, 0);
+
+    glPushMatrix();
+    glRotatef(-20, 0, 0, 1);
+    glRotatef(270, 1, 0, 0);
+    draw_cylinder(0.15, 0.15, 1.5);
+    glPopMatrix();
+
+    glPopMatrix();
+
+    //頭
+    change_color_material(colorMaterial);
+    glTranslatef(0, 3, 0);               //在走到頭  和身體重疊0.5
+    glPushMatrix();
+    glutSolidSphere(1.5, 30, 30);        //直徑3
+
+    //眼睛
+    change_color_material(BLACK_PLACTIC);
+    glColor3f(0,0,0);
+    glPushMatrix();                          //眼睛  push3
+    glTranslatef(0.6, 0, 1.3);
+    glScalef(0.4, 0.8, 0.4);
+    glutSolidSphere(0.5, 10, 10);
+    change_color_material(PERL);                      //眼白
+    glTranslatef(0, 0.15, 0.15);
+    glutSolidSphere(0.33, 10, 10);
+    glPopMatrix();                           //pop3
+
+    change_color_material(BLACK_PLACTIC);
+    glPushMatrix();                          //push3
+    glTranslatef(-0.6, 0, 1.3);
+    glScalef(0.4, 0.8, 0.4);
+    glutSolidSphere(0.5, 10, 10);
+    change_color_material(PERL);                        //眼白
+    glTranslatef(0, 0.15, 0.15);
+    glutSolidSphere(0.33, 10, 10);
+    glPopMatrix();                           //pop3
+
+    //glColor3f(1, 0, 0);
+    //glPushMatrix();                           //push3
+    //glTranslatef(0, -0.6, 1.5);               //嘴巴
+    //glLineWidth(1);
+    //glBegin(GL_LINES);
+    //glVertex3f(-0.2, 0, 0);
+    //glVertex3f(0.2, 0, 0);
+    //glEnd();
+    glPopMatrix();                          //pop3
+    glPopMatrix();                       //離開頭 pop2
+    glPopMatrix();                       //離開肚子坐標系 pop1
+
+}
 void draw_cube() {
-    int i;
-    glPolygonMode(GL_FRONT, GL_FILL);
-    for (i = 0; i < 6; i++) {     /* draw the six faces one by one */
-        glNormal3fv(normal[i]);
-        glBegin(GL_POLYGON);  /* Draw the face */
-        glVertex3fv(points[face[i][0]]);
-        glVertex3fv(points[face[i][1]]);
-        glVertex3fv(points[face[i][2]]);
-        glVertex3fv(points[face[i][3]]);
-        glEnd();
-    }
+    //左下角0,0,0
+    glPushMatrix();
+    glTranslatef(0.5,0.5,0.5);
+    glutSolidCube(1);
+    glPopMatrix();
+    //int i;
+    //glPolygonMode(GL_FRONT, GL_FILL);
+    //for (i = 0; i < 6; i++) {     /* draw the six faces one by one */
+    //    glNormal3fv(normal[i]);
+    //    glBegin(GL_POLYGON);  /* Draw the face */
+    //    glVertex3fv(points[face[i][0]]);
+    //    glVertex3fv(points[face[i][1]]);
+    //    glVertex3fv(points[face[i][2]]);
+    //    glVertex3fv(points[face[i][3]]);
+    //    glEnd();
+    //}
 }
 void draw_cube(int x) {
-    int i;
-    glPolygonMode(GL_FRONT, x);
-    for (i = 0; i < 6; i++) {     /* draw the six faces one by one */
-        glNormal3fv(normal[i]);
-        glBegin(GL_POLYGON);  /* Draw the face */
-        glVertex3fv(points[face[i][0]]);
-        glVertex3fv(points[face[i][1]]);
-        glVertex3fv(points[face[i][2]]);
-        glVertex3fv(points[face[i][3]]);
-        glEnd();
+    //左下角0,0,0
+    glPushMatrix();
+    glTranslatef(0.5, 0.5, 0.5);
+    glutWireCube(1);
+    glPopMatrix();
+    //int i;
+    //glPolygonMode(GL_FRONT, x);
+    //for (i = 0; i < 6; i++) {     /* draw the six faces one by one */
+    //    glNormal3fv(normal[i]);
+    //    glBegin(GL_POLYGON);  /* Draw the face */
+    //    glVertex3fv(points[face[i][0]]);
+    //    glVertex3fv(points[face[i][1]]);
+    //    glVertex3fv(points[face[i][2]]);
+    //    glVertex3fv(points[face[i][3]]);
+    //    glEnd();
+    //}
+}
+void draw_disk(int r) {
+    if (mycircle == NULL) {
+        mycircle = gluNewQuadric();
+        gluQuadricDrawStyle(mycircle, GLU_FILL);
     }
+    glPushMatrix();
+    glRotatef(270, 1, 0, 0);
+    gluDisk(mycircle,
+        0,              // inner radius 
+        r,              // outer radius 
+        360,            // 16-side polygon 
+        3);
+    glPopMatrix();
 }
 void draw_circle(double size, int wid) {    //大小 線寬度
-    glLineWidth(wid);
-    glNormal3f(0,1,0);
+    glLineWidth(wid); 
+    glNormal3f(0, 1, 0);
     glBegin(GL_POLYGON);
-    for (int i = 360; i >=0 ; --i)
+    for (int i = 360; i >= 0; --i) {
         glVertex3f(size * cos(i * 0.01745), 0, size * sin(i * 0.01745));
+    }
     glEnd();
 }
 void draw_square(int hei, int wid,int sz) {     //躺在地上的正方形 定義: x軸向為寬，z向為高
@@ -1303,7 +1512,7 @@ void draw_home() {               //給中心點
 void draw_debug(){
     setMaterial(0, 0, 0, 1, 122 / 255.0, 189, 0);
     glPushMatrix();
-    glColor3f(1, 122 / 255.0, 189); //粉
+    glColor3f(1, 122 / 255.0, 189/255.0); //粉
 
     glPushMatrix();
     for (int i = 0; i < debugModeCmd; i++) {
@@ -1342,7 +1551,7 @@ void draw_debug(){
     glPopMatrix();
 }
 void draw_magic_field() {
-    //魔法陣
+    //魔法陣 60*60
     glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     glRotatef(90, 0, 1, 0);                          //旋轉90度(對y軸) -> 改變月亮開口
     draw_circle(30, 1);
@@ -1352,6 +1561,7 @@ void draw_magic_field() {
 
     glLineWidth(1);                        //直線
     for (int i = 360; i >= 0; i -= 15) {
+        glNormal3f(0, 1, 0);
         glBegin(GL_LINES);
         glVertex3f(27.3 * cos(i * 0.01745), 0, 27.3 * sin(i * 0.01745));
         glVertex3f(25.3 * cos(i * 0.01745), 0, 25.3 * sin(i * 0.01745));
@@ -1363,6 +1573,7 @@ void draw_magic_field() {
 
     glLineWidth(2);
     for (int t = 0; t < 3; t++) {            //星星陣
+        glNormal3f(0, 1, 0);
         glBegin(GL_POLYGON);
         for (int i = 360 + (t * 30); i > (t * 30); i -= 90) {
             glVertex3f(24.8 * cos(i * 0.01745), 0, 24.8 * sin(i * 0.01745));
@@ -1375,6 +1586,7 @@ void draw_magic_field() {
     draw_circle(14, 4);
     for (float t = 0; t < 12; t += 0.5) {     //月亮陣
         glLineWidth(4);
+        glNormal3f(0, 1, 0);
         glBegin(GL_POLYGON);
         for (int i = 360; i >= 0; --i)
             glVertex3f((14 - t * 0.2) * cos(i * 0.01745), 0, (t * 0.23) + (14 - t * 0.2) * sin(i * 0.01745));
@@ -1384,6 +1596,7 @@ void draw_magic_field() {
     for (int i = 360, j = 0; i >= 0; i -= 15, j++) { //太陽陣
         if (i % 30 == 0) {
             glLineWidth(1);
+            glNormal3f(0, 1, 0);
             glBegin(GL_LINES);
             glVertex3f(15.8 * cos((i + 5) * 0.01745), 0, 15.8 * sin((i + 5) * 0.01745));
             glVertex3f(8.2 * cos((i + 5) * 0.01745), 0, 8.2 * sin((i + 5) * 0.01745));
@@ -1394,6 +1607,7 @@ void draw_magic_field() {
         if (i % 60 == 0) continue;
         if (j % 4 == 2) glLineWidth(1);
         else glLineWidth(2);
+        glNormal3f(0, 1, 0);
         glBegin(GL_LINES);
         glVertex3f(17 * cos(i * 0.01745), 0, 17 * sin(i * 0.01745));
         glVertex3f(8.2 * cos(i * 0.01745), 0, 8.2 * sin(i * 0.01745));
@@ -1403,6 +1617,10 @@ void draw_magic_field() {
     draw_circle(7.7, 2);         //0.5
 }
 void draw_scene(int mode) {
+    glPushMatrix();
+    glScalef(10,10,10);
+    draw_tree();
+    glPopMatrix();
     if (mode == MAGICFIELD) {        //魔法陣 位置(30,30) 邊界限制(60,60)
         setMaterial(0, 0, 0, 0, 0, 0, 0);
         if (!myRobot.isMagician) change_color(ICE_COLOR);
@@ -1441,35 +1659,37 @@ void draw_scene(int mode) {
         draw_magic_field();
         glPopMatrix();
 
-        //glColor3f(0, 0, 0);         //格子線(開發用)
-        //glPushMatrix();
-        //for (int i = 0; i < 200; i += 10) {
-        //    if(i%100 == 0) glLineWidth(3);
-        //    else if (i%50  == 0) glLineWidth(2);
-        //    else glLineWidth(1);
-        //    glBegin(GL_LINES);
-        //    glVertex3f(i, 0.1, 0);
-        //    glVertex3f(i, 0.1, 200);
-        //    glVertex3f(0, 0.1, i);
-        //    glVertex3f(200, 0.1, i);
-        //    glEnd();
-        //}
-        //glPopMatrix();
+        glColor3f(0, 0, 0);         //格子線(開發用)
+        glPushMatrix();
+        for (int i = 0; i < 200; i += 10) {
+            if(i%100 == 0) glLineWidth(3);
+            else if (i%50  == 0) glLineWidth(2);
+            else glLineWidth(1);
+            glBegin(GL_LINES);
+            glVertex3f(i, 0.1, 0);
+            glVertex3f(i, 0.1, 200);
+            glVertex3f(0, 0.1, i);
+            glVertex3f(200, 0.1, i);
+            glEnd();
+        }
+        glPopMatrix();
 
+        glPolygonMode(GL_FRONT_AND_BACK,GL_FILL);
         //pool + river
         //{ {-10,120 ,100,0,30},{190,120 ,100,180,220}, {24,9 ,100,-3,30}, {100,70 ,100,80,120}, {130,267 ,100,260,290},{200,80 ,100,93,113} };
-        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
         glColor3f(188 / 255.0, 217 / 255.0, 246 / 255.0);
+        
         glPushMatrix();
-        glTranslatef(30, 0.5, 160);
-        draw_circle(30, 1);
+        glTranslatef(30, 0.01, 160);
+        draw_disk(30);
         glPopMatrix();
+
         for (const pp p : river) {
             for (int i = p.a1; i < p.a2; i++) {
                 glPushMatrix();
                 glTranslatef(p.x + p.r * cos(i * 0.01745), 0.5, p.z + p.r * sin(i * 0.01745));
-                draw_circle(5, 1);
+                draw_disk(5);
                 glPopMatrix();
             }
         }
@@ -1581,8 +1801,9 @@ void draw_scene(int mode) {
             }
         }
         //road
-        //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+        //glPolygonMode(GL_FRONT_AND_BACK, GL_LI);
         for (int i = 115; i < 168; i += 6) {              //180從頭
+            glNormal3f(0,1,0);
             glBegin(GL_POLYGON);
             glColor3f(133 / 255.0, 66 / 255.0, 0 / 255.0);
             glVertex3f(150 + 120 * cos(i * 0.01745), 0.4, 0 + 80 * sin(i * 0.01745));
@@ -1592,6 +1813,7 @@ void draw_scene(int mode) {
             glEnd();
         }
         for (int i = -46; i < 30; i += 6) {
+            glNormal3f(0, 1, 0);
             glBegin(GL_POLYGON);
             glColor3f(133 / 255.0, 66 / 255.0, 0 / 255.0);
             glVertex3f(4 + 120 * cos(i * 0.01745), 0.4, 150 + 80 * sin(i * 0.01745));
@@ -1615,6 +1837,37 @@ void draw_scene(int mode) {
         myBig_chair.draw();
         glPopMatrix();
 
+        //金像
+        glPushMatrix();
+        glTranslatef(30, 0.5, 125);
+        glScalef(3, 3, 3);
+        draw_SnowMan(GOLD);
+        glPopMatrix();
+
+        //銀像
+        glPushMatrix();
+        glTranslatef(17, 0.5, 130);
+        glRotatef(15,0,1,0);
+        glScalef(2.5, 2.5, 2.5);
+        draw_SnowMan(SILVER);
+        glPopMatrix();
+
+        //塑膠像
+        glPushMatrix();
+        glTranslatef(42, 0.5, 130);
+        glRotatef(-15, 0, 1, 0);
+        glScalef(2, 2, 2);
+        draw_SnowMan(RED_PLASTIC);
+        glPopMatrix();
+
+        //藍橡膠像
+        glPushMatrix();
+        glTranslatef(177, 0.5, 140);
+        glRotatef(-43, 0, 1, 0);
+        glScalef(3.5, 3.5, 3.5);
+        draw_SnowMan(CYAN_RUBBER);
+        glPopMatrix();
+
     }
 }
 void draw_cylinder(double up, double down, double height) {
@@ -1626,6 +1879,26 @@ void draw_cylinder(double up, double down, double height) {
         height,                   /* height of the cylinder */
         20,                       /* use 12-side polygon approximating circle*/
         4);                       /* Divide it into 3 sections */
+}
+void draw_tree() {
+    float hei;
+    int ang;
+    vector<pair<int,int>>light;
+    for (int i = 0; i < 30; i++) {
+        hei = rand()%300/100.0;
+        ang = rand() % 360;
+        light.push_back({ hei,ang });
+    }
+    glPushMatrix();
+    glRotatef(270,1,0,0);
+    draw_cylinder(1,0,3);
+    glPopMatrix();
+
+    for (int i = 0; i < 30; i++) {
+        glPushMatrix();
+        glTranslatef();
+        glPopMatrix();
+    }
 }
 void draw_robot() {
     if (sitOnChair) return;  //坐在椅子上不要畫
@@ -1659,7 +1932,7 @@ void draw_camera() {
 }
 void draw_view() {
     draw_scene(scene);  
-    
+
     glPushMatrix();
     glTranslatef(pos[0], pos[1], pos[2]);      //機器人
     draw_robot();
@@ -1849,24 +2122,151 @@ void make_view(int x)
     }
 }
 void setDirectionLight() {
-
+    if (!isLitdirOpen) return;
     glDisable(GL_LIGHTING);
+
     glColor3f(1, 1, 168 / 255.0);
     glPushMatrix();
-    litdir_position[0] = 100 * cos(litdirAng * 0.01745) + litdir_init[0];
-    litdir_position[1] = 100 * sin(litdirAng * 0.01745) + litdir_init[1];
-
     glTranslatef(litdir_position[0], litdir_position[1], litdir_position[2]);
+    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
     glutSolidSphere(3, 10, 10);
 
-    litdir_direction[0] = litdir_position[0] - litdir_init[0];
-    litdir_direction[1] = litdir_position[1] - litdir_init[1];
-    litdir_direction[2] = litdir_position[2] - litdir_init[2];
-    glEnable(GL_LIGHTING);
+    glColor3f(1, 0, 0);
+    for (int i = 0; i < 360; i += 40) {
+        glPushMatrix();
+        glTranslatef(3 * cos(i * 0.01745), 3 * sin(i * 0.01745), 0);
+        glRotatef(i, 0, 0, 1);
+        glScalef(2, 1, 1);
+        draw_cube();
+        glPopMatrix();
+    }
+    glPopMatrix();
+    if (!isLitdirColorOpen) {
+        litdir_diffuse[0] = litdirIntensity;
+        litdir_diffuse[1] = litdirIntensity;
+        litdir_diffuse[2] = litdirIntensity;
+
+        litdir_specular[0] = litdirIntensity;
+        litdir_specular[1] = litdirIntensity;
+        litdir_specular[2] = litdirIntensity;
+    }
+    else {
+        litdir_diffuse[0] = litdirIntensity * litdirColor[0];
+        litdir_diffuse[1] = litdirIntensity * litdirColor[1];
+        litdir_diffuse[2] = litdirIntensity * litdirColor[2];
+
+        litdir_specular[0] = litdirIntensity * litdirColor[0];
+        litdir_specular[1] = litdirIntensity * litdirColor[1];
+        litdir_specular[2] = litdirIntensity * litdirColor[2];
+    }
     glLightfv(GL_LIGHT0, GL_POSITION, litdir_direction);
     glLightfv(GL_LIGHT0, GL_DIFFUSE, litdir_diffuse);
     glLightfv(GL_LIGHT0, GL_SPECULAR, litdir_specular);
+    glEnable(GL_LIGHT0);
+    glEnable(GL_LIGHTING);
+}
+void setPositionLight() {
+    if (!isLitposOpen) return;
+    //glDisable(GL_LIGHTING);
+    //glDisable(GL_LIGHT1);
+    glEnable(GL_LIGHTING);
+    setMaterial(0, 0, 0, 116 / 255.0, 116 / 255.0, 185 / 255.0, 0);
+    glColor3f(0.98,0.98,0.98);
+    glPushMatrix();
+    glTranslatef(litpos_position[0], litpos_position[1], litpos_position[2]);
+    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    glutSolidSphere(3, 10, 10);
     glPopMatrix();
+
+    if (isLitposColorOpen) {
+        litpos_diffuse[0] = litposColor[0] * litposIntensity;
+        litpos_diffuse[1] = litposColor[1] * litposIntensity;
+        litpos_diffuse[2] = litposColor[2] * litposIntensity;
+        litpos_specular[0] = litposColor[0] * litposIntensity;
+        litpos_specular[1] = litposColor[1] * litposIntensity;
+        litpos_specular[2] = litposColor[2] * litposIntensity;
+    }
+    else {
+        litpos_diffuse[0] = litpos_diffuse[1] = litpos_diffuse[2] = litposIntensity;
+        litpos_specular[0] = litpos_specular[1] = litpos_specular[2] = litposIntensity;
+    }
+    glLightfv(GL_LIGHT1, GL_POSITION, litpos_position);
+    glLightfv(GL_LIGHT1, GL_DIFFUSE, litpos_diffuse);
+    glLightfv(GL_LIGHT1, GL_SPECULAR, litpos_specular);
+
+    //glLightfv();
+    glEnable(GL_LIGHT1);
+    //glEnable(GL_LIGHTING);
+}
+void setSpotLight() {
+
+    if (!isLitspotOpen) return;
+
+    glPushMatrix();
+    glRotatef(myRobot.angle_y, 0, 1, 0);
+    glRotatef(myRobot.angle_x, 1, 0, 0);
+    glLightfv(GL_LIGHT2, GL_SPOT_DIRECTION, litspot_direction);
+    glPopMatrix();
+
+    glPushMatrix();
+    glTranslatef(pos[0], pos[1], pos[2]);      //機器人位置
+    glPushMatrix();
+    glScalef(2.5, 2.5, 2.5);
+    glTranslatef(myRobot.x, myRobot.y, myRobot.z);                      //整隻的座標
+    glRotatef(myRobot.angle_y, 0, 1, 0);
+    glRotatef(myRobot.angle_x, 1, 0, 0);
+
+    glTranslatef(0, 4.75, 0);                   //移到肚子
+    node tp = ball_cor(2, 90, 30);
+    glPushMatrix();
+    glTranslatef(tp.x, tp.y, tp.z);             //走到右肩膀
+    glRotatef(myRobot.right_h->shoulderAng_z, 0, 0, 1);             //-35放在身體旁邊 對z轉控制左右
+    glRotatef(myRobot.right_h->shoulderAng_x, 1, 0, 0);
+    //forarms
+    glTranslatef(0, 0.75, 0);               //走到 肩膀上方0.25 + 圓中心0.75(畫1.5的手臂) - 0.25重疊
+    glTranslatef(0, 0.75, 0);               //手臂前端中心
+    glRotatef(myRobot.right_h->elbowAng_x, 1, 0, 0);         //旋轉手肘
+    glRotatef(myRobot.right_h->elbowAng_y, 0, 1, 0);
+    glRotatef(myRobot.right_h->elbowAng_z, 0, 0, 1);
+    //手前臂
+    glTranslatef(0, 0.75, 0);                //走到 手軸前端0.25 + 圓中心0.75(畫1.5的手前臂) - 0.25重疊
+    glTranslatef(0, 0.75, 0);               //手前臂前端   
+    //換手指方向應該在這轉
+    glRotatef(myRobot.right_h->fingerAng_y, 0, 1, 0);
+    glPushMatrix();
+    glTranslatef(0, 0.3, 0);
+    glRotatef(myRobot.magic_wand_carry->angle_x, 1, 0, 0);
+    glRotatef(myRobot.magic_wand_carry->angle_y, 0, 1, 0);
+    glRotatef(myRobot.magic_wand_carry->angle_z, 0, 0, 1);
+    glScalef(myRobot.magic_wand_carry->scale, myRobot.magic_wand_carry->scale, myRobot.magic_wand_carry->scale);
+    glTranslatef(0, 0, -7);
+    //水晶要反射 反射聚焦 自體發光
+    setMaterial(0.316228, 0.316228, 0.316228, 1, 1, 168 / 255.0, 64);
+    //glColor3f(1, 0, 0);              //水晶(黃)
+    glPushMatrix();
+    glTranslatef(0, 0, 14);
+    //水晶
+
+    glutSolidSphere(2, 10, 10);                 //9.5
+    glLightfv(GL_LIGHT2, GL_POSITION, litspot_position);           //0,0,0
+
+    glPopMatrix();
+    glPopMatrix();                              //pop3
+    glPopMatrix();
+    glPopMatrix();
+    glPopMatrix();
+    
+    litspot_diffuse[0] = litspot_diffuse[1] = litspot_diffuse[2] = litspotIntensity;
+    litspot_specular[0] = litspot_specular[1] = litspot_specular[2] = litspotIntensity;
+
+    glLightf(GL_LIGHT2, GL_SPOT_CUTOFF, litspotCutoffAng);
+    glLightfv(GL_LIGHT2, GL_DIFFUSE, litspot_diffuse);
+    glLightfv(GL_LIGHT2, GL_SPECULAR, litspot_specular);
+    glLightf(GL_LIGHT2, GL_SPOT_EXPONENT, 0);
+    //glLightf(GL_LIGHT2,GL_);
+
+   glEnable(GL_LIGHT2);
+   glEnable(GL_LIGHTING);
 }
 void display()
 {
@@ -1877,6 +2277,7 @@ void display()
     /*----Define the current eye position and the eye-coordinate system---*/
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
+
     int vs = 0;
     if (scene == GRASSLAND) {   //草原只有2種視野
         if (viewStyle & 1) vs = 5;
@@ -1891,36 +2292,37 @@ void display()
         make_projection(0);
         make_view(0);
         setDirectionLight();
-        glEnable(GL_COLOR_MATERIAL);
+        setPositionLight();
+        setSpotLight();
         draw_view();
-        glDisable(GL_COLOR_MATERIAL);
         break;
     case 1:
         glViewport(0, 0, width, height);
         make_projection(0);
         make_view(1);
         setDirectionLight();
-        glEnable(GL_COLOR_MATERIAL);
+        setPositionLight();
+        setSpotLight();
         draw_view();
-        glDisable(GL_COLOR_MATERIAL);
         break;
     case 2:
         glViewport(0, 0, width, height);
         make_projection(0);
         make_view(2);
         setDirectionLight();
-        glEnable(GL_COLOR_MATERIAL);
+        setPositionLight();
+        setSpotLight();
         draw_view();
-        glDisable(GL_COLOR_MATERIAL);
         break;
     case 3:                                      //透視投影
         glViewport(0, 0, width, height);
         make_projection(3);
         make_view(3);
         setDirectionLight();
-        glEnable(GL_COLOR_MATERIAL);
+        setPositionLight();
+        setSpotLight();
+        setSpotLight();
         draw_view();
-        glDisable(GL_COLOR_MATERIAL);
         break;
     case 4:
         make_projection(0);
@@ -1928,64 +2330,46 @@ void display()
         glViewport(0, height / 2, width / 2, height / 2);  //左下 寬高
         make_view(0);
         setDirectionLight();
-        glEnable(GL_COLOR_MATERIAL);
+        setPositionLight();     
+        setSpotLight();
         draw_view();
-        glDisable(GL_COLOR_MATERIAL);
-
-
+        
         glViewport(width / 2, height / 2, width / 2, height / 2);
         make_view(1);
         setDirectionLight();
-        glEnable(GL_COLOR_MATERIAL);
+        setPositionLight(); 
+        setSpotLight();
         draw_view();
-        glDisable(GL_COLOR_MATERIAL);
-
 
         glViewport(0, 0, width / 2, height / 2);
         make_view(2);
         setDirectionLight();
-        glEnable(GL_COLOR_MATERIAL);
+        setPositionLight();
+        setSpotLight();
         draw_view();
-        glDisable(GL_COLOR_MATERIAL);
 
         glViewport(width / 2, 0, width / 2, height / 2);
         make_projection(3);
         make_view(3);
         setDirectionLight();
-        glEnable(GL_COLOR_MATERIAL);
+        setPositionLight();
+        setSpotLight();
         draw_view();
-        glDisable(GL_COLOR_MATERIAL);
+
         break;
     case 5:
         glViewport(0, 0, width, height);
         make_projection(0);
         make_view(5);
         setDirectionLight();
-        glEnable(GL_COLOR_MATERIAL);
-        //glColorMaterial(GL_FRONT, GL_AMBIENT_AND_DIFFUSE);
-        //glColor3f(0.2, 0.2, 0.2);
-        //glColorMaterial(GL_FRONT, GL_SPECULAR);
-        //change_color(mainColor);
-        //glColorMaterial(GL_FRONT, GL_DIFFUSE);     
+        setPositionLight();   
+        setSpotLight();
         draw_view();
-        glDisable(GL_COLOR_MATERIAL);
         break;
     }
 
     //動作
     //相機位置    相機對準的位置   相機向上的角度
-
-    //開發用參數
-    //if(see)
-    //    gluLookAt(35.0, 30.0, 80.0,       20.0, 0.0, 0.0,         0.0, 1.0, 0.0);         //動作
-    //else
-    //    gluLookAt(40.0, 70.0, 55.0,       25.0, 0.0, 25.0,        0.0, 1.0, 0.0);         //場景
-    //if (see)
-    //gluLookAt(pos[0] - 5, 30, pos[2] + 30, pos[0], 15, pos[2], 0.0, 1.0, 0.0);
-    //else
-    //  gluLookAt(100, 150, 100, 100, 0, 100, 0.0, 0.0, -1.0);
-
-    //draw_view();
 
     glutSwapBuffers();
     return;
@@ -2017,7 +2401,8 @@ void timerFunc(int nTimerID) {
             glutTimerFunc(100, timerFunc, JUMPTIMER);
         }
         else {
-            myRobot.stand();
+            if(isLitspotOpen)  myRobot.carryLight();
+            else myRobot.stand();
             isLock = UNLOCK;
         }
         glutPostRedisplay();
@@ -2039,7 +2424,8 @@ void timerFunc(int nTimerID) {
         }
         else {
             isLock = UNLOCK;
-            myRobot.stand();
+            if (isLitspotOpen)  myRobot.carryLight();
+            else myRobot.stand();
         }
         glutPostRedisplay();
         break;
@@ -2198,7 +2584,7 @@ void my_move_order(unsigned char key) {        //跟移動相關的判斷
     display();
 }
 bool change_view_order(unsigned char key) {
-    cout << key << "\n";
+    //cout << key << "\n";
     if (key == 'y' || key == 'Y') {
         viewStyle++;
         viewStyle %= 6;
@@ -2336,11 +2722,13 @@ void keyboardUp_func(unsigned char key, int x, int y) {
     glutTimerFunc(200, timerFunc, RUNTIMER);
     if (myRobot.moveMode != FLY && preKey != key)  myRobot.moveMode = WALK;
     preKey = key;
-    if (myRobot.moveMode != FLY && (key == 'W' || key == 'w' || key == 'A' || key == 'a' || key == 'S' || key == 's' || key == 'D' || key == 'd' || key == 'r' || key == 'R')) myRobot.stand();
+    if (myRobot.moveMode != FLY && (key == 'W' || key == 'w' || key == 'A' || key == 'a' || key == 'S' || key == 's' || key == 'D' || key == 'd' || key == 'r' || key == 'R')) {
+        if (isLitspotOpen)  myRobot.carryLight();
+        else myRobot.stand();
+    }
     display();
 }
 void keybaord_fun(unsigned char key, int x, int y) {
-    printf("key: %d\n", key);
     if(change_view_order(key)) return;
     if (isLock == LOCK) return;
     my_move_order(key);
@@ -2368,6 +2756,8 @@ void keybaord_fun(unsigned char key, int x, int y) {
                 myRobot.jump_ready();
                 glutTimerFunc(100, timerFunc, JUMPONWANDTIMER);
                 myRobot.moveMode = FLY;
+                glDisable(GL_LIGHT2);
+                isLitspotOpen = 0;
             }
         }
         else {
@@ -2381,35 +2771,186 @@ void keybaord_fun(unsigned char key, int x, int y) {
             pos[2] = 12;
             scene = GRASSLAND;
             glutTimerFunc(100, timerFunc, CHAIR_MOVE);
+            //平行光
+            litdir_init[0] = 100;
+            litdir_init[1] = 0;
+            litdir_init[2] = 100;
+            litdirR = 120;
+            //點光
+            litpos_position[0] = 100;
+            litpos_position[1] = 70;
+            litpos_position[2] = 100;
         }                               //enter 進入魔法陣(起始點30 30)
         else if (scene == GRASSLAND && getDis(pos[0], pos[2], 17, 12) <= 10) {
             pos[0] = pos[2] = 30;
             scene = MAGICFIELD;
+            //平行光
+            litdir_init[0] = 30;
+            litdir_init[1] = 0;
+            litdir_init[2] = 30;
+            litdirR = 50;
+            //點光
+            litpos_position[0] = 30;
+            litpos_position[1] = 70;
+            litpos_position[2] = 30;
         }
+        litdir_position[0] = litdirR * cos(litdirAng * 0.01745) + litdir_init[0];
+        litdir_position[1] = litdirR * sin(litdirAng * 0.01745) + litdir_init[1];
+        litdir_position[2] = litdir_init[2];
+
+        litdir_direction[0] = litdir_position[0] - litdir_init[0];
+        litdir_direction[1] = litdir_position[1] - litdir_init[1];
+        litdir_direction[2] = litdir_position[2] - litdir_init[2];
+    }
+    if (isLighting && key == '1') {   //要有燈燈模式才可以打開燈
+        isLitdirOpen ^= 1;
+        if (isLitdirOpen) {
+            glEnable(GL_LIGHT0);
+        }
+        else {
+            glDisable(GL_LIGHT0);
+        }
+    }
+    else if (isLighting && key == '2') {   //顏色model
+        isLitdirColorOpen ^= 1;
+    }
+    else if (isLitdirOpen && key == '3') {
+        litdirAng += 1;
+        if (litdirAng > 180) litdirAng = 0;
+
+        litdir_position[0] = litdirR * cos(litdirAng * 0.01745) + litdir_init[0];
+        litdir_position[1] = litdirR * sin(litdirAng * 0.01745) + litdir_init[1];
+        litdir_position[2] = litdir_init[2];
+
+        litdir_direction[0] = litdir_position[0] - litdir_init[0];
+        litdir_direction[1] = litdir_position[1] - litdir_init[1];
+        litdir_direction[2] = litdir_position[2] - litdir_init[2];
+
+        if (litdirAng  <= 20) {  //0 ~ 20  rgb（255,69,0） 紅  +130,+143
+            litdirColor[0] = 1;
+            litdirColor[1] = (69 + (litdirAng * 130.0 / 20.0)) / 255.0;
+            litdirColor[2] = (0 + (litdirAng * 143.0 / 20.0)) / 255.0;
+        }
+        else if (litdirAng <= 40) { //20 ~40 rgb(255, 199, 143) 澄 +56 +61
+            litdirColor[0] = 1;
+            litdirColor[1] = (199 + ((litdirAng-20.0) * 56.0 / 20.0)) / 255.0;
+            litdirColor[2] = (143 + ((litdirAng-20.0) * 61.0 / 20.0)) / 255.0;
+        }
+        else if (litdirAng <= 70) { //40 ~ 70 rgb(255, 255, 204) +51
+            litdirColor[0] = 1;
+            litdirColor[1] = 1;
+            litdirColor[2] = (204 + ((litdirAng-40.0) * 51.0 / 30.0)) / 255.0;
+        }
+        else if(litdirAng <= 110){ //70 ~ 110 白 
+            litdirColor[0] = 1;
+            litdirColor[1] = 1;
+            litdirColor[2] = 1;
+        }
+        else if (litdirAng <= 140) {  //110 ~ 140 白 -> 黃 rgb(255, 255, 204) -51
+            litdirColor[0] = 1;
+            litdirColor[1] = 1;
+            litdirColor[2] = (255 - ((litdirAng - 110.0) * 51.0 / 30.0)) / 255.0;
+            //cout << litdirColor[2] << " \n";
+        }
+        else if (litdirAng <= 160) {  //140 ~ 160 黃 -> 澄 rgb(255, 199, 143) -56 -61
+            litdirColor[0] = 1;
+            litdirColor[1] = (255 - ((litdirAng - 140.0) * 56.0 / 20.0)) / 255.0;
+            litdirColor[2] = (204 - ((litdirAng - 140.0) * 61.0 / 20.0)) / 255.0;
+        }
+        else if (litdirAng < 180) {  //160 ~ 180 澄->紅  rgb（255,69,0） -130,-143
+            litdirColor[0] = 1;
+            litdirColor[1] = (199 - ((litdirAng - 160.0) * 130.0 / 20.0)) / 255.0;
+            litdirColor[2] = (143 - ((litdirAng - 160.0) * 143.0 / 20.0)) / 255.0;
+        }
+
+    }
+    else if(isLitdirOpen && key == '4') {
+        litdirIntensity -= 0.1;
+        litdirIntensity = fmax(litdirIntensity, 0);
+    }
+    else if (isLitdirOpen && key == '5') {
+        litdirIntensity += 0.1;
+        litdirIntensity = fmin(litdirIntensity, 1);
+    }
+    else if (isLighting && key == '6') {
+        isLitposOpen ^= 1;
+        if (isLitposOpen) {
+            glEnable(GL_LIGHT1);
+        }
+        else {
+            glDisable(GL_LIGHT1);
+        }
+    }
+    else if (isLitposOpen && key == '7') {
+        isLitposColorOpen ^= 1;
+    }
+    else if (isLitposOpen && key == '8') {
+        litposIntensity -= 0.1;
+        litposIntensity = fmax(litposIntensity, 0);
+    }
+    else if (isLitposOpen && key == '9') {
+        litposIntensity += 0.1;
+        litposIntensity = fmin(litposIntensity, 1);
+    }
+    else if (key == '0') {
+        isLighting ^= 1;
+        if (isLighting) {
+            glEnable(GL_LIGHTING);
+        }
+        else {
+            glDisable(GL_LIGHTING);
+            glDisable(GL_LIGHT1);
+            glDisable(GL_LIGHT0);
+            glDisable(GL_LIGHT2);
+            isLitdirOpen = 0;
+            isLitposOpen = 0;
+            isLitspotOpen = 0;
+        } 
+    }
+    else if (key == 'g' || key == 'G') {  //開燈
+        isLitspotOpen ^= 1;
+        if (isLitspotOpen) {
+            glEnable(GL_LIGHT2);
+            myRobot.carryLight();
+        }
+        else {
+            glDisable(GL_LIGHT2);
+            myRobot.stand();
+        }
+    }
+    else if (key == 'h' || key == 'H') {  //漸弱
+        litspotIntensity = fmax(0, litspotIntensity - 0.1);
+    }
+    else if (key == 'j' || key == 'J') {  //漸強
+        litspotIntensity = fmin(1, litspotIntensity + 0.1);
+    }
+    else if (key == 'k' || key == 'K') {  //cutoff 小
+        litspotCutoffAng = fmax(15.0, litspotCutoffAng - 5);
+        //cout << litspotCutoffAng << "\n";
+    }
+    else if (key == 'l' || key == 'L') {  //cutoff 大
+        litspotCutoffAng = fmin(90.0, litspotCutoffAng + 5);
+        //cout << litspotCutoffAng << "\n";
     }
     //開發用 不支援!!
     //if (key == 'u') glutTimerFunc(100, timerFunc, CHAIR_MOVE);
     //if (key == 'o' || key == 'O') {
     //    cout << ++myRobot.magic_wand_carry->angle_x << "\n";
     //}
-    if (key == '1') {
-        litdirAng += 1;
-        if (litdirAng > 180) litdirAng = 0;
-    }
-    //if (key == '2') {
+    //if (key == 'c') {
     //    myRobot.right_h->fingerAng_y+=3;
     //    if (myRobot.right_h->fingerAng_y > 360) myRobot.right_h->fingerAng_y -= 360;
     //    cout << myRobot.right_h->fingerAng_y << "\n";
     //}
-    //if (key == '5') {
-    //    myRobot.left_h->shoulderAng_x += 3;
-    //    if (myRobot.left_h->shoulderAng_x > 360) myRobot.left_h->shoulderAng_x -= 360;
-    //    cout << myRobot.left_h->shoulderAng_x << "\n";
+    //if (key == 'v') {
+    //    myRobot.right_h->shoulderAng_x += 3;
+    //    if (myRobot.right_h->shoulderAng_x > 360) myRobot.right_h->shoulderAng_x -= 360;
+    //    cout << myRobot.right_h->shoulderAng_x << "\n";
     //}
-    //if (key == '6') {
-    //    myRobot.left_h->fingerAng_y += 3;
-    //    if (myRobot.left_h->fingerAng_y > 360) myRobot.left_h->fingerAng_y -= 360;
-    //    cout << myRobot.left_h->fingerAng_y << "\n";
+    //if (key == 'b') {
+    //    myRobot.right_h->fingerAng_y += 3;
+    //    if (myRobot.right_h->fingerAng_y > 360) myRobot.right_h->fingerAng_y -= 360;
+    //    cout << myRobot.right_h->fingerAng_y << "\n";
     //}
     //if (key == '3') {
     //    myRobot.right_h->shoulderAng_z+= 3;
@@ -2444,6 +2985,7 @@ void mouse_func(int button, int state, int x, int y) {};
 void idle_func(void) {};
 int main(int argc, char** argv)
 {
+    srand(time(NULL));
     /*-----Initialize the GLUT environment-------*/
     glutInit(&argc, argv);
 
@@ -2451,7 +2993,7 @@ int main(int argc, char** argv)
     glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH);
 
     glutInitWindowSize(600,600);
-    glutCreateWindow("RobotView");
+    glutCreateWindow("RobotLight");
 
     myinit();      /*---Initialize other state varibales----*/
 
