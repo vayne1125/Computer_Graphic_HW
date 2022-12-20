@@ -42,7 +42,7 @@
 #define OUT_LINE_LEFT    58           //debug mode 碰到邊界 左
 #define OUT_LINE_RIGHT   59           //debug mode 碰到邊界 右
 #define TREE_LIGHT       60
-
+#define FIREWORKLIGHT    61
 #define FIREWORK0         70
 #define FIREWORK1         71
 #define FIREWORK2         72
@@ -133,13 +133,14 @@ float  litspotCutoffAng = 45;
 bool   isLitspotOpen = 0;
 float  litspotAng = 0;
 
-float  litfire_position[] = { 100,0,1.0 };
-float  litfire_diffuse[] = { 0.7, 0.7, 0.7, 1.0 };
-float  litfire_specular[] = { 0.7, 0.7, 0.7, 1.0 };
-float  litfireColor[] = { 25 / 255.0,25 / 255.0,112 / 255.0 };
-float  litfireIntensity = 0.7;
+float  litfire_position[] = { 100,0,0,1.0 };
+float  litfire_diffuse[] = { 0, 0, 0, 1.0 };
+float  litfire_specular[] = { 0, 0, 0, 1.0 };
+//float  litfireColor[] = { 25 / 255.0,25 / 255.0,112 / 255.0 };
+float  litfireIntensity = 0;
 bool   isLitfireOpen = 0;
 bool   isLitfireColorOpen = 0;
+int    litfireCnt = 0;
 
 //float  global_ambient[] = { 0, 0, 0, 1.0 };
 float  global_ambient[] = { 0.2, 0.2, 0.2, 1.0 };
@@ -1023,6 +1024,8 @@ struct floor {
         glRotatef(90, 0, 0, 1);           //延z軸逆時針轉270度
         draw_square(60, 60, 1);
         if (light[2] % 2 == 1) {
+            setMaterial(0,0,0,1,0,0,0);
+            glColor3f(1, 0, 0);
             glPushMatrix();
             for (int i = 0; i < 6; i++) {
                 glBegin(GL_LINES);
@@ -1041,6 +1044,7 @@ struct floor {
                 glTranslated(0, 0, 10);
             }
             glPopMatrix();
+            setMaterial(0, 0, 0, 0, 0, 0, 0);
         }
         glPopMatrix();                    //回到0,0
 
@@ -1054,6 +1058,8 @@ struct floor {
         glRotatef(90, 0, 0, 1);           //延z軸逆時針轉270度
         draw_square(60, 60, 1);
         if (light[3] % 2 == 1) {
+            setMaterial(0, 0, 0, 1, 0, 0, 0);
+            glColor3f(1, 0, 0);
             glPushMatrix();
             for (int i = 0; i < 6; i++) {
                 glBegin(GL_LINES);
@@ -1072,6 +1078,7 @@ struct floor {
                 glTranslated(0, 0, 10);
             }
             glPopMatrix();
+            setMaterial(0, 0, 0, 0, 0, 0, 0);
         }
         glPopMatrix();
         
@@ -1086,6 +1093,8 @@ struct floor {
         glRotatef(270, 1, 0, 0);          //延x軸逆時針轉270度
         draw_square(60, 60, 1);
         if (light[4] % 2 == 1) {
+            setMaterial(0, 0, 0, 1, 0, 0, 0);
+            glColor3f(1, 0, 0);
             glPushMatrix();
             for (int i = 0; i < 6; i++) {
                 glBegin(GL_LINES);
@@ -1104,6 +1113,7 @@ struct floor {
                 glTranslated(0, 0, 10);
             }
             glPopMatrix();
+            setMaterial(0, 0, 0, 0, 0, 0, 0);
         }
         glPopMatrix();
 
@@ -1116,6 +1126,8 @@ struct floor {
         glRotatef(270, 1, 0, 0);          //延x軸逆時針轉270度
         draw_square(60, 60, 1);
         if (light[5] % 2 == 1) {
+            setMaterial(0, 0, 0, 1, 0, 0, 0);
+            glColor3f(1, 0, 0);
             glPushMatrix();
             for (int i = 0; i < 6; i++) {
                 glBegin(GL_LINES);
@@ -1134,6 +1146,7 @@ struct floor {
                 glTranslated(0, 0, 10);
             }
             glPopMatrix();
+            setMaterial(0, 0, 0, 0, 0, 0, 0);
         }
         glPopMatrix();                    //回到0,0
     }
@@ -1195,11 +1208,11 @@ struct firework {
         }
         switch (ps) {
         case 0:
-            setMaterial(1,1,1,1,1,1,1,1,1,1,1,1,1);
+            setMaterial(1, 0.68, 0.68, 1, 0.68, 0.68, 1, 0.68, 0.68, 1, 0.68, 0.68, 0);
             drawBasic1(dif,20);
             break;
         case 1:
-            setMaterial(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1);
+            setMaterial(1, 0.68, 0.68, 1, 0.68, 0.68, 1, 0.68, 0.68, 1, 0.68, 0.68, 0);
             glPushMatrix();
             glTranslatef(0, 60, 0);
 
@@ -1212,7 +1225,8 @@ struct firework {
             glPopMatrix();
             break;
         case 2:
-            setMaterial(1 - dif / 10.0, 1 - dif / 10.0, 1 - dif / 10.0, 1 - dif / 10.0, 1 - dif / 10.0, 1 - dif / 10.0, 1 - dif / 10.0, 1 - dif / 10.0, 1 - dif / 10.0, 1 - dif / 10.0, 1 - dif / 10.0, 1 - dif / 10.0, 1 - dif / 10.0);
+            setMaterial(1 * (1 - dif / 10.0), 0.68 * (1 - dif / 10.0), 0.68 * (1 - dif / 10.0), 1*(1 - dif / 10.0), 0.68 * (1 - dif / 10.0), 0.68 * (1 - dif / 10.0), 1 * (1 - dif / 10.0), 0.68 * (1 - dif / 10.0), 0.68 * (1 - dif / 10.0), 1 * (1 - dif / 10.0), 0.68 * (1 - dif / 10.0), 0.68 * (1 - dif / 10.0), 0);
+            //setMaterial(1 - dif / 10.0, 1 - dif / 10.0, 1 - dif / 10.0, 1 - dif / 10.0, 1 - dif / 10.0, 1 - dif / 10.0, 1 - dif / 10.0, 1 - dif / 10.0, 1 - dif / 10.0, 1 - dif / 10.0, 1 - dif / 10.0, 1 - dif / 10.0, 1 - dif / 10.0);
             glPushMatrix();
             glTranslatef(0, 60, 0);
 
@@ -1250,11 +1264,11 @@ struct firework {
         }
         switch (ps) {
         case 0:
-            setMaterial(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1);
+            setMaterial(0.68, 0.68, 1, 0.68, 0.68, 1, 0.68, 0.68, 1, 0.68, 0.68, 1, 1);
             drawBasic1(dif, 20);
             break;
         case 1:
-            setMaterial(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1);
+            setMaterial(0.68, 0.68, 1, 0.68, 0.68, 1, 0.68, 0.68, 1, 0.68, 0.68, 1, 1);
             glPushMatrix();
             glTranslatef(0, 50, 0);
             
@@ -1262,7 +1276,7 @@ struct firework {
             glPopMatrix();
             break;
         case 2:
-            setMaterial(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1);
+            setMaterial(0.68, 0.68, 1, 0.68, 0.68, 1, 0.68, 0.68, 1, 0.68, 0.68, 1, 1);
             glPushMatrix();
             glTranslatef(0, 50, 0);
             drawBasic3(15, 15, 6, 0.8, 0.8, 0.8);
@@ -1270,7 +1284,7 @@ struct firework {
             glPopMatrix();
             break;
         case 3:
-            setMaterial(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1);
+            setMaterial(0.68, 0.68, 1, 0.68, 0.68, 1, 0.68, 0.68, 1, 0.68, 0.68, 1, 1);
             glPushMatrix();
             glTranslatef(0, 50, 0);
             drawBasic3(15, 15, 6, 0.8, 0.8, 0.8);
@@ -1279,7 +1293,8 @@ struct firework {
             glPopMatrix();
             break;
         case 4:
-            setMaterial(1 - dif / 10.0, 1 - dif / 10.0, 1 - dif / 10.0, 1 - dif / 10.0, 1 - dif / 10.0, 1 - dif / 10.0, 1 - dif / 10.0, 1 - dif / 10.0, 1 - dif / 10.0, 1 - dif / 10.0, 1 - dif / 10.0, 1 - dif / 10.0, 1 - dif / 10.0);
+            setMaterial(0.68*(1 - dif / 10.0), 0.68 * (1 - dif / 10.0), 1 * (1 - dif / 10.0), 0.68 * (1 - dif / 10.0), 0.68 * (1 - dif / 10.0), 1 * (1 - dif / 10.0), 0.68 * (1 - dif / 10.0), 0.68 * (1 - dif / 10.0), 1 * (1 - dif / 10.0), 0.68 * (1 - dif / 10.0), 0.68 * (1 - dif / 10.0), 1 * (1 - dif / 10.0), 1);
+            //setMaterial(1 - dif / 10.0, 1 - dif / 10.0, 1 - dif / 10.0, 1 - dif / 10.0, 1 - dif / 10.0, 1 - dif / 10.0, 1 - dif / 10.0, 1 - dif / 10.0, 1 - dif / 10.0, 1 - dif / 10.0, 1 - dif / 10.0, 1 - dif / 10.0, 1 - dif / 10.0);
             glPushMatrix();
             glTranslatef(0, 50, 0);
             drawBasic3(15, 15, 6, 0.8, 0.8, 0.8);
@@ -1465,18 +1480,6 @@ void myinit()
     glEnable(GL_COLOR_MATERIAL);
     glEnable(GL_LIGHTING);    /*Enable lighting effects */
     glEnable(GL_LIGHT0);        /*Turn on light0 */
-    //glEnable(GL_LIGHT1);      /*Turn on light1 */
-    //glEnable(GL_LIGHT2);      /*Turn on light2 */
-
-    /*-----Define light0 ---------*/
-    //glLightf(GL_LIGHT0, GL_SPOT_CUTOFF, lit_cutoff);
-    //glLightfv(GL_LIGHT0, GL_DIFFUSE, lit_diffuse);
-    //glLightfv(GL_LIGHT0, GL_SPECULAR, lit_specular);
-    //glLightf(GL_LIGHT0, GL_SPOT_EXPONENT, lit_exponent);
-
-    /*-----Define light1 ---------*/
-    //glLightfv(GL_LIGHT1, GL_DIFFUSE, lit1_diffuse);
-    //glLightfv(GL_LIGHT1, GL_SPECULAR, lit_specular);
 
 
     /*-----Define some global lighting status -----*/
@@ -1887,6 +1890,17 @@ void draw_scene(int mode) {
         draw_magic_field();
         glPopMatrix();
 
+
+        if (!isLitposOpen && !isLitdirOpen && !isLitspotOpen && isLighting) {
+            glPushMatrix();                             //轉移法陣(100,5) 10*10
+            setMaterial(0, 0, 0, 0.7, 0.7, 0.7,0);
+            glColor3f(1, 1, 1);
+            glTranslatef(100, 0.3, 6);
+            glScalef(1 / 6.0, 1 / 6.0, 1 / 6.0);
+            draw_magic_field();
+            glPopMatrix();
+        }
+        setMaterial(0, 0, 0, 0, 0, 0, 0);
         //glColor3f(0, 0, 0);         //格子線(開發用)
         //glPushMatrix();
         //for (int i = 0; i < 200; i += 10) {
@@ -2395,21 +2409,14 @@ void setDirectionLight() {
     if (!isLitdirOpen) return;
     glDisable(GL_LIGHTING);
 
-    glColor3f(1, 1, 168 / 255.0);
+    glColor4f(1, 1, 185 / 255.0,0.9);
     glPushMatrix();
     glTranslatef(litdir_position[0], litdir_position[1], litdir_position[2]);
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
     glutSolidSphere(3, 10, 10);
 
-    glColor3f(1, 0, 0);
-    for (int i = 0; i < 360; i += 40) {
-        glPushMatrix();
-        glTranslatef(3 * cos(i * 0.01745), 3 * sin(i * 0.01745), 0);
-        glRotatef(i, 0, 0, 1);
-        glScalef(2, 1, 1);
-        draw_cube();
-        glPopMatrix();
-    }
+    glColor4f(1, 0.78, 0.58, 0.5);
+    glutSolidSphere(3.8, 10, 10);
     glPopMatrix();
     if (!isLitdirColorOpen) {
         litdir_diffuse[0] = litdirIntensity;
@@ -2539,6 +2546,8 @@ void setSpotLight() {
    glEnable(GL_LIGHTING);
 }
 void setFireworkLight() {
+    if (isLitfireOpen == 0) return;
+
     if (myFirework[0].cnt != 0) {
         glPushMatrix();
         glTranslatef(0,0,0);
@@ -2557,7 +2566,7 @@ void setFireworkLight() {
         glPopMatrix();
 
         glPushMatrix();
-        glTranslatef(115, -15, 0);
+        glTranslatef(115, 15, 0);
         myFirework[1].draw(2);
         glPopMatrix();
     }
@@ -2569,6 +2578,7 @@ void setFireworkLight() {
 
         glPushMatrix();
         glTranslatef(130, -1, 0);
+        setMaterial(0, 0, 0, 1, 0, 0, 0);
         myFirework[2].draw(3);
         glPopMatrix();
     }
@@ -2606,13 +2616,15 @@ void setFireworkLight() {
         myFirework[5].draw(3);
         glPopMatrix();
     }
+    litfire_diffuse[0] = litfire_diffuse[1] = litfire_diffuse[2] = litfireIntensity;
+    litfire_specular[0] = litfire_specular[1] = litfire_specular[2] = litfireIntensity;
 
     glLightfv(GL_LIGHT2, GL_POSITION, litfire_position);
     glLightfv(GL_LIGHT2, GL_DIFFUSE, litfire_diffuse);
     glLightfv(GL_LIGHT2, GL_SPECULAR, litfire_specular);
 
     //glLightfv();
-    glEnable(GL_LIGHT2);
+    //glEnable(GL_LIGHT2);
     //glEnable(GL_LIGHTING);
 }
 void display()
@@ -2669,6 +2681,7 @@ void display()
         setPositionLight();
         setSpotLight();
         setSpotLight();
+        setFireworkLight();
         draw_view();
         break;
     case 4:
@@ -2707,7 +2720,7 @@ void display()
     case 5:
         glViewport(0, 0, width, height);
         make_projection(0);
-        make_view(5);
+        make_view(5); //lookat
         setDirectionLight();
         setPositionLight();   
         setSpotLight();
@@ -2845,6 +2858,7 @@ void timerFunc(int nTimerID) {
         else if (tp <= 90) {
             glutTimerFunc(60, timerFunc, FIREWORK0);
         }else myFirework[0].resetStatus();
+        glutPostRedisplay();
         break;
     case FIREWORK1:
         tp1 = myFirework[1].changeStatus();
@@ -2904,18 +2918,23 @@ void timerFunc(int nTimerID) {
     case FIREWORK4:
         tp4 = myFirework[4].changeStatus();
         if (tp4 <= 50) {
+            glutPostRedisplay();
             glutTimerFunc(40 + tp * 0.55, timerFunc, FIREWORK4);
         }
         else if (tp4 <= 70) {
+            glutPostRedisplay();
             glutTimerFunc(50, timerFunc, FIREWORK4);
         }
         else if (tp4 <= 85) {
+            glutPostRedisplay();
             glutTimerFunc(30, timerFunc, FIREWORK4);
         }
         else if (tp4 <= 110) {
+            glutPostRedisplay();
             glutTimerFunc(25, timerFunc, FIREWORK4);
         }
         else if (tp4 <= 120) {
+            glutPostRedisplay();
             glutTimerFunc(40, timerFunc, FIREWORK4);
         }
         else myFirework[4].resetStatus();
@@ -2924,23 +2943,60 @@ void timerFunc(int nTimerID) {
     case FIREWORK5:
         tp5 = myFirework[5].changeStatus();
         if (tp5 <= 40) {
+            glutPostRedisplay();
             glutTimerFunc(47 + tp * 0.35, timerFunc, FIREWORK5);
         }
         else if (tp5 <= 55) {
+            glutPostRedisplay();
             glutTimerFunc(40, timerFunc, FIREWORK5);
         }
         else if (tp5 <= 65) {
+            glutPostRedisplay();
             glutTimerFunc(54, timerFunc, FIREWORK5);
         }
         else if (tp5 <= 80) {
+            glutPostRedisplay();
             glutTimerFunc(65, timerFunc, FIREWORK5);
         }
         else if (tp5 <= 90) {
+            glutPostRedisplay();
             glutTimerFunc(30, timerFunc, FIREWORK5);
         }
         else myFirework[5].resetStatus();
         glutPostRedisplay();
         break;
+    case FIREWORKLIGHT:
+        if (litfireCnt <= 60) {
+            litfireCnt++;
+            litfire_position[1]++;
+            litfireIntensity += 1/60.0;
+            glutPostRedisplay();
+            glutTimerFunc(40, timerFunc, FIREWORKLIGHT);
+        }
+        else if (litfireCnt == 61) {
+            litfireCnt++;
+            cout << "61\n";
+            litfireIntensity = 1;
+            glutPostRedisplay();
+            glutTimerFunc(9750, timerFunc, FIREWORKLIGHT);
+        }
+        else if(litfireCnt <= 101) {
+            cout << litfireCnt << " ";
+            litfireCnt++;
+            litfireIntensity -= 1/40.0;
+            cout << litfireIntensity << "\n";
+            glutPostRedisplay();
+            glutTimerFunc(50, timerFunc, FIREWORKLIGHT);
+        }
+        else {
+            litfire_position[1] = 0;
+            litfireIntensity = 0;
+            isLitfireOpen = 0;
+            litfireCnt = 0;
+            glDisable(GL_LIGHT2);
+            glutPostRedisplay();
+        }
+        
     }
 }
 bool detectCollision(int x, int y, int z) { //偵測碰撞
@@ -3147,13 +3203,13 @@ bool change_view_order(unsigned char key) {
         }
     }
     else if (key == 22) { //zoom out ctrl + v
-        if (fabs(clippingWindowPerspective[_l] - clippingWindowPerspective[_r]) < 35 || fabs(clippingWindowPerspective[_l] - clippingWindowPerspective[_r]) < 35 * width / height) {
+        if (fabs(clippingWindowPerspective[_l] - clippingWindowPerspective[_r]) < 45 || fabs(clippingWindowPerspective[_l] - clippingWindowPerspective[_r]) < 45 * width / height) {
             clippingWindowPerspective[_l] -= 2;
             clippingWindowPerspective[_r] += 2;
             clippingWindowPerspective[_b] -= 2 * width / height;
             clippingWindowPerspective[_t] += 2 * width / height;
         }
-        if (fabs(clippingWindowOrtho[_l] - clippingWindowOrtho[_r]) < 120 || fabs(clippingWindowOrtho[_l] - clippingWindowOrtho[_r]) < 120 * width / height) {
+        if (fabs(clippingWindowOrtho[_l] - clippingWindowOrtho[_r]) < 150 || fabs(clippingWindowOrtho[_l] - clippingWindowOrtho[_r]) < 150 * width / height) {
             clippingWindowOrtho[_l] -= 2;
             clippingWindowOrtho[_r] += 2;
             clippingWindowOrtho[_b] -= 2 * width / height;
@@ -3226,6 +3282,32 @@ void keybaord_fun(unsigned char key, int x, int y) {
         }
         if (scene == GRASSLAND && getDis(pos[0], pos[2], myBig_chair.x, myBig_chair.z) < 18 + 2 * 2.5 + 2) {   //坐上椅子
             sitOnChair = !sitOnChair;
+        }
+        if (scene == GRASSLAND && getDis(pos[0], pos[2], 100, 6) < 10 && !isLitposOpen && !isLitdirOpen && !isLitspotOpen && isLighting) {
+            isLitfireOpen = 1;
+            glEnable(GL_LIGHT2);
+            glutTimerFunc(660, timerFunc, FIREWORK0);
+            glutTimerFunc(500, timerFunc, FIREWORK1);
+            glutTimerFunc(550, timerFunc, FIREWORK2);
+            glutTimerFunc(770, timerFunc, FIREWORK3);
+            glutTimerFunc(650, timerFunc, FIREWORK4);
+            glutTimerFunc(700, timerFunc, FIREWORK5);
+
+            glutTimerFunc(3650, timerFunc, FIREWORK0);
+            glutTimerFunc(3650, timerFunc, FIREWORK1);
+            glutTimerFunc(4000, timerFunc, FIREWORK2);
+            glutTimerFunc(3850, timerFunc, FIREWORK3);
+            glutTimerFunc(4050, timerFunc, FIREWORK4);
+            glutTimerFunc(3800, timerFunc, FIREWORK5);
+
+            glutTimerFunc(8200, timerFunc, FIREWORK0);
+            glutTimerFunc(8100, timerFunc, FIREWORK1);
+            glutTimerFunc(8350, timerFunc, FIREWORK2);
+            glutTimerFunc(8750, timerFunc, FIREWORK3);
+            glutTimerFunc(8550, timerFunc, FIREWORK4);
+            glutTimerFunc(8250, timerFunc, FIREWORK5);
+
+            glutTimerFunc(500, timerFunc, FIREWORKLIGHT);
         }
     }
     else if ((int)key == 13) {          //enter 進入草地(起始點17 12)
@@ -3396,16 +3478,6 @@ void keybaord_fun(unsigned char key, int x, int y) {
     else if (key == 'l' || key == 'L') {  //cutoff 大
         litspotCutoffAng = fmin(90.0, litspotCutoffAng + 5);
         //cout << litspotCutoffAng << "\n";
-    }
-
-    if (key == '.') {
-        cout << "in";
-        glutTimerFunc(500, timerFunc, FIREWORK0);
-        glutTimerFunc(600, timerFunc, FIREWORK1);
-        glutTimerFunc(550, timerFunc, FIREWORK2);
-        glutTimerFunc(700, timerFunc, FIREWORK3);
-        glutTimerFunc(750, timerFunc, FIREWORK4);
-        glutTimerFunc(650, timerFunc, FIREWORK5);
     }
     //開發用 不支援!!
     //if (key == 'u') glutTimerFunc(100, timerFunc, CHAIR_MOVE);
