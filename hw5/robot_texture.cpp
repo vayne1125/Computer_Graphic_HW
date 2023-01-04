@@ -2943,7 +2943,7 @@ void timerFunc(int nTimerID) {
     case FIREWORK5:
         tp5 = myFirework[5].changeStatus();
         if (tp5 <= 40) {
-            glutPostRedisplay();                                                                                    
+            glutPostRedisplay();
             glutTimerFunc(47 + tp * 0.35, timerFunc, FIREWORK5);
         }
         else if (tp5 <= 55) {
