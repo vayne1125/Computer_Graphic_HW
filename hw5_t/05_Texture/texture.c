@@ -352,6 +352,7 @@ void display()
 
   /*-------Draw the cube ----*/
   glMaterialfv(GL_FRONT, GL_DIFFUSE, mat_diffuse);
+
   glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
   glBindTexture(GL_TEXTURE_2D, textName[0]);
 
@@ -374,6 +375,7 @@ void display()
   glRotatef(cube_angle, 0.0, 1.0, 0.0);
   draw_cylinder();
   glPopMatrix();
+
   glDisable(GL_TEXTURE_2D);
 
   /*-------Swap the back buffer to the front --------*/

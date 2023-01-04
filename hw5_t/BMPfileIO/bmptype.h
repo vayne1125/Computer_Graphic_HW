@@ -6,33 +6,33 @@ typedef unsigned char      BYTE;
 typedef unsigned short int WORD;
 typedef unsigned int       LONG;
 
-typedef struct tagBITMAPINFOHEADER{
-  DWORD  biSize; 
-  LONG   biWidth; 
-  LONG   biHeight; 
-  WORD   biPlanes; 
-  WORD   biBitCount; 
-  DWORD  biCompression; 
-  DWORD  biSizeImage; 
-  LONG   biXPelsPerMeter; 
-  LONG   biYPelsPerMeter; 
-  DWORD  biClrUsed; 
-  DWORD  biClrImportant; 
-} BITMAPINFOHEADER, *PBITMAPINFOHEADER;
+typedef struct tagBITMAPINFOHEADER {
+    DWORD  biSize;
+    LONG   biWidth;
+    LONG   biHeight;
+    WORD   biPlanes;
+    WORD   biBitCount;
+    DWORD  biCompression;
+    DWORD  biSizeImage;
+    LONG   biXPelsPerMeter;
+    LONG   biYPelsPerMeter;
+    DWORD  biClrUsed;
+    DWORD  biClrImportant;
+} BITMAPINFOHEADER, * PBITMAPINFOHEADER;
 
-typedef struct tagBITMAPFILEHEADER { 
-  unsigned short        bfType; 
-  unsigned int          bfSize; 
-  unsigned short        bfReserved1; 
-  unsigned short        bfReserved2; 
-  unsigned int          bfOffBits; 
+typedef struct tagBITMAPFILEHEADER {
+    unsigned short        bfType;
+    unsigned int          bfSize;
+    unsigned short        bfReserved1;
+    unsigned short        bfReserved2;
+    unsigned int          bfOffBits;
 } BITMAPFILEHEADER;
 
-typedef struct tagRGBTRIPLE { 
-  BYTE rgbtBlue; 
-  BYTE rgbtGreen; 
-  BYTE rgbtRed; 
-} RGBTRIPLE; 
+typedef struct tagRGBTRIPLE {
+    BYTE rgbtBlue;
+    BYTE rgbtGreen;
+    BYTE rgbtRed;
+} RGBTRIPLE;
 
 #endif
 
@@ -47,7 +47,7 @@ typedef struct tagRGBTRIPLE {
  *   imgData[]: array to keep the intensity.
  * Return 0, if successful, -1, if fail.
  */
-int  readBMPfile(char *filename, int *width, int *height, unsigned char **imgData);
+int  readBMPfile(char* filename, int* width, int* height, unsigned char** imgData);
 
 
 
@@ -57,13 +57,13 @@ int  readBMPfile(char *filename, int *width, int *height, unsigned char **imgDat
  *      pic: the image in unsigned byte data type.
  *	w, h: width & height of the image
  */
-void save_rgb_2_BMP24(unsigned char pic[], int w, int h, 
-                      unsigned char filename[]);
+void save_rgb_2_BMP24(unsigned char pic[], int w, int h,
+    unsigned char filename[]);
 
 
 /*-------------------------------------------------------------
  * Procedure to write a gray-level (0-255) image into a .BMP
- * file. 
+ * file.
  *1. Each pixel is represented by using a floating number.
  *   The gray-level range is [0-255].
  *2. The output .bmp file is not compressed.

@@ -5,6 +5,9 @@
 #include <vector>
 #include <cstdlib> /* 亂數相關函數 */
 #include <ctime>   /* 時間相關函數 */
+
+#define STB_IMAGE_IMPLEMENTATION
+
 #define   PI   3.1415927
 //定義顏色
 #define ICE_COLOR       100
@@ -16,6 +19,7 @@
 #define HOME_COLOR      107
 
 //定義材質
+#define WHITE           0
 #define GOLD            150
 #define SILVER          151
 #define PERL            152
@@ -57,6 +61,15 @@
 //場景模式選擇 
 #define MAGICFIELD 0
 #define GRASSLAND 1
+
+//define texture dimension
+#define   TSIZE0  64 
+#define   TSIZE1  64
+
+//pattern
+#define NONE 0x3f3f3f3f3f
+#define CHECKBOARD_BLUE 0
+#define HEART_PINK 1
 
 using namespace std;
 //定義cube
@@ -145,6 +158,117 @@ int    litfireCnt = 0;
 //float  global_ambient[] = { 0, 0, 0, 1.0 };
 float  global_ambient[] = { 0.2, 0.2, 0.2, 1.0 };
 /*----------------------------------------------------------*/
+
+/*-----Create image space for textures -----*/
+bool isTextureOpen = 0;
+unsigned int   textName[3];                   /* declare 3 texture maps*/
+unsigned char  checkboard[TSIZE0][TSIZE0][4];   /* checkboard textures */
+unsigned char  dot[TSIZE1][TSIZE1][4];        /* brick wall textures */
+
+unsigned char* testimg;
+void make_checkboard_blue()
+{
+    //rgb(148, 255, 250)
+    int   i, j, r,g,b;
+    for (i = 0; i < TSIZE0; i++) {
+        for (j = 0; j < TSIZE0; j++) {
+            r = g = b = 255;
+            if (((i & 16) == 0) ^ ((j & 16) == 0)) {
+                r = 148;
+                g = 255;
+                b = 250;
+            }
+            checkboard[i][j][0] = r;
+            checkboard[i][j][1] = g;
+            checkboard[i][j][2] = b;
+            checkboard[i][j][3] = 255;
+        }
+    }
+}
+void make_heart_pink()
+{
+    int   i, j, k,kk,r, g, b;
+    for (i = 0; i < TSIZE1; i++) {
+        for (j = 0; j < TSIZE1; j++) {
+            dot[i][j][0] = 255;
+            dot[i][j][1] = 255;
+            dot[i][j][2] = 255;
+            dot[i][j][3] = 255;
+        }
+    }
+
+    //rgb(255, 148, 201)
+    for (i = 0; i < TSIZE1; i++) {
+        for (j = 0; j < TSIZE1; j++) {
+            if (i % 8 == 4 && j%8 == 4) {
+                r = 255;
+                g = 148;
+                b = 201;
+                for (k = -2; k <= 2; k++) {
+                    if (k == 0)continue;
+                    dot[i + 2][k + j][0] = r;
+                    dot[i + 2][k + j][1] = g;
+                    dot[i + 2][k + j][2] = b;
+                }
+    
+                for (k = -3; k <= 3; k++) {
+                    for ( kk = 1; kk >= 0; kk--) {
+                        dot[i + kk][k+j][0] = r;
+                        dot[i + kk][k+j][1] = g;
+                        dot[i + kk][k+j][2] = b;
+                    }
+                }
+
+                for (k = -1; k >= -3; k--) {
+                    if (k == -1) kk = 2;
+                    if (k == -2) kk = 1;
+                    if (k == -3) kk = 0;
+                    for (int kkk = kk; kkk >= -kk; kkk--) {
+                        dot[i + k][kkk + j][0] = r;
+                        dot[i + k][kkk + j][1] = g;
+                        dot[i + k][kkk + j][2] = b;
+                    }
+                }
+    
+            }
+        }
+    }
+
+}
+void create_texture() {
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
+    glGenTextures(3, textName);
+
+    make_checkboard_blue();
+    glBindTexture(GL_TEXTURE_2D, textName[0]);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    gluBuild2DMipmaps(GL_TEXTURE_2D, GL_RGBA8, TSIZE0, TSIZE0, GL_RGBA, GL_UNSIGNED_BYTE, checkboard);
+    //glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, TSIZE, TSIZE, 1, GL_RGBA, GL_UNSIGNED_BYTE, checkboard);
+
+    make_heart_pink();
+    glBindTexture(GL_TEXTURE_2D, textName[1]);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST);
+    gluBuild2DMipmaps(GL_TEXTURE_2D, GL_RGBA8, TSIZE1, TSIZE1, GL_RGBA, GL_UNSIGNED_BYTE, dot);
+}
+
+
+
+
+
+
+
+
+
 
 //Define GLU quadric objects, a sphere and a cylinder
 GLUquadricObj* sphere = NULL, * cylind = NULL, * mycircle = NULL;
@@ -1369,6 +1493,9 @@ struct firework {
 vector<firework>myFirework(6);
 void change_color_material(int value) {
     switch (value) {
+    case WHITE:
+        setMaterial(0,0,0,0,0,0,1,1,1,1,1,1,0);
+        break;
     case GOLD:
         setMaterial(0.628281f, 0.555802f, 0.366065f,0,0,0, 0.24725f, 0.1995f, 0.0745f, 0.75164f, 0.60648f, 0.22648f, 51.2f);
         break;
@@ -1481,7 +1608,6 @@ void myinit()
     glEnable(GL_LIGHTING);    /*Enable lighting effects */
     glEnable(GL_LIGHT0);        /*Turn on light0 */
 
-
     /*-----Define some global lighting status -----*/
     glLightModeli(GL_LIGHT_MODEL_LOCAL_VIEWER, GL_TRUE); /* local viewer 看的人不是在無限遠*/
     glLightModelfv(GL_LIGHT_MODEL_AMBIENT, global_ambient); /*global ambient 全域的環境光*/
@@ -1511,14 +1637,41 @@ void myinit()
             limit.push_back({ p.x + p.r * cos(i * 0.01745) ,p.z + p.r * sin(i * 0.01745) });
         }
     }
-}
-void draw_SnowMan(int colorMaterial) {
+
     
+    create_texture();
+}
+void draw_SnowMan(int colorMaterial,int pattern,bool isPattern) {
+    
+    //GL_TEXTURE_SPHERE
+//GL_OBJECT_PLANE
+//GL_EYE_PLANE
+    if (isPattern) {
+        glEnable(GL_TEXTURE_2D);
+        glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+        glBindTexture(GL_TEXTURE_2D, textName[pattern]);
+        glEnable(GL_TEXTURE_GEN_S); //enable texture coordinate generation
+        glEnable(GL_TEXTURE_GEN_T);
+        glTexGeni(GL_S, GL_TEXTURE_GEN_MODE, GL_OBJECT_LINEAR);
+        glTexGeni(GL_T, GL_TEXTURE_GEN_MODE, GL_OBJECT_LINEAR);
+        glMatrixMode(GL_TEXTURE);
+        glLoadIdentity();
+        if(pattern == HEART_PINK) glScalef(0.3,0.3,0.3);
+        glMatrixMode(GL_MODELVIEW);
+    }
+
+
     glPushMatrix();
     change_color_material(colorMaterial);
     glTranslatef(0, 2, 0);                   //移到肚子
     glutSolidSphere(2, 30, 30);              //畫肚子 直徑4
-              
+         
+    if (isPattern) {
+        glDisable(GL_TEXTURE_GEN_S); //enable texture coordinate generation
+        glDisable(GL_TEXTURE_GEN_T);
+        glDisable(GL_TEXTURE_2D);
+    }
+
     //扣子
     change_color_material(PERL);
     glPushMatrix();
@@ -1576,11 +1729,27 @@ void draw_SnowMan(int colorMaterial) {
 
     glPopMatrix();
 
+    if (isPattern) {
+        glEnable(GL_TEXTURE_2D);
+        glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+        glBindTexture(GL_TEXTURE_2D, textName[pattern]);
+        glEnable(GL_TEXTURE_GEN_S); //enable texture coordinate generation
+        glEnable(GL_TEXTURE_GEN_T);
+        glTexGeni(GL_S, GL_TEXTURE_GEN_MODE, GL_OBJECT_LINEAR);
+        glTexGeni(GL_T, GL_TEXTURE_GEN_MODE, GL_OBJECT_LINEAR);
+    }
+
     //頭
     change_color_material(colorMaterial);
     glTranslatef(0, 3, 0);               //在走到頭  和身體重疊0.5
     glPushMatrix();
     glutSolidSphere(1.5, 30, 30);        //直徑3
+
+    if (isPattern){
+        glDisable(GL_TEXTURE_GEN_S); //enable texture coordinate generation
+        glDisable(GL_TEXTURE_GEN_T);
+        glDisable(GL_TEXTURE_2D);
+    }
 
     //眼睛
     change_color_material(BLACK_PLACTIC);
@@ -1604,17 +1773,10 @@ void draw_SnowMan(int colorMaterial) {
     glutSolidSphere(0.33, 10, 10);
     glPopMatrix();                           //pop3
 
-    //glColor3f(1, 0, 0);
-    //glPushMatrix();                           //push3
-    //glTranslatef(0, -0.6, 1.5);               //嘴巴
-    //glLineWidth(1);
-    //glBegin(GL_LINES);
-    //glVertex3f(-0.2, 0, 0);
-    //glVertex3f(0.2, 0, 0);
-    //glEnd();
     glPopMatrix();                          //pop3
     glPopMatrix();                       //離開頭 pop2
     glPopMatrix();                       //離開肚子坐標系 pop1
+
 
 }
 void draw_cube() {
@@ -1628,19 +1790,21 @@ void draw_cube() {
     //for (i = 0; i < 6; i++) {     /* draw the six faces one by one */
     //    glNormal3fv(normal[i]);
     //    glBegin(GL_POLYGON);  /* Draw the face */
-    //    glVertex3fv(points[face[i][0]]);
-    //    glVertex3fv(points[face[i][1]]);
-    //    glVertex3fv(points[face[i][2]]);
-    //    glVertex3fv(points[face[i][3]]);
+    //    glTexCoord2f(0.0, 0.0); glVertex3fv(points[face[i][0]]);
+    //    glTexCoord2f(1.0, 0); glVertex3fv(points[face[i][1]]);
+    //    glTexCoord2f(1, 1); glVertex3fv(points[face[i][2]]);
+    //    glTexCoord2f(0, 1); glVertex3fv(points[face[i][3]]);
     //    glEnd();
     //}
 }
 void draw_cube(int x) {
     //左下角0,0,0
+
     glPushMatrix();
     glTranslatef(0.5, 0.5, 0.5);
     glutWireCube(1);
     glPopMatrix();
+
     //int i;
     //glPolygonMode(GL_FRONT, x);
     //for (i = 0; i < 6; i++) {     /* draw the six faces one by one */
@@ -2083,7 +2247,7 @@ void draw_scene(int mode) {
         glPushMatrix();
         glTranslatef(30, 0.5, 125);
         glScalef(3, 3, 3);
-        draw_SnowMan(GOLD);
+        draw_SnowMan(GOLD,NONE,0);
         glPopMatrix();
 
         //銀像
@@ -2091,7 +2255,7 @@ void draw_scene(int mode) {
         glTranslatef(17, 0.5, 130);
         glRotatef(15,0,1,0);
         glScalef(2.5, 2.5, 2.5);
-        draw_SnowMan(SILVER);
+        draw_SnowMan(SILVER,NONE,0);
         glPopMatrix();
 
         //塑膠像
@@ -2099,7 +2263,7 @@ void draw_scene(int mode) {
         glTranslatef(42, 0.5, 130);
         glRotatef(-15, 0, 1, 0);
         glScalef(2, 2, 2);
-        draw_SnowMan(RED_PLASTIC);
+        draw_SnowMan(RED_PLASTIC,NONE,0);
         glPopMatrix();
 
         //藍橡膠像
@@ -2107,7 +2271,24 @@ void draw_scene(int mode) {
         glTranslatef(90, 0.5, 68);
         glRotatef(-35, 0, 1, 0);
         glScalef(3.5, 3.5, 3.5);
-        draw_SnowMan(CYAN_RUBBER);
+        draw_SnowMan(CYAN_RUBBER,NONE,0);
+        glPopMatrix();
+
+        //網格粉像
+        glPushMatrix();
+        glTranslatef(10, 0.5, 10);
+        glRotatef(0, 0, 1, 0);
+        glScalef(3.5, 3.5, 3.5);
+        draw_SnowMan(WHITE, CHECKBOARD_BLUE,1);
+        glPopMatrix();
+
+
+        //藍點像
+        glPushMatrix();
+        glTranslatef(50, 0.5, 10);
+        glRotatef(0, 0, 1, 0);
+        glScalef(3.5, 3.5, 3.5);
+        draw_SnowMan(WHITE, HEART_PINK,1);
         glPopMatrix();
 
         //搖椅旁的樹 右邊
