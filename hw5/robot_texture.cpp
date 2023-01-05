@@ -5,6 +5,7 @@
 #include <vector>
 #include <cstdlib> /* 亂數相關函數 */
 #include <ctime>   /* 時間相關函數 */
+#include<stb_image.h>
 
 #define STB_IMAGE_IMPLEMENTATION
 
@@ -161,11 +162,13 @@ float  global_ambient[] = { 0.2, 0.2, 0.2, 1.0 };
 
 /*-----Create image space for textures -----*/
 bool isTextureOpen = 0;
-unsigned int   textName[3];                   /* declare 3 texture maps*/
+unsigned int   textName[10];                   /* declare 3 texture maps*/
 unsigned char  checkboard[TSIZE0][TSIZE0][4];   /* checkboard textures */
 unsigned char  dot[TSIZE1][TSIZE1][4];        /* brick wall textures */
 
-unsigned char* testimg;
+int image_width, image_height, nrChannels;
+unsigned char* image_data;
+
 void make_checkboard_blue()
 {
     //rgb(148, 255, 250)
@@ -237,7 +240,7 @@ void make_heart_pink()
 }
 void create_texture() {
     glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
-    glGenTextures(3, textName);
+    glGenTextures(10, textName);
 
     make_checkboard_blue();
     glBindTexture(GL_TEXTURE_2D, textName[0]);
@@ -259,6 +262,53 @@ void create_texture() {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST);
     gluBuild2DMipmaps(GL_TEXTURE_2D, GL_RGBA8, TSIZE1, TSIZE1, GL_RGBA, GL_UNSIGNED_BYTE, dot);
+
+
+    image_data = stbi_load("C:\\Users\\WANG\\source\\repos\\cg_test\\x64\\Debug\\grass.jpeg", &image_width, &image_height, &nrChannels, 0);
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
+    glBindTexture(GL_TEXTURE_2D, textName[2]);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+
+    if (nrChannels == 4) {
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image_width, image_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, image_data);
+    }
+    else {
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, image_width, image_height, 0, GL_RGB, GL_UNSIGNED_BYTE, image_data);
+    }
+
+    image_data = stbi_load("C:\\Users\\WANG\\source\\repos\\cg_test\\x64\\Debug\\wood.jpg", &image_width, &image_height, &nrChannels, 0);
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
+    glBindTexture(GL_TEXTURE_2D, textName[3]);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+
+    if (nrChannels == 4) {
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image_width, image_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, image_data);
+    }
+    else {
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, image_width, image_height, 0, GL_RGB, GL_UNSIGNED_BYTE, image_data);
+    }
+
+    image_data = stbi_load("C:\\Users\\WANG\\source\\repos\\cg_test\\x64\\Debug\\pool.jpg", &image_width, &image_height, &nrChannels, 0);
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
+    glBindTexture(GL_TEXTURE_2D, textName[4]);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+
+    if (nrChannels == 4) {
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image_width, image_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, image_data);
+    }
+    else {
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, image_width, image_height, 0, GL_RGB, GL_UNSIGNED_BYTE, image_data);
+    }
+
 }
 
 
@@ -274,7 +324,7 @@ void create_texture() {
 GLUquadricObj* sphere = NULL, * cylind = NULL, * mycircle = NULL;
 int see = 0;             //切換視角(開發地圖用 實際無此功能)                                     
 int preKey = 0;          //上一個按鍵案誰
-int scene = MAGICFIELD;  //初始背景為魔法陣
+int scene = GRASSLAND;  //初始背景為魔法陣
 bool isLock = 0;         //按鍵是否鎖了
 bool sitOnChair = 0;
 bool debugMode = 0;
@@ -1822,6 +1872,7 @@ void draw_disk(int r) {
         mycircle = gluNewQuadric();
         gluQuadricDrawStyle(mycircle, GLU_FILL);
     }
+    gluQuadricTexture(mycircle, GL_TRUE);
     glPushMatrix();
     glRotatef(270, 1, 0, 0);
     gluDisk(mycircle,
@@ -2044,8 +2095,29 @@ void draw_scene(int mode) {
         draw_cube();
         glPopMatrix();
 
-        glColor3f(204 / 255.0, 1, 204 / 255.0);     //草屏
-        draw_square(200, 200,1);
+        //glColor3f(204 / 255.0, 1, 204 / 255.0);     //草屏
+        glColor3f(1.0, 1,1);
+        // draw_square(200, 200,1);
+        glEnable(GL_TEXTURE_2D);
+        glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+        glBindTexture(GL_TEXTURE_2D, textName[2]);
+        glMatrixMode(GL_TEXTURE);
+        glLoadIdentity();
+        glScalef(5,5,5);
+        glMatrixMode(GL_MODELVIEW);
+        glLineWidth(1);
+        glPushMatrix();
+        glScaled(200, 0, 200);
+        glNormal3f(0, 1, 0);
+        glBegin(GL_POLYGON);
+        glTexCoord2f(0, 1); glVertex3f(0, 0.0, 1);
+        glTexCoord2f(1, 1); glVertex3f(1, 0.0, 1);
+        glTexCoord2f(1, 0); glVertex3f(1, 0.0, 0);
+        glTexCoord2f(0, 0); glVertex3f(0, 0.0, 0);
+        glEnd();
+        glPopMatrix();
+        glDisable(GL_TEXTURE_2D);
+       
 
         glPushMatrix();                             //轉移法陣(17,12) 20*20
         glColor3f(188 / 255.0, 217 / 255.0, 246 / 255.0);
@@ -2083,14 +2155,27 @@ void draw_scene(int mode) {
         glPolygonMode(GL_FRONT_AND_BACK,GL_FILL);
         //pool + river
         //{ {-10,120 ,100,0,30},{190,120 ,100,180,220}, {24,9 ,100,-3,30}, {100,70 ,100,80,120}, {130,267 ,100,260,290},{200,80 ,100,93,113} };
-
-        glColor3f(188 / 255.0, 217 / 255.0, 246 / 255.0);
         
+        //glColor3f(188 / 255.0, 217 / 255.0, 246 / 255.0);
+        glColor3f(1, 1, 1);
+
+        glEnable(GL_TEXTURE_2D);
+        glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+        glBindTexture(GL_TEXTURE_2D, textName[4]);
+        glMatrixMode(GL_TEXTURE);
+        glLoadIdentity();
+        //glScalef(0.125, 0.125, 0.125);
+        glMatrixMode(GL_MODELVIEW);
+
         glPushMatrix();
         glTranslatef(30, 0.01, 160);
         draw_disk(30);
         glPopMatrix();
 
+        glDisable(GL_TEXTURE_2D);
+
+        //203, 233, 231
+        glColor3f(203 / 255.0, 233 / 255.0, 231 / 255.0);
         for (const pp p : river) {
             for (int i = p.a1; i < p.a2; i++) {
                 glPushMatrix();
@@ -2208,26 +2293,38 @@ void draw_scene(int mode) {
         }
         //road
         //glPolygonMode(GL_FRONT_AND_BACK, GL_LI);
+
+        glEnable(GL_TEXTURE_2D);
+        glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+        glBindTexture(GL_TEXTURE_2D, textName[3]);
+        glMatrixMode(GL_TEXTURE);
+        glLoadIdentity();
+        glScalef(0.125,0.125,0.125);
+        glMatrixMode(GL_MODELVIEW);
+
         for (int i = 115; i < 168; i += 6) {              //180從頭
             glNormal3f(0,1,0);
             glBegin(GL_POLYGON);
-            glColor3f(133 / 255.0, 66 / 255.0, 0 / 255.0);
-            glVertex3f(150 + 120 * cos(i * 0.01745), 0.4, 0 + 80 * sin(i * 0.01745));
-            glVertex3f(150 + 120 * cos((i + 3) * 0.01745), 0.4, 0 + 80 * sin((i + 3) * 0.01745));
-            glVertex3f(150 + 150 * cos((i + 3) * 0.01745), 0.4, 0 + 100 * sin((i + 3) * 0.01745));
-            glVertex3f(150 + 150 * cos(i * 0.01745), 0.4, 0 + 100 * sin(i * 0.01745));
+            //glColor3f(133 / 255.0, 66 / 255.0, 0 / 255.0);
+            glColor3f(1, 1, 1);
+            glTexCoord2f(0, 0); glVertex3f(150 + 120 * cos(i * 0.01745), 0.4, 0 + 80 * sin(i * 0.01745));
+            glTexCoord2f(0, 1); glVertex3f(150 + 120 * cos((i + 3) * 0.01745), 0.4, 0 + 80 * sin((i + 3) * 0.01745));
+            glTexCoord2f(1, 1); glVertex3f(150 + 150 * cos((i + 3) * 0.01745), 0.4, 0 + 100 * sin((i + 3) * 0.01745));
+            glTexCoord2f(1, 0); glVertex3f(150 + 150 * cos(i * 0.01745), 0.4, 0 + 100 * sin(i * 0.01745));
             glEnd();
         }
         for (int i = -46; i < 30; i += 6) {
             glNormal3f(0, 1, 0);
             glBegin(GL_POLYGON);
-            glColor3f(133 / 255.0, 66 / 255.0, 0 / 255.0);
-            glVertex3f(4 + 120 * cos(i * 0.01745), 0.4, 150 + 80 * sin(i * 0.01745));
-            glVertex3f(4 + 120 * cos((i + 3) * 0.01745), 0.4, 150 + 80 * sin((i + 3) * 0.01745));
-            glVertex3f(4 + 150 * cos((i + 3) * 0.01745), 0.4, 150 + 100 * sin((i + 3) * 0.01745));
-            glVertex3f(4 + 150 * cos(i * 0.01745), 0.4, 150 + 100 * sin(i * 0.01745));
+            //glColor3f(133 / 255.0, 66 / 255.0, 0 / 255.0);
+            glColor3f(1, 1, 1);
+            glTexCoord2f(1, 1); glVertex3f(4 + 120 * cos(i * 0.01745), 0.4, 150 + 80 * sin(i * 0.01745));
+            glTexCoord2f(1, 0); glVertex3f(4 + 120 * cos((i + 3) * 0.01745), 0.4, 150 + 80 * sin((i + 3) * 0.01745));
+            glTexCoord2f(0, 0); glVertex3f(4 + 150 * cos((i + 3) * 0.01745), 0.4, 150 + 100 * sin((i + 3) * 0.01745));
+            glTexCoord2f(0, 1); glVertex3f(4 + 150 * cos(i * 0.01745), 0.4, 150 + 100 * sin(i * 0.01745));
             glEnd();
         }
+        glDisable(GL_TEXTURE_2D);
         //home   
         glPushMatrix();
         glTranslatef(145, 0, 130);               //70*50
