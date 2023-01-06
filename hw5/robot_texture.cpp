@@ -40,7 +40,7 @@
 #define JUMPTIMER 51            //一般跳
 #define JUMPONWANDTIMER 52      //跳上法杖
 #define JUMPTOFLOORTIMER 53     //跳回地板
-#define CHAIR_MOVE 54           //椅子擺動
+#define GRASSLAND_ANIMATION 54           //椅子擺動
 #define DEBUG_MODE 55           //debug開啟動畫
 #define OUT_LINE_FRONT   56           //debug mode 碰到邊界 前
 #define OUT_LINE_BACK    57           //debug mode 碰到邊界 後
@@ -71,6 +71,10 @@
 #define NONE 0x3f3f3f3f3f
 #define CHECKBOARD_BLUE 0
 #define HEART_PINK 1
+#define FLOWER 2
+#define WOOD_FLOOR 3
+#define POOL 4
+
 
 using namespace std;
 //定義cube
@@ -100,6 +104,7 @@ float   eyeAngx = 0.0, eyeAngy = 0.0, eyeAngz = 0.0;
 double  Eye[3] = { 30.0, 10.0, 80.0 }, Focus[3] = { 0.0, 0.0, 0.0 },
 Vup[3] = { 0.0, 1.0, 0.0 };
 double mtx[16] = { 0 };
+float eyeMtx[16] = { 0 };
 float   u[3][3] = { {1.0,0.0,0.0}, {0.0,1.0,0.0}, {0.0,0.0,1.0} };
 float   eye[3];
 float   cv, sv; /* cos(5.0) and sin(5.0) */
@@ -160,15 +165,74 @@ int    litfireCnt = 0;
 float  global_ambient[] = { 0.2, 0.2, 0.2, 1.0 };
 /*----------------------------------------------------------*/
 
-/*-----Create image space for textures -----*/
+/*-----textures 參數-----*/
 bool isTextureOpen = 0;
-unsigned int   textName[10];                   /* declare 3 texture maps*/
+unsigned int   textName[10];                   /* declare many texture maps*/
 unsigned char  checkboard[TSIZE0][TSIZE0][4];   /* checkboard textures */
 unsigned char  dot[TSIZE1][TSIZE1][4];        /* brick wall textures */
 
 int image_width, image_height, nrChannels;
 unsigned char* image_data;
+int poolAng = 0;
 
+/*---- the axes of billboard ----*/
+float  a[3], b[3];
+/*-------------------------------------------------------
+ * Procedure to compute the a[] and b[] axes of billboard
+ * after eye parameters are specified.
+ */
+void compute_ab_axes(void)
+{
+    float  w0, w2;
+    double len;
+
+    /*----Get w0 and w2 from the modelview matrix mtx[] ---*/
+    w0 = eyeMtx[2]; w2 = eyeMtx[10];
+
+    len = sqrt(w0 * w0 + w2 * w2);
+    /*---- Define the a and b axes for billboards ----*/
+    b[0] = 0.0; b[1] = 1.0; b[2] = 0.0;
+    a[0] = w2 / len; a[1] = 0.0; a[2] = -w0 / len;
+}
+/*--------------------------------------------------------
+ * Procedure to draw a billboard, center=[x,z], width=w,
+ * height = h;
+ */
+void draw_board() {
+    glNormal3f(0, 0, 1);
+    glBegin(GL_QUADS);
+    glTexCoord2f(1.0, 0.0); glVertex3f(0, 1, 0);
+    glTexCoord2f(1.0, 1.0); glVertex3f(0, 0, 0);
+    glTexCoord2f(0.0, 1.0); glVertex3f(1, 0, 0);
+    glTexCoord2f(0.0, 0.0); glVertex3f(1, 1, 0);
+    glEnd();
+}
+void draw_billboard(float x, float z, float w, float h)
+{
+    float  v0[3], v1[3], v2[3], v3[3];
+
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+    glEnable(GL_ALPHA_TEST);
+    glAlphaFunc(GL_GREATER, 0.5);
+    glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+
+    /*----Compute the 4 vertices of the billboard ----*/
+    v0[0] = x - (w / 2) * a[0]; v0[1] = 0.0; v0[2] = z - (w / 2) * a[2];
+    v1[0] = x + (w / 2) * a[0]; v1[1] = 0.0; v1[2] = z + (w / 2) * a[2];
+    v2[0] = x + (w / 2) * a[0]; v2[1] = h; v2[2] = z + (w / 2) * a[2];
+    v3[0] = x - (w / 2) * a[0]; v3[1] = h; v3[2] = z - (w / 2) * a[2];
+    glColor3f(1,1,1);
+    glBegin(GL_QUADS);
+    glTexCoord2f(0.0, 1.0); glVertex3fv(v0);
+    glTexCoord2f(1.0, 1.0); glVertex3fv(v1);
+    glTexCoord2f(1.0, 0.0); glVertex3fv(v2);
+    glTexCoord2f(0.0, 0.0); glVertex3fv(v3);
+    glEnd();
+    glDisable(GL_ALPHA_TEST);
+    glDisable(GL_BLEND);
+}
 void make_checkboard_blue()
 {
     //rgb(148, 255, 250)
@@ -243,7 +307,7 @@ void create_texture() {
     glGenTextures(10, textName);
 
     make_checkboard_blue();
-    glBindTexture(GL_TEXTURE_2D, textName[0]);
+    glBindTexture(GL_TEXTURE_2D, textName[CHECKBOARD_BLUE]);
 
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
@@ -254,7 +318,7 @@ void create_texture() {
     //glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, TSIZE, TSIZE, 1, GL_RGBA, GL_UNSIGNED_BYTE, checkboard);
 
     make_heart_pink();
-    glBindTexture(GL_TEXTURE_2D, textName[1]);
+    glBindTexture(GL_TEXTURE_2D, textName[HEART_PINK]);
 
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
@@ -264,9 +328,10 @@ void create_texture() {
     gluBuild2DMipmaps(GL_TEXTURE_2D, GL_RGBA8, TSIZE1, TSIZE1, GL_RGBA, GL_UNSIGNED_BYTE, dot);
 
 
-    image_data = stbi_load("C:\\Users\\WANG\\source\\repos\\cg_test\\x64\\Debug\\grass.jpeg", &image_width, &image_height, &nrChannels, 0);
+    //image_data = stbi_load("C:\\Users\\WANG\\source\\repos\\cg_test\\x64\\Debug\\grass.jpeg", &image_width, &image_height, &nrChannels, 0);
+    image_data = stbi_load("flower.png", &image_width, &image_height, &nrChannels, 0);
     glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
-    glBindTexture(GL_TEXTURE_2D, textName[2]);
+    glBindTexture(GL_TEXTURE_2D, textName[FLOWER]);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
@@ -279,9 +344,10 @@ void create_texture() {
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, image_width, image_height, 0, GL_RGB, GL_UNSIGNED_BYTE, image_data);
     }
 
-    image_data = stbi_load("C:\\Users\\WANG\\source\\repos\\cg_test\\x64\\Debug\\wood.jpg", &image_width, &image_height, &nrChannels, 0);
+    //image_data = stbi_load("C:\\Users\\WANG\\source\\repos\\cg_test\\x64\\Debug\\wood.jpg", &image_width, &image_height, &nrChannels, 0);
+    image_data = stbi_load("wood.jpg", &image_width, &image_height, &nrChannels, 0);
     glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
-    glBindTexture(GL_TEXTURE_2D, textName[3]);
+    glBindTexture(GL_TEXTURE_2D, textName[WOOD_FLOOR]);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
@@ -294,9 +360,10 @@ void create_texture() {
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, image_width, image_height, 0, GL_RGB, GL_UNSIGNED_BYTE, image_data);
     }
 
-    image_data = stbi_load("C:\\Users\\WANG\\source\\repos\\cg_test\\x64\\Debug\\pool.jpg", &image_width, &image_height, &nrChannels, 0);
+    //image_data = stbi_load("C:\\Users\\WANG\\source\\repos\\cg_test\\x64\\Debug\\pool.jpg", &image_width, &image_height, &nrChannels, 0);
+    image_data = stbi_load("pool.jpg", &image_width, &image_height, &nrChannels, 0);
     glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
-    glBindTexture(GL_TEXTURE_2D, textName[4]);
+    glBindTexture(GL_TEXTURE_2D, textName[POOL]);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
@@ -309,6 +376,20 @@ void create_texture() {
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, image_width, image_height, 0, GL_RGB, GL_UNSIGNED_BYTE, image_data);
     }
 
+    image_data = stbi_load("forest.png", &image_width, &image_height, &nrChannels, 0);
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
+    glBindTexture(GL_TEXTURE_2D, textName[5]);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+
+    if (nrChannels == 4) {
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image_width, image_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, image_data);
+    }
+    else {
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, image_width, image_height, 0, GL_RGB, GL_UNSIGNED_BYTE, image_data);
+    }
 }
 
 
@@ -2087,40 +2168,52 @@ void draw_scene(int mode) {
     else if (mode == GRASSLAND) {
 
         setMaterial(0, 0, 0, 0, 0, 0, 0);
+        glColor4f(204 / 255.0, 1, 204 / 255.0, 1);
         glColor3f(1 / 255.0, 152 / 255.0, 89 / 255.0); //草地
         glPolygonMode(GL_FRONT_AND_BACK,GL_FILL);
         glPushMatrix();
         glTranslatef(0, -10.5, 0);
-        glScalef(200, 10, 200);
+        glTranslatef(0,0, -100);
+        glScalef(300, 10, 300);
         draw_cube();
         glPopMatrix();
 
-        //glColor3f(204 / 255.0, 1, 204 / 255.0);     //草屏
-        glColor3f(1.0, 1,1);
-        // draw_square(200, 200,1);
+        glColor4f(204 / 255.0, 1, 204 / 255.0,1);     //草屏   
+        glPushMatrix();
+        glTranslatef(0, -0.3, -100);
+        draw_square(300, 300,1);
+        glPopMatrix();
+
+        glColor3f(1.0, 1, 1);
         glEnable(GL_TEXTURE_2D);
+        glEnable(GL_ALPHA_TEST);
+        glAlphaFunc(GL_GREATER, 0.5);
         glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
-        glBindTexture(GL_TEXTURE_2D, textName[2]);
+        glBindTexture(GL_TEXTURE_2D, textName[FLOWER]);
         glMatrixMode(GL_TEXTURE);
         glLoadIdentity();
         glScalef(5,5,5);
         glMatrixMode(GL_MODELVIEW);
         glLineWidth(1);
+        //glColor3f(1,1,1);
         glPushMatrix();
-        glScaled(200, 0, 200);
+        glTranslatef(0, 0, -100);
+        glScaled(300, 0, 300);
         glNormal3f(0, 1, 0);
         glBegin(GL_POLYGON);
-        glTexCoord2f(0, 1); glVertex3f(0, 0.0, 1);
-        glTexCoord2f(1, 1); glVertex3f(1, 0.0, 1);
-        glTexCoord2f(1, 0); glVertex3f(1, 0.0, 0);
-        glTexCoord2f(0, 0); glVertex3f(0, 0.0, 0);
+        glTexCoord2f(0, 1); glVertex3f(0, 0.1, 1);
+        glTexCoord2f(1, 1); glVertex3f(1, 0.1, 1);
+        glTexCoord2f(1, 0); glVertex3f(1, 0.1, 0);
+        glTexCoord2f(0, 0); glVertex3f(0, 0.1, 0);
         glEnd();
         glPopMatrix();
+        glDisable(GL_ALPHA_TEST);
         glDisable(GL_TEXTURE_2D);
        
 
         glPushMatrix();                             //轉移法陣(17,12) 20*20
-        glColor3f(188 / 255.0, 217 / 255.0, 246 / 255.0);
+        //glColor3f(188 / 255.0, 217 / 255.0, 246 / 255.0);
+        glColor4f(1, 1, 1,0.7);
         glTranslatef(17, 0.3, 12);
         glScalef(1 / 3.0, 1 / 3.0, 1 / 3.0);
         draw_magic_field();
@@ -2137,20 +2230,20 @@ void draw_scene(int mode) {
             glPopMatrix();
         }
         setMaterial(0, 0, 0, 0, 0, 0, 0);
-        //glColor3f(0, 0, 0);         //格子線(開發用)
-        //glPushMatrix();
-        //for (int i = 0; i < 200; i += 10) {
-        //    if(i%100 == 0) glLineWidth(3);
-        //    else if (i%50  == 0) glLineWidth(2);
-        //    else glLineWidth(1);
-        //    glBegin(GL_LINES);
-        //    glVertex3f(i, 0.1, 0);
-        //    glVertex3f(i, 0.1, 200);
-        //    glVertex3f(0, 0.1, i);
-        //    glVertex3f(200, 0.1, i);
-        //    glEnd();
-        //}
-        //glPopMatrix();
+        glColor3f(0, 0, 0);         //格子線(開發用)
+        glPushMatrix();
+        for (int i = 0; i < 200; i += 10) {
+            if(i%100 == 0) glLineWidth(3);
+            else if (i%50  == 0) glLineWidth(2);
+            else glLineWidth(1);
+            glBegin(GL_LINES);
+            glVertex3f(i, 0.1, 0);
+            glVertex3f(i, 0.1, 200);
+            glVertex3f(0, 0.1, i);
+            glVertex3f(200, 0.1, i);
+            glEnd();
+        }
+        glPopMatrix();
 
         glPolygonMode(GL_FRONT_AND_BACK,GL_FILL);
         //pool + river
@@ -2161,14 +2254,18 @@ void draw_scene(int mode) {
 
         glEnable(GL_TEXTURE_2D);
         glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
-        glBindTexture(GL_TEXTURE_2D, textName[4]);
+        glBindTexture(GL_TEXTURE_2D, textName[POOL]);
         glMatrixMode(GL_TEXTURE);
         glLoadIdentity();
-        //glScalef(0.125, 0.125, 0.125);
+        //glTranslatef(30,0,30);
+        glTranslatef(0.5, 0.5, 0);
+        glRotatef(poolAng,0,0,1);
+        glTranslatef(-0.5, -0.5, 0);
+        //glScalef(2, 2, 2);
         glMatrixMode(GL_MODELVIEW);
 
         glPushMatrix();
-        glTranslatef(30, 0.01, 160);
+        glTranslatef(30, 0.51, 160);
         draw_disk(30);
         glPopMatrix();
 
@@ -2176,6 +2273,18 @@ void draw_scene(int mode) {
 
         //203, 233, 231
         glColor3f(203 / 255.0, 233 / 255.0, 231 / 255.0);
+        for (int z = 0; z > -97; z -= 3){ //往後延伸
+            glPushMatrix();
+            glTranslatef(123.5, 0.5, z);
+            draw_disk(5);
+            glPopMatrix();
+        }
+        for (int x = 200; x <= 300; x += 3) {  //往右延伸
+            glPushMatrix();
+            glTranslatef(x, 0.5, 180 );
+            draw_disk(5);
+            glPopMatrix();
+        }
         for (const pp p : river) {
             for (int i = p.a1; i < p.a2; i++) {
                 glPushMatrix();
@@ -2291,12 +2400,130 @@ void draw_scene(int mode) {
                 glPopMatrix();
             }
         }
+        //往後延伸rock
+        for (int z = 0; z > -97; z-=4) { 
+            //glTranslatef(123.5, 0.5, z);
+            glPushMatrix();
+            if (abs(z) % 7 == 0) {
+                glTranslatef(123.5 - 3.75 , 0.5, z - 3.75);
+                glColor3f(92 / 255.0, 92 / 255.0, 92 / 255.0);
+                glutSolidSphere(1.75, 10, 10);
+            }
+            else if (abs(z) % 5 == 0) {
+                glTranslatef(123.5 - 4 , 0.5, z - 4);
+                glColor3f(191 / 255.0, 191 / 255.0, 191 / 255.0);
+                glutSolidSphere(1.5, 10, 10);
+            }
+            else if (abs(z) % 3 == 0) {
+                glTranslatef(123.5 - 3.5 , 0.5, z - 3.5);
+                glColor3f(122 / 255.0, 122 / 255.0, 122 / 255.0);
+                glutSolidSphere(2, 10, 10);
+            }
+            else if (abs(z) % 2 == 0) {
+                glTranslatef(123.5 - 3.75, 0.5, z - 3.75 );
+                glColor3f(61 / 255.0, 61 / 255.0, 61 / 255.0);
+                glutSolidSphere(1.25, 10, 10);
+            }
+            else {
+                glTranslatef(123.5 - 4, 0.5,z - 4 );
+                glColor3f(38 / 255.0, 38 / 255.0, 38 / 255.0);
+                glutSolidSphere(0.5, 10, 10);
+            }
+            glPopMatrix();
+            //右
+            glPushMatrix();
+            if (abs(z) % 7 == 0) {
+                glTranslatef(123.5 + 3.75, 0.5, z + 3.75);
+                glColor3f(92 / 255.0, 92 / 255.0, 92 / 255.0);
+                glutSolidSphere(1.75, 10, 10);
+            }
+            else if (abs(z) % 5 == 0) {
+                glTranslatef(123.5 + 4, 0.5, z + 4);
+                glColor3f(191 / 255.0, 191 / 255.0, 191 / 255.0);
+                glutSolidSphere(1.5, 10, 10);
+            }
+            else if (abs(z) % 3 == 0) {
+                glTranslatef(123.5 + 3.5, 0.5, z + 3.5);
+                glColor3f(122 / 255.0, 122 / 255.0, 122 / 255.0);
+                glutSolidSphere(2, 10, 10);
+            }
+            else if (abs(z) % 2 == 0) {
+                glTranslatef(123.5 + 3.75, 0.5, z + 3.75);
+                glColor3f(61 / 255.0, 61 / 255.0, 61 / 255.0);
+                glutSolidSphere(1.25, 10, 10);
+            }
+            else {
+                glTranslatef(123.5 + 4, 0.5, z + 4);
+                glColor3f(38 / 255.0, 38 / 255.0, 38 / 255.0);
+                glutSolidSphere(0.5, 10, 10);
+            }
+            glPopMatrix();
+        }
+        //往右延伸rock
+        for (int x = 200; x <= 300; x += 2) {
+            //glTranslatef(x, 0.5, 180);
+            glPushMatrix();
+            if (abs(x) % 7 == 0) {
+                glTranslatef(x - 3.75, 0.5, 180 - 3.75);
+                glColor3f(92 / 255.0, 92 / 255.0, 92 / 255.0);
+                glutSolidSphere(1.75, 10, 10);
+            }
+            else if (abs(x) % 5 == 0) {
+                glTranslatef(x - 4, 0.5, 180 - 4);
+                glColor3f(191 / 255.0, 191 / 255.0, 191 / 255.0);
+                glutSolidSphere(1.5, 10, 10);
+            }
+            else if (abs(x) % 3 == 0) {
+                glTranslatef(x - 3.5, 0.5, 180 - 3.5);
+                glColor3f(122 / 255.0, 122 / 255.0, 122 / 255.0);
+                glutSolidSphere(2, 10, 10);
+            }
+            else if (abs(x) % 2 == 0) {
+                glTranslatef(x - 3.75, 0.5, 180 - 3.75);
+                glColor3f(61 / 255.0, 61 / 255.0, 61 / 255.0);
+                glutSolidSphere(1.25, 10, 10);
+            }
+            else {
+                glTranslatef(x - 4, 0.5, 180 - 4);
+                glColor3f(38 / 255.0, 38 / 255.0, 38 / 255.0);
+                glutSolidSphere(0.5, 10, 10);
+            }
+            glPopMatrix();
+            //右
+            glPushMatrix();
+            if (abs(x) % 7 == 0) {
+                glTranslatef(x + 3.75, 0.5, 180 + 3.75);
+                glColor3f(92 / 255.0, 92 / 255.0, 92 / 255.0);
+                glutSolidSphere(1.75, 10, 10);
+            }
+            else if (abs(x) % 5 == 0) {
+                glTranslatef(x + 4, 0.5, 180 + 4);
+                glColor3f(191 / 255.0, 191 / 255.0, 191 / 255.0);
+                glutSolidSphere(1.5, 10, 10);
+            }
+            else if (abs(x) % 3 == 0) {
+                glTranslatef(x + 3.5, 0.5, 180 + 3.5);
+                glColor3f(122 / 255.0, 122 / 255.0, 122 / 255.0);
+                glutSolidSphere(2, 10, 10);
+            }
+            else if (abs(x) % 2 == 0) {
+                glTranslatef(x + 3.75, 0.5, 180 + 3.75);
+                glColor3f(61 / 255.0, 61 / 255.0, 61 / 255.0);
+                glutSolidSphere(1.25, 10, 10);
+            }
+            else {
+                glTranslatef(x + 4, 0.5, 180 + 4);
+                glColor3f(38 / 255.0, 38 / 255.0, 38 / 255.0);
+                glutSolidSphere(0.5, 10, 10);
+            }
+            glPopMatrix();
+        }
         //road
         //glPolygonMode(GL_FRONT_AND_BACK, GL_LI);
 
         glEnable(GL_TEXTURE_2D);
         glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
-        glBindTexture(GL_TEXTURE_2D, textName[3]);
+        glBindTexture(GL_TEXTURE_2D, textName[WOOD_FLOOR]);
         glMatrixMode(GL_TEXTURE);
         glLoadIdentity();
         glScalef(0.125,0.125,0.125);
@@ -2371,20 +2598,19 @@ void draw_scene(int mode) {
         draw_SnowMan(CYAN_RUBBER,NONE,0);
         glPopMatrix();
 
-        //網格粉像
+        //網格藍像
         glPushMatrix();
-        glTranslatef(10, 0.5, 10);
-        glRotatef(0, 0, 1, 0);
-        glScalef(3.5, 3.5, 3.5);
+        glTranslatef(71.5, 0.5, 158);
+        glRotatef(-17, 0, 1, 0);
+        glScalef(2, 2, 2);
         draw_SnowMan(WHITE, CHECKBOARD_BLUE,1);
         glPopMatrix();
 
-
-        //藍點像
+        //紅心像
         glPushMatrix();
-        glTranslatef(50, 0.5, 10);
-        glRotatef(0, 0, 1, 0);
-        glScalef(3.5, 3.5, 3.5);
+        glTranslatef(65.5, 0.5, 158);
+        glRotatef(17, 0, 1, 0);
+        glScalef(2, 2, 2);
         draw_SnowMan(WHITE, HEART_PINK,1);
         glPopMatrix();
 
@@ -2399,6 +2625,63 @@ void draw_scene(int mode) {
         glTranslatef(137, 0.5, 90);
         draw_tree(10, 30);
         glPopMatrix();
+
+        //叢林
+        glEnable(GL_TEXTURE_2D);
+        glEnable(GL_ALPHA_TEST);
+        glAlphaFunc(GL_GREATER, 0.5);
+        glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+        glBindTexture(GL_TEXTURE_2D, textName[5]);
+
+        glMatrixMode(GL_TEXTURE);
+        glLoadIdentity();
+        glMatrixMode(GL_MODELVIEW);
+        //後
+        setMaterial(0, 0, 0, 0, 0, 0, 0);
+        glColor3f(1, 1, 1);
+        glPushMatrix();
+        glTranslatef(-15,0,-5);
+        glScalef(126,63,1);
+        draw_board();
+        glPopMatrix();
+
+        glPushMatrix();
+        glTranslatef(-10, 0, -60);
+        glScalef(150, 75, 1);
+        draw_board();
+        glPopMatrix();
+
+        glPushMatrix();
+        glTranslatef(140, 0, -15);
+        glScalef(136, 88, 1);
+        draw_board();
+        glPopMatrix();
+
+        glPushMatrix();
+        glTranslatef(110, 0, -40);
+        glScalef(136, 88, 1);
+        draw_board();
+        glPopMatrix();
+
+        glPushMatrix();
+        glTranslatef(170, 0, -90);
+        glScalef(150, 75, 1);
+        draw_board();
+        glPopMatrix();
+        
+        glDisable(GL_ALPHA_TEST);
+        glDisable(GL_TEXTURE_2D);
+        //draw_billboard(75, 0, 150, 75);
+        //draw_billboard(6.0 * 4.0, 5.0 * 4.0, 5.0, 8.0);
+        //draw_billboard(3.0 * 4.0, 6.0 * 4.0, 5.0, 8.0);
+        //draw_billboard(2.0 * 4.0, 7.0 * 4.0, 5.0, 8.0);
+        //draw_billboard(7.0 * 4.0, 2.0 * 4.0, 5.0, 8.0);
+
+        
+
+
+
+
 
     }
 }
@@ -2677,10 +2960,15 @@ void make_view(int x)
         //gluLookAt(30.0, 30.0, 80.0, 30.0, 0.0, 0.0, 0.0, 1.0, 0.0);
         //u是eye轉移矩陣(transformation matx)
         gluLookAt(eye[0], eye[1], eye[2], eye[0] - u[2][0], eye[1] - u[2][1], eye[2] - u[2][2], u[1][0], u[1][1], u[1][2]);
+        glGetFloatv(GL_MODELVIEW_MATRIX, eyeMtx);
+        compute_ab_axes();
         //gluLookAt(eye[0], eye[1], eye[2], 0,0, 0, u[1][0], u[1][1], u[1][2]);
         break;
     case 5:
         gluLookAt(pos[0] - 5, 30, pos[2] + 30, pos[0], 15, pos[2], 0.0, 1.0, 0.0);
+        glGetFloatv(GL_MODELVIEW_MATRIX, eyeMtx);
+        compute_ab_axes();
+        break;
     }
 }
 void setDirectionLight() {
@@ -3069,10 +3357,11 @@ void timerFunc(int nTimerID) {
         }
         glutPostRedisplay();
         break;
-    case CHAIR_MOVE:                //搖椅擺擺擺
+    case GRASSLAND_ANIMATION:                //搖椅擺擺擺
         myBig_chair.move();
+        poolAng++;
         if (scene == GRASSLAND) {
-            glutTimerFunc(100, timerFunc, CHAIR_MOVE);
+            glutTimerFunc(100, timerFunc, GRASSLAND_ANIMATION);
         }
         glutPostRedisplay();
         break;
@@ -3593,7 +3882,7 @@ void keybaord_fun(unsigned char key, int x, int y) {
             pos[0] = 17;
             pos[2] = 12;
             scene = GRASSLAND;
-            glutTimerFunc(100, timerFunc, CHAIR_MOVE);
+            glutTimerFunc(100, timerFunc, GRASSLAND_ANIMATION);
             glutTimerFunc(1000, timerFunc, TREE_LIGHT);
             //平行光
             litdir_init[0] = 100;
@@ -3758,7 +4047,7 @@ void keybaord_fun(unsigned char key, int x, int y) {
         //cout << litspotCutoffAng << "\n";
     }
     //開發用 不支援!!
-    //if (key == 'u') glutTimerFunc(100, timerFunc, CHAIR_MOVE);
+    //if (key == 'u') glutTimerFunc(100, timerFunc, GRASSLAND_ANIMATION);
     //if (key == 'o' || key == 'O') {
     //    cout << ++myRobot.magic_wand_carry->angle_x << "\n";
     //}
