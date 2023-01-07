@@ -74,6 +74,15 @@
 #define FLOWER 2
 #define WOOD_FLOOR 3
 #define POOL 4
+#define FOREST 5
+#define STARSKY 6
+#define ELF 7
+#define EEVEE_1 8
+#define EEVEE_2 9
+#define EEVEE_3 10
+#define EEVEE_4 11
+#define EEVEE_5 12
+#define EEVEE_6 13
 
 
 using namespace std;
@@ -167,7 +176,7 @@ float  global_ambient[] = { 0.2, 0.2, 0.2, 1.0 };
 
 /*-----textures 參數-----*/
 bool isTextureOpen = 0;
-unsigned int   textName[10];                   /* declare many texture maps*/
+unsigned int   textName[20];                   /* declare many texture maps*/
 unsigned char  checkboard[TSIZE0][TSIZE0][4];   /* checkboard textures */
 unsigned char  dot[TSIZE1][TSIZE1][4];        /* brick wall textures */
 
@@ -304,7 +313,7 @@ void make_heart_pink()
 }
 void create_texture() {
     glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
-    glGenTextures(10, textName);
+    glGenTextures(20, textName);
 
     make_checkboard_blue();
     glBindTexture(GL_TEXTURE_2D, textName[CHECKBOARD_BLUE]);
@@ -378,7 +387,129 @@ void create_texture() {
 
     image_data = stbi_load("forest.png", &image_width, &image_height, &nrChannels, 0);
     glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
-    glBindTexture(GL_TEXTURE_2D, textName[5]);
+    glBindTexture(GL_TEXTURE_2D, textName[FOREST]);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+
+    if (nrChannels == 4) {
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image_width, image_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, image_data);
+    }
+    else {
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, image_width, image_height, 0, GL_RGB, GL_UNSIGNED_BYTE, image_data);
+    }
+
+
+    image_data = stbi_load("starsky.jpg", &image_width, &image_height, &nrChannels, 0);
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
+    glBindTexture(GL_TEXTURE_2D, textName[STARSKY]);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+
+    if (nrChannels == 4) {
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image_width, image_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, image_data);
+    }
+    else {
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, image_width, image_height, 0, GL_RGB, GL_UNSIGNED_BYTE, image_data);
+    }
+
+    image_data = stbi_load("elk.png", &image_width, &image_height, &nrChannels, 0);
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
+    glBindTexture(GL_TEXTURE_2D, textName[ELF]);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+
+    if (nrChannels == 4) {
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image_width, image_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, image_data);
+    }
+    else {
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, image_width, image_height, 0, GL_RGB, GL_UNSIGNED_BYTE, image_data);
+    }
+
+    image_data = stbi_load("eevee_1.png", &image_width, &image_height, &nrChannels, 0);
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
+    glBindTexture(GL_TEXTURE_2D, textName[EEVEE_1]);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+
+    if (nrChannels == 4) {
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image_width, image_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, image_data);
+    }
+    else {
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, image_width, image_height, 0, GL_RGB, GL_UNSIGNED_BYTE, image_data);
+    }
+
+    image_data = stbi_load("eevee_2.png", &image_width, &image_height, &nrChannels, 0);
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
+    glBindTexture(GL_TEXTURE_2D, textName[EEVEE_2]);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+
+    if (nrChannels == 4) {
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image_width, image_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, image_data);
+    }
+    else {
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, image_width, image_height, 0, GL_RGB, GL_UNSIGNED_BYTE, image_data);
+    }
+
+    image_data = stbi_load("eevee_3.png", &image_width, &image_height, &nrChannels, 0);
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
+    glBindTexture(GL_TEXTURE_2D, textName[EEVEE_3]);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+
+    if (nrChannels == 4) {
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image_width, image_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, image_data);
+    }
+    else {
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, image_width, image_height, 0, GL_RGB, GL_UNSIGNED_BYTE, image_data);
+    }
+
+
+    image_data = stbi_load("eevee_4.png", &image_width, &image_height, &nrChannels, 0);
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
+    glBindTexture(GL_TEXTURE_2D, textName[EEVEE_4]);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+
+    if (nrChannels == 4) {
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image_width, image_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, image_data);
+    }
+    else {
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, image_width, image_height, 0, GL_RGB, GL_UNSIGNED_BYTE, image_data);
+    }
+
+    image_data = stbi_load("eevee_5.png", &image_width, &image_height, &nrChannels, 0);
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
+    glBindTexture(GL_TEXTURE_2D, textName[EEVEE_5]);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+
+    if (nrChannels == 4) {
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image_width, image_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, image_data);
+    }
+    else {
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, image_width, image_height, 0, GL_RGB, GL_UNSIGNED_BYTE, image_data);
+    }
+
+    image_data = stbi_load("eevee_6.png", &image_width, &image_height, &nrChannels, 0);
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
+    glBindTexture(GL_TEXTURE_2D, textName[EEVEE_6]);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
@@ -1693,7 +1824,7 @@ void init_camera() {
     //定義lrbtnf
     double zNear = 0, zFar = 0, aspect = 0, fovy = 0;
     zNear = 20;                      
-    zFar = 60;
+    zFar = 1000;
     aspect = width / (double)height;
     fovy = 45;
 
@@ -1719,7 +1850,7 @@ void init_camera() {
     clippingWindowOrtho[_b] = -40;    //b
     clippingWindowOrtho[_t] = 40;     //t
     clippingWindowOrtho[_n] = -100;   //n
-    clippingWindowOrtho[_f] = 200;    //f
+    clippingWindowOrtho[_f] = 1000;    //f
 }
 void myinit()
 {
@@ -1744,6 +1875,7 @@ void myinit()
     glLightModelfv(GL_LIGHT_MODEL_AMBIENT, global_ambient); /*global ambient 全域的環境光*/
 
     /*-----Enable face culling 消除不必要的計算 -----*/
+    
     glCullFace(GL_BACK);
     glEnable(GL_CULL_FACE);
 
@@ -2230,20 +2362,20 @@ void draw_scene(int mode) {
             glPopMatrix();
         }
         setMaterial(0, 0, 0, 0, 0, 0, 0);
-        glColor3f(0, 0, 0);         //格子線(開發用)
-        glPushMatrix();
-        for (int i = 0; i < 200; i += 10) {
-            if(i%100 == 0) glLineWidth(3);
-            else if (i%50  == 0) glLineWidth(2);
-            else glLineWidth(1);
-            glBegin(GL_LINES);
-            glVertex3f(i, 0.1, 0);
-            glVertex3f(i, 0.1, 200);
-            glVertex3f(0, 0.1, i);
-            glVertex3f(200, 0.1, i);
-            glEnd();
-        }
-        glPopMatrix();
+        //glColor3f(0, 0, 0);         //格子線(開發用)
+        //glPushMatrix();
+        //for (int i = 0; i < 200; i += 10) {
+        //    if(i%100 == 0) glLineWidth(3);
+        //    else if (i%50  == 0) glLineWidth(2);
+        //    else glLineWidth(1);
+        //    glBegin(GL_LINES);
+        //    glVertex3f(i, 0.1, 0);
+        //    glVertex3f(i, 0.1, 200);
+        //    glVertex3f(0, 0.1, i);
+        //    glVertex3f(200, 0.1, i);
+        //    glEnd();
+        //}
+        //glPopMatrix();
 
         glPolygonMode(GL_FRONT_AND_BACK,GL_FILL);
         //pool + river
@@ -2566,123 +2698,225 @@ void draw_scene(int mode) {
         glRotatef(180, 0, 1, 0);
         myBig_chair.draw();
         glPopMatrix();
+        //裝飾品
+        {
+            //金像
+            glPushMatrix();
+            glTranslatef(30, 0.5, 125);
+            glScalef(3, 3, 3);
+            draw_SnowMan(GOLD, NONE, 0);
+            glPopMatrix();
 
-        //金像
-        glPushMatrix();
-        glTranslatef(30, 0.5, 125);
-        glScalef(3, 3, 3);
-        draw_SnowMan(GOLD,NONE,0);
-        glPopMatrix();
+            //銀像
+            glPushMatrix();
+            glTranslatef(17, 0.5, 130);
+            glRotatef(15, 0, 1, 0);
+            glScalef(2.5, 2.5, 2.5);
+            draw_SnowMan(SILVER, NONE, 0);
+            glPopMatrix();
 
-        //銀像
-        glPushMatrix();
-        glTranslatef(17, 0.5, 130);
-        glRotatef(15,0,1,0);
-        glScalef(2.5, 2.5, 2.5);
-        draw_SnowMan(SILVER,NONE,0);
-        glPopMatrix();
+            //塑膠像
+            glPushMatrix();
+            glTranslatef(42, 0.5, 130);
+            glRotatef(-15, 0, 1, 0);
+            glScalef(2, 2, 2);
+            draw_SnowMan(RED_PLASTIC, NONE, 0);
+            glPopMatrix();
 
-        //塑膠像
-        glPushMatrix();
-        glTranslatef(42, 0.5, 130);
-        glRotatef(-15, 0, 1, 0);
-        glScalef(2, 2, 2);
-        draw_SnowMan(RED_PLASTIC,NONE,0);
-        glPopMatrix();
+            //藍橡膠像
+            glPushMatrix();
+            glTranslatef(90, 0.5, 68);
+            glRotatef(-35, 0, 1, 0);
+            glScalef(3.5, 3.5, 3.5);
+            draw_SnowMan(CYAN_RUBBER, NONE, 0);
+            glPopMatrix();
 
-        //藍橡膠像
-        glPushMatrix();
-        glTranslatef(90, 0.5, 68);
-        glRotatef(-35, 0, 1, 0);
-        glScalef(3.5, 3.5, 3.5);
-        draw_SnowMan(CYAN_RUBBER,NONE,0);
-        glPopMatrix();
+            //網格藍像
+            glPushMatrix();
+            glTranslatef(71.5, 0.5, 158);
+            glRotatef(-17, 0, 1, 0);
+            glScalef(2, 2, 2);
+            draw_SnowMan(WHITE, CHECKBOARD_BLUE, 1);
+            glPopMatrix();
 
-        //網格藍像
-        glPushMatrix();
-        glTranslatef(71.5, 0.5, 158);
-        glRotatef(-17, 0, 1, 0);
-        glScalef(2, 2, 2);
-        draw_SnowMan(WHITE, CHECKBOARD_BLUE,1);
-        glPopMatrix();
+            //紅心像
+            glPushMatrix();
+            glTranslatef(65.5, 0.5, 158);
+            glRotatef(17, 0, 1, 0);
+            glScalef(2, 2, 2);
+            draw_SnowMan(WHITE, HEART_PINK, 1);
+            glPopMatrix();
 
-        //紅心像
-        glPushMatrix();
-        glTranslatef(65.5, 0.5, 158);
-        glRotatef(17, 0, 1, 0);
-        glScalef(2, 2, 2);
-        draw_SnowMan(WHITE, HEART_PINK,1);
-        glPopMatrix();
+            //搖椅旁的樹 右邊
+            glPushMatrix();
+            glTranslatef(177, 0.5, 140);
+            draw_tree(10, 30);
+            glPopMatrix();
 
-        //搖椅旁的樹 右邊
-        glPushMatrix();
-        glTranslatef(177, 0.5, 140);
-        draw_tree(10, 30);
-        glPopMatrix();
-
-        //搖椅旁的樹 左邊
-        glPushMatrix();
-        glTranslatef(137, 0.5, 90);
-        draw_tree(10, 30);
-        glPopMatrix();
-
+            //搖椅旁的樹 左邊
+            glPushMatrix();
+            glTranslatef(137, 0.5, 90);
+            draw_tree(10, 30);
+            glPopMatrix();
+        }
         //叢林
-        glEnable(GL_TEXTURE_2D);
-        glEnable(GL_ALPHA_TEST);
-        glAlphaFunc(GL_GREATER, 0.5);
-        glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
-        glBindTexture(GL_TEXTURE_2D, textName[5]);
+        {
+            glEnable(GL_TEXTURE_2D);
+            glEnable(GL_ALPHA_TEST);
+            glAlphaFunc(GL_GREATER, 0.5);
+            glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+            glBindTexture(GL_TEXTURE_2D, textName[FOREST]);
 
-        glMatrixMode(GL_TEXTURE);
-        glLoadIdentity();
-        glMatrixMode(GL_MODELVIEW);
-        //後
-        setMaterial(0, 0, 0, 0, 0, 0, 0);
-        glColor3f(1, 1, 1);
-        glPushMatrix();
-        glTranslatef(-15,0,-5);
-        glScalef(126,63,1);
-        draw_board();
-        glPopMatrix();
+            glMatrixMode(GL_TEXTURE);
+            glLoadIdentity();
+            glMatrixMode(GL_MODELVIEW);
+            //後
+            setMaterial(0, 0, 0, 0, 0, 0, 0);
+            glColor3f(1, 1, 1);
+            glPushMatrix();
+            glTranslatef(-15, 0, -5);
+            glScalef(126, 63, 1);
+            draw_board();
+            glPopMatrix();
 
-        glPushMatrix();
-        glTranslatef(-10, 0, -60);
-        glScalef(150, 75, 1);
-        draw_board();
-        glPopMatrix();
+            glPushMatrix();
+            glTranslatef(-10, 0, -60);
+            glScalef(150, 75, 1);
+            draw_board();
+            glPopMatrix();
 
-        glPushMatrix();
-        glTranslatef(140, 0, -15);
-        glScalef(136, 88, 1);
-        draw_board();
-        glPopMatrix();
+            glPushMatrix();
+            glTranslatef(140, 0, -15);
+            glScalef(136, 88, 1);
+            draw_board();
+            glPopMatrix();
 
-        glPushMatrix();
-        glTranslatef(110, 0, -40);
-        glScalef(136, 88, 1);
-        draw_board();
-        glPopMatrix();
+            glPushMatrix();
+            glTranslatef(110, 0, -40);
+            glScalef(136, 88, 1);
+            draw_board();
+            glPopMatrix();
 
-        glPushMatrix();
-        glTranslatef(170, 0, -90);
-        glScalef(150, 75, 1);
-        draw_board();
-        glPopMatrix();
+            glPushMatrix();
+            glTranslatef(170, 0, -90);
+            glScalef(150, 75, 1);
+            draw_board();
+            glPopMatrix();
+
+            glDisable(GL_ALPHA_TEST);
+            glDisable(GL_TEXTURE_2D);
+        }
+
+        //GL_TEXTURE_SPHERE
+        //GL_OBJECT_LINEAR
+        //GL_EYE_LINEAR
         
-        glDisable(GL_ALPHA_TEST);
-        glDisable(GL_TEXTURE_2D);
-        //draw_billboard(75, 0, 150, 75);
-        //draw_billboard(6.0 * 4.0, 5.0 * 4.0, 5.0, 8.0);
-        //draw_billboard(3.0 * 4.0, 6.0 * 4.0, 5.0, 8.0);
-        //draw_billboard(2.0 * 4.0, 7.0 * 4.0, 5.0, 8.0);
-        //draw_billboard(7.0 * 4.0, 2.0 * 4.0, 5.0, 8.0);
+        //天空盒子
+        if (!(viewStyle & 1)) {
+            cout << "sky";
+            glDisable(GL_CULL_FACE);
+            glEnable(GL_TEXTURE_2D);
+            glEnable(GL_ALPHA_TEST);
+            glEnable(GL_TEXTURE_GEN_S); //enable texture coordinate generation
+            glEnable(GL_TEXTURE_GEN_T);
+            glTexGeni(GL_S, GL_TEXTURE_GEN_MODE, GL_SPHERE_MAP);
+            glTexGeni(GL_T, GL_TEXTURE_GEN_MODE, GL_SPHERE_MAP);
 
-        
+            glAlphaFunc(GL_GREATER, 0.5);
+            glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+            glBindTexture(GL_TEXTURE_2D, textName[STARSKY]);
 
+            glMatrixMode(GL_TEXTURE);
+            glLoadIdentity();
+            glMatrixMode(GL_MODELVIEW);
 
+            glColor3f(1, 1, 1);
+            glPushMatrix();
+            glTranslatef(150, 0, 50);
+            glutSolidSphere(300, 100, 100);
+            glPopMatrix();
 
+            glDisable(GL_TEXTURE_GEN_S); //enable texture coordinate generation
+            glDisable(GL_TEXTURE_GEN_T);
+            glDisable(GL_ALPHA_TEST);
+            glDisable(GL_TEXTURE_2D);
+            glCullFace(GL_BACK);
+            glEnable(GL_CULL_FACE);
+        }
+        //柵欄
+        {
+            change_color(HOME_COLOR);
+            //glColor3f(162 / 255.0, 92 / 255.0, 21 / 255.0);
+            glPushMatrix();
+            glTranslatef(215,0,10);
+            glRotatef(-90, 0, 1, 0);
+            glPushMatrix();
+            glTranslatef(0,10,0);
+            glScalef(155, 3, 0.5);
+            draw_cube();
+            glPopMatrix();
 
+            for (int i = 0; i < 15; i++) {
+                glPushMatrix();
+                glTranslatef(5+i*10, 0, 0);
+                glScalef(4, 18, 2);  
+                draw_cube();
+                glPopMatrix();
+            }
 
+            glPopMatrix();
+        }
+        //EEVEE
+        {
+            glEnable(GL_TEXTURE_2D);
+            glEnable(GL_ALPHA_TEST);
+            glAlphaFunc(GL_GREATER, 0.5);
+            glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+            glBindTexture(GL_TEXTURE_2D, textName[ELF]);
+            glMatrixMode(GL_TEXTURE);
+            glLoadIdentity();
+            glMatrixMode(GL_MODELVIEW);
+            draw_billboard(115, -30, 50, 50);
+
+            glBindTexture(GL_TEXTURE_2D, textName[EEVEE_1]);
+            glMatrixMode(GL_TEXTURE);
+            glLoadIdentity();
+            glMatrixMode(GL_MODELVIEW);
+            draw_billboard(270, 50, 20, 20);
+
+            glBindTexture(GL_TEXTURE_2D, textName[EEVEE_2]);
+            glMatrixMode(GL_TEXTURE);
+            glLoadIdentity();
+            glMatrixMode(GL_MODELVIEW);
+            draw_billboard(255, 80, 20, 20);
+
+            glBindTexture(GL_TEXTURE_2D, textName[EEVEE_3]);
+            glMatrixMode(GL_TEXTURE);
+            glLoadIdentity();
+            glMatrixMode(GL_MODELVIEW);
+            draw_billboard(270, 90, 20, 20);
+
+            glBindTexture(GL_TEXTURE_2D, textName[EEVEE_4]);
+            glMatrixMode(GL_TEXTURE);
+            glLoadIdentity();
+            glMatrixMode(GL_MODELVIEW);
+            draw_billboard(240, 55, 20, 20);
+
+            glBindTexture(GL_TEXTURE_2D, textName[EEVEE_5]);
+            glMatrixMode(GL_TEXTURE);
+            glLoadIdentity();
+            glMatrixMode(GL_MODELVIEW);
+            draw_billboard(250, 120, 20, 20);
+
+            glBindTexture(GL_TEXTURE_2D, textName[EEVEE_6]);
+            glMatrixMode(GL_TEXTURE);
+            glLoadIdentity();
+            glMatrixMode(GL_MODELVIEW);
+            draw_billboard(235, 90, 20, 20);
+
+            glDisable(GL_ALPHA_TEST);
+            glDisable(GL_TEXTURE_2D);
+        }
     }
 }
 void draw_cylinder(double up, double down, double height) {
@@ -3542,16 +3776,16 @@ void timerFunc(int nTimerID) {
         }
         else if (litfireCnt == 61) {
             litfireCnt++;
-            cout << "61\n";
+            //cout << "61\n";
             litfireIntensity = 1;
             glutPostRedisplay();
             glutTimerFunc(9750, timerFunc, FIREWORKLIGHT);
         }
         else if(litfireCnt <= 101) {
-            cout << litfireCnt << " ";
+            //cout << litfireCnt << " ";
             litfireCnt++;
             litfireIntensity -= 1/40.0;
-            cout << litfireIntensity << "\n";
+            //cout << litfireIntensity << "\n";
             glutPostRedisplay();
             glutTimerFunc(50, timerFunc, FIREWORKLIGHT);
         }
@@ -3690,22 +3924,22 @@ bool change_view_order(unsigned char key) {
     float  x[3], y[3], z[3];
     int i;
     if (key == 19) {       //下 ctrl + w
-        for (int i = 0; i < 3; i++) eye[i] -= 0.5 * u[1][i];  
+        for (int i = 0; i < 3; i++) eye[i] -= 1 * u[1][i];  
     }
     else if (key == 23) {   //上 ctrl + s    
-        for (int i = 0; i < 3; i++) eye[i] += 0.5 * u[1][i];
+        for (int i = 0; i < 3; i++) eye[i] += 1 * u[1][i];
     }
     else if (key == 4) {   //右 ctrl + d     
-        for (int i = 0; i < 3; i++) eye[i] += 0.5 * u[0][i];
+        for (int i = 0; i < 3; i++) eye[i] += 1 * u[0][i];
     }
     else if (key == 1) {   //左 ctrl + a   
-        for (int i = 0; i < 3; i++) eye[i] -= 0.5 * u[0][i];
+        for (int i = 0; i < 3; i++) eye[i] -= 1 * u[0][i];
     }
     if (key == 17) {  //往前 ctrl + q
-        for (i = 0; i < 3; i++) eye[i] -= 0.5 * u[2][i];
+        for (i = 0; i < 3; i++) eye[i] -= 1 * u[2][i];
     }
     else if (key == 5) { //往後 ctrl + e
-        for (i = 0; i < 3; i++) eye[i] += 0.5 * u[2][i];
+        for (i = 0; i < 3; i++) eye[i] += 1 * u[2][i];
     }
     else if (key == 24) {             //ctrl + x pitching 
         eyeAngx += 5.0;
@@ -3784,7 +4018,7 @@ bool change_view_order(unsigned char key) {
         }
     }
     else if (key == 2) { //遠景多 ctrl + b
-        if(clippingWindowPerspective[_f] < 140) clippingWindowPerspective[_f] += 2;
+        if(clippingWindowPerspective[_f] < 1000) clippingWindowPerspective[_f] += 2;
     }
     else if (key == 14) { //遠景少 ctrl + n
         if (clippingWindowPerspective[_f] > 40) clippingWindowPerspective[_f] -= 2;
