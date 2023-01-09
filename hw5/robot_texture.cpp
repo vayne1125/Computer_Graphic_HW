@@ -176,16 +176,41 @@ float  global_ambient[] = { 0.2, 0.2, 0.2, 1.0 };
 
 /*-----textures 參數-----*/
 bool isTextureOpen = 0;
-unsigned int   textName[20];                   /* declare many texture maps*/
+unsigned int   textName[100];                   /* declare many texture maps*/
 unsigned char  checkboard[TSIZE0][TSIZE0][4];   /* checkboard textures */
 unsigned char  dot[TSIZE1][TSIZE1][4];        /* brick wall textures */
 
 int image_width, image_height, nrChannels;
 unsigned char* image_data;
 int poolAng = 0;
-
+bool isFogOpen = 0;
+int fogMode = 0;
+float fogOpacity = 0.1;
+int fogColorMode = 0;
+float fogColor[4] = { 1,1,1,0.1 };
+int eevee_ani = 14;
 /*---- the axes of billboard ----*/
 float  a[3], b[3];
+
+//Define GLU quadric objects, a sphere and a cylinder
+GLUquadricObj* sphere = NULL, * cylind = NULL, * mycircle = NULL;
+int see = 0;             //切換視角(開發地圖用 實際無此功能)                                     
+int preKey = 0;          //上一個按鍵案誰
+int scene = MAGICFIELD;  //初始背景為魔法陣
+bool isLock = 0;         //按鍵是否鎖了
+bool sitOnChair = 0;
+bool debugMode = 0;
+int debugModeCmd = 0;
+void draw_magic_field();
+void draw_cube();
+void draw_cylinder(double up, double down, double height);
+void change_color(int value);
+void change_color_material(int value);
+void draw_circle(double size, int wid);
+void draw_square(int hei, int wid, int sz);
+void draw_view_volume();
+void draw_tree(int button, int height);
+
 /*-------------------------------------------------------
  * Procedure to compute the a[] and b[] axes of billboard
  * after eye parameters are specified.
@@ -233,6 +258,7 @@ void draw_billboard(float x, float z, float w, float h)
     v2[0] = x + (w / 2) * a[0]; v2[1] = h; v2[2] = z + (w / 2) * a[2];
     v3[0] = x - (w / 2) * a[0]; v3[1] = h; v3[2] = z - (w / 2) * a[2];
     glColor3f(1,1,1);
+    glNormal3f(0,0,1);
     glBegin(GL_QUADS);
     glTexCoord2f(0.0, 1.0); glVertex3fv(v0);
     glTexCoord2f(1.0, 1.0); glVertex3fv(v1);
@@ -313,7 +339,7 @@ void make_heart_pink()
 }
 void create_texture() {
     glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
-    glGenTextures(20, textName);
+    glGenTextures(100, textName);
 
     make_checkboard_blue();
     glBindTexture(GL_TEXTURE_2D, textName[CHECKBOARD_BLUE]);
@@ -338,7 +364,7 @@ void create_texture() {
 
 
     //image_data = stbi_load("C:\\Users\\WANG\\source\\repos\\cg_test\\x64\\Debug\\grass.jpeg", &image_width, &image_height, &nrChannels, 0);
-    image_data = stbi_load("flower.png", &image_width, &image_height, &nrChannels, 0);
+    image_data = stbi_load("image\\flower.png", &image_width, &image_height, &nrChannels, 0);
     glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
     glBindTexture(GL_TEXTURE_2D, textName[FLOWER]);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
@@ -354,7 +380,7 @@ void create_texture() {
     }
 
     //image_data = stbi_load("C:\\Users\\WANG\\source\\repos\\cg_test\\x64\\Debug\\wood.jpg", &image_width, &image_height, &nrChannels, 0);
-    image_data = stbi_load("wood.jpg", &image_width, &image_height, &nrChannels, 0);
+    image_data = stbi_load("image\\wood.jpg", &image_width, &image_height, &nrChannels, 0);
     glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
     glBindTexture(GL_TEXTURE_2D, textName[WOOD_FLOOR]);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
@@ -370,7 +396,7 @@ void create_texture() {
     }
 
     //image_data = stbi_load("C:\\Users\\WANG\\source\\repos\\cg_test\\x64\\Debug\\pool.jpg", &image_width, &image_height, &nrChannels, 0);
-    image_data = stbi_load("pool.jpg", &image_width, &image_height, &nrChannels, 0);
+    image_data = stbi_load("image\\pool.jpg", &image_width, &image_height, &nrChannels, 0);
     glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
     glBindTexture(GL_TEXTURE_2D, textName[POOL]);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
@@ -385,7 +411,7 @@ void create_texture() {
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, image_width, image_height, 0, GL_RGB, GL_UNSIGNED_BYTE, image_data);
     }
 
-    image_data = stbi_load("forest.png", &image_width, &image_height, &nrChannels, 0);
+    image_data = stbi_load("image\\forest.png", &image_width, &image_height, &nrChannels, 0);
     glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
     glBindTexture(GL_TEXTURE_2D, textName[FOREST]);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
@@ -401,7 +427,7 @@ void create_texture() {
     }
 
 
-    image_data = stbi_load("starsky.jpg", &image_width, &image_height, &nrChannels, 0);
+    image_data = stbi_load("image\\starsky.jpg", &image_width, &image_height, &nrChannels, 0);
     glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
     glBindTexture(GL_TEXTURE_2D, textName[STARSKY]);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
@@ -416,7 +442,7 @@ void create_texture() {
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, image_width, image_height, 0, GL_RGB, GL_UNSIGNED_BYTE, image_data);
     }
 
-    image_data = stbi_load("elk.png", &image_width, &image_height, &nrChannels, 0);
+    image_data = stbi_load("image\\elk.png", &image_width, &image_height, &nrChannels, 0);
     glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
     glBindTexture(GL_TEXTURE_2D, textName[ELF]);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
@@ -431,7 +457,7 @@ void create_texture() {
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, image_width, image_height, 0, GL_RGB, GL_UNSIGNED_BYTE, image_data);
     }
 
-    image_data = stbi_load("eevee_1.png", &image_width, &image_height, &nrChannels, 0);
+    image_data = stbi_load("image\\eevee_1.png", &image_width, &image_height, &nrChannels, 0);
     glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
     glBindTexture(GL_TEXTURE_2D, textName[EEVEE_1]);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
@@ -446,7 +472,7 @@ void create_texture() {
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, image_width, image_height, 0, GL_RGB, GL_UNSIGNED_BYTE, image_data);
     }
 
-    image_data = stbi_load("eevee_2.png", &image_width, &image_height, &nrChannels, 0);
+    image_data = stbi_load("image\\eevee_2.png", &image_width, &image_height, &nrChannels, 0);
     glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
     glBindTexture(GL_TEXTURE_2D, textName[EEVEE_2]);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
@@ -461,7 +487,7 @@ void create_texture() {
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, image_width, image_height, 0, GL_RGB, GL_UNSIGNED_BYTE, image_data);
     }
 
-    image_data = stbi_load("eevee_3.png", &image_width, &image_height, &nrChannels, 0);
+    image_data = stbi_load("image\\eevee_3.png", &image_width, &image_height, &nrChannels, 0);
     glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
     glBindTexture(GL_TEXTURE_2D, textName[EEVEE_3]);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
@@ -477,7 +503,7 @@ void create_texture() {
     }
 
 
-    image_data = stbi_load("eevee_4.png", &image_width, &image_height, &nrChannels, 0);
+    image_data = stbi_load("image\\eevee_4.png", &image_width, &image_height, &nrChannels, 0);
     glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
     glBindTexture(GL_TEXTURE_2D, textName[EEVEE_4]);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
@@ -492,7 +518,7 @@ void create_texture() {
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, image_width, image_height, 0, GL_RGB, GL_UNSIGNED_BYTE, image_data);
     }
 
-    image_data = stbi_load("eevee_5.png", &image_width, &image_height, &nrChannels, 0);
+    image_data = stbi_load("image\\eevee_5.png", &image_width, &image_height, &nrChannels, 0);
     glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
     glBindTexture(GL_TEXTURE_2D, textName[EEVEE_5]);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
@@ -507,7 +533,7 @@ void create_texture() {
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, image_width, image_height, 0, GL_RGB, GL_UNSIGNED_BYTE, image_data);
     }
 
-    image_data = stbi_load("eevee_6.png", &image_width, &image_height, &nrChannels, 0);
+    image_data = stbi_load("image\\eevee_6.png", &image_width, &image_height, &nrChannels, 0);
     glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
     glBindTexture(GL_TEXTURE_2D, textName[EEVEE_6]);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
@@ -521,35 +547,45 @@ void create_texture() {
     else {
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, image_width, image_height, 0, GL_RGB, GL_UNSIGNED_BYTE, image_data);
     }
+
+
+    for (int i = 0; i <= 55; i++) {
+        string s1 = "image\\eevee_ani_",s2 = "";
+        int tp = i;
+        while (tp) {
+            s2 += (tp % 10) + '0';
+            tp /= 10;
+        }
+        reverse(s2.begin(),s2.end());
+        if (i == 0) s2 = "0";
+        string s3 = ".png";
+        s1 = s1 + s2 + s3;
+        image_data = stbi_load(s1.c_str(), &image_width, &image_height, &nrChannels, 0);
+        glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
+        glBindTexture(GL_TEXTURE_2D, textName[14+i]);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        if (nrChannels == 4) {
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image_width, image_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, image_data);
+        }
+        else {
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, image_width, image_height, 0, GL_RGB, GL_UNSIGNED_BYTE, image_data);
+        }
+    }
+
+    //image_data = stbi_load("eevee_ani_1.png", &image_width, &image_height, &nrChannels, 0);
+    //glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
+    //glBindTexture(GL_TEXTURE_2D, textName[14]);
+    //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+
 }
 
 
-
-
-
-
-
-
-
-
-//Define GLU quadric objects, a sphere and a cylinder
-GLUquadricObj* sphere = NULL, * cylind = NULL, * mycircle = NULL;
-int see = 0;             //切換視角(開發地圖用 實際無此功能)                                     
-int preKey = 0;          //上一個按鍵案誰
-int scene = GRASSLAND;  //初始背景為魔法陣
-bool isLock = 0;         //按鍵是否鎖了
-bool sitOnChair = 0;
-bool debugMode = 0;
-int debugModeCmd = 0;
-void draw_magic_field();
-void draw_cube();
-void draw_cylinder(double up, double down, double height);
-void change_color(int value);
-void change_color_material(int value);
-void draw_circle(double size, int wid);
-void draw_square(int hei, int wid,int sz);
-void draw_view_volume();
-void draw_tree(int button, int height);
 float getDis(float x1, float y1, float x2, float y2) {           //算距離
     return sqrt((x1 - x2) * (x1 - x2) + (y1 - y2) * (y1 - y2));
 }
@@ -1875,9 +1911,15 @@ void myinit()
     glLightModelfv(GL_LIGHT_MODEL_AMBIENT, global_ambient); /*global ambient 全域的環境光*/
 
     /*-----Enable face culling 消除不必要的計算 -----*/
-    
     glCullFace(GL_BACK);
     glEnable(GL_CULL_FACE);
+
+    //fog
+    glFogf(GL_FOG_START, 0.0);
+    glFogf(GL_FOG_END, 200.0);
+    glFogfv(GL_FOG_COLOR, fogColor);
+    glFogi(GL_FOG_MODE, GL_LINEAR);
+    glFogf(GL_FOG_DENSITY, fogOpacity);
 
     glFlush();/*Enforce window system display the results*/
     
@@ -2296,6 +2338,7 @@ void draw_scene(int mode) {
         myMagic_wand.setPos(30, 7, 30);
         if (myMagic_wand.show) draw_magic_wand();
         glPopMatrix();
+        glDisable(GL_FOG);
     }
     else if (mode == GRASSLAND) {
 
@@ -2913,6 +2956,14 @@ void draw_scene(int mode) {
             glLoadIdentity();
             glMatrixMode(GL_MODELVIEW);
             draw_billboard(235, 90, 20, 20);
+
+           
+            glBindTexture(GL_TEXTURE_2D, textName[eevee_ani]);
+            glMatrixMode(GL_TEXTURE);
+            glLoadIdentity();
+            glMatrixMode(GL_MODELVIEW);
+            draw_billboard(30, 90, 37.5, 20);
+
 
             glDisable(GL_ALPHA_TEST);
             glDisable(GL_TEXTURE_2D);
@@ -3594,6 +3645,8 @@ void timerFunc(int nTimerID) {
     case GRASSLAND_ANIMATION:                //搖椅擺擺擺
         myBig_chair.move();
         poolAng++;
+        eevee_ani++;
+        if (eevee_ani >= 70) eevee_ani = 14;
         if (scene == GRASSLAND) {
             glutTimerFunc(100, timerFunc, GRASSLAND_ANIMATION);
         }
@@ -3990,13 +4043,13 @@ bool change_view_order(unsigned char key) {
         init_camera();
     }
     else if (key == 3) { //zoom in ctrl + c
-        if (fabs(clippingWindowPerspective[_l] - clippingWindowPerspective[_r]) > 4 || fabs(clippingWindowPerspective[_l] - clippingWindowPerspective[_r]) > 4 *width / height) {
+        if (fabs(clippingWindowPerspective[_l] - clippingWindowPerspective[_r]) > 10 || fabs(clippingWindowPerspective[_l] - clippingWindowPerspective[_r]) > 10 *width / height) {
             clippingWindowPerspective[_l] += 2;
             clippingWindowPerspective[_r] -= 2;
             clippingWindowPerspective[_b] += 2 * width / height;
             clippingWindowPerspective[_t] -= 2 * width / height;
         }   
-        if (fabs(clippingWindowOrtho[_l] - clippingWindowOrtho[_r]) > 4 || fabs(clippingWindowOrtho[_l] - clippingWindowOrtho[_r]) > 4 * width / height) {
+        if (fabs(clippingWindowOrtho[_l] - clippingWindowOrtho[_r]) > 10 || fabs(clippingWindowOrtho[_l] - clippingWindowOrtho[_r]) > 10 * width / height) {
             clippingWindowOrtho[_l] += 2;
             clippingWindowOrtho[_r] -= 2;
             clippingWindowOrtho[_b] += 2 * width / height;
@@ -4280,6 +4333,42 @@ void keybaord_fun(unsigned char key, int x, int y) {
         litspotCutoffAng = fmin(90.0, litspotCutoffAng + 5);
         //cout << litspotCutoffAng << "\n";
     }
+    else if (key == 'c' || key == 'C') {
+        isFogOpen ^= 1;
+        if (isFogOpen) glEnable(GL_FOG);
+        else glDisable(GL_FOG);
+    }
+    else if (key == 'v' || key == 'V') {
+        fogMode++;
+        fogMode %= 3;
+        int mode = 0;
+        if (fogMode == 0) mode = GL_LINEAR;
+        else if (fogMode == 1) mode = GL_EXP;
+        else mode = GL_EXP2;
+        glFogi(GL_FOG_MODE, mode);
+    }
+    else if (key == 'b' || key == 'B') {
+        fogColorMode++;
+        fogColorMode %= 2;
+        if (fogColorMode == 0) {
+            fogColor[0] = fogColor[1] = fogColor[2] = 1;
+        }
+        //rgb(92,108,108)背景藍
+        else if (fogColorMode == 1) {
+            fogColor[0] = 92 / 255.0;
+            fogColor[1] =  fogColor[2] = 108 / 255.0;
+        }
+        fogColor[3] = 0.1;
+        glFogfv(GL_FOG_COLOR, fogColor);/*set the fog color */
+    }
+    else if (key == 'n' || key == 'N') { //淡
+        fogOpacity = max((fogOpacity - 0.01), 0.01);
+        glFogf(GL_FOG_DENSITY, fogOpacity);
+    }
+    else if (key == 'm' || key == 'M') {
+        fogOpacity = min((fogOpacity + 0.01), 0.1);
+        glFogf(GL_FOG_DENSITY, fogOpacity);
+    }
     //開發用 不支援!!
     //if (key == 'u') glutTimerFunc(100, timerFunc, GRASSLAND_ANIMATION);
     //if (key == 'o' || key == 'O') {
@@ -4343,7 +4432,7 @@ int main(int argc, char** argv)
     glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH);
 
     glutInitWindowSize(600,600);
-    glutCreateWindow("RobotLight");
+    glutCreateWindow("RobotTexture");
 
     myinit();      /*---Initialize other state varibales----*/
 
