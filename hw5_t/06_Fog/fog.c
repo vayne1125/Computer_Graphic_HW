@@ -33,7 +33,7 @@ float  lit_diffuse[] = {0.8, 0.8, 0.8, 1.0};
 float  lit_specular[] = {0.9, 0.9, 0.9, 1.0};
 
 /*---Define fog color----*/
-float fog_color[]={1, 1, 1, 1};
+float fog_color[]={0.15, 0.20, 0.20, 0.50};
 
 /*--- Translates of eye position ---*/
 float dx=0.0, dy=0.0, dz=0.0;
@@ -43,7 +43,7 @@ float dx=0.0, dy=0.0, dz=0.0;
  */
 void myinit()
 { /*---Clear the background to the fog color---*/
-  glClearColor(1, 1, 1, 1);
+  glClearColor(fog_color[0], fog_color[1], fog_color[2], fog_color[3]);
   glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
 
   glShadeModel(GL_SMOOTH);
@@ -130,7 +130,6 @@ void display()
   }
 
   /*----Define material properties for cubes and draw them ---*/
-
   glMaterialfv(GL_FRONT, GL_AMBIENT, mat_ambient);
   glMaterialfv(GL_FRONT, GL_DIFFUSE, mat_diffuse);
   glMaterialf(GL_FRONT, GL_SHININESS, mat_shininess);
