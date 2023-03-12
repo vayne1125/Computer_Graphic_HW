@@ -30,3 +30,15 @@ This project base on project 2 just adding the camera to see scene with differen
  <img src="/readmeImg/view-1.png" alt="view-1" title="view" height="200"> <img src="/readmeImg/view-2.png" alt="view-2" title="view" height="200"> 
  
  <img src="/readmeImg/view-4.png" alt="view-4" title="view" height="200"> <img src="/readmeImg/view-3.png" alt="view-3" title="view" height="200"> 
+
+- project 4:  Lighting & Shading
+
+ <img src="/readmeImg/light-1.jpg" alt="light-1" title="light" height="200"> <img src="/readmeImg/light-2.png" alt="light-2" title="light" height="200"> 
+ 
+ <img src="/readmeImg/light-4.png" alt="light-4" title="light" height="200"> <img src="/readmeImg/light-3.png" alt="light-3" title="light" height="200"> 
+ 
+ - project 5: Texture Mapping & Billboard
+
+ <img src="/readmeImg/texture-1.png" alt="light-1" title="light" height="200"> <img src="/readmeImg/texture-2.png" alt="light-1" title="light" height="200"> <img src="/readmeImg/texture-3.png" alt="light-2" title="light" height="200"> 
+ 
+ <img src="/readmeImg/texture-4.png" alt="light-4" title="light" height="200"> <img src="/readmeImg/texture-5.png" alt="light-3" title="light" height="200"> 
